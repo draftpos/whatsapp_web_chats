@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_whatsapp_web_chats" model="ir.actions.client">
+        <field name="name">WhatsApp Web Chats</field>
+        <field name="tag">whatsapp_web_chats.chats_client_action</field>
+    </record>
+
+    <!-- We don't need a root menu anymore since it's under WhatsApp -->
+    <menuitem id="menu_whatsapp_web_chats_action" name="Chats" parent="whatsapp.whatsapp_menu_main" action="action_whatsapp_web_chats" sequence="10"/>
+</odoo>

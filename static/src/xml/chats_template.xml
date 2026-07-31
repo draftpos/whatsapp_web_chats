@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="whatsapp_web_chats.ChatsAction" owl="1">
+        <div class="whatsapp-container">
+            <div class="whatsapp-sidebar">
+                <div class="whatsapp-header">
+                    <div style="display: flex; align-items: center;">
+                        <t t-set="activeAcc" t-value="state.accounts.find(a => a.id.toString() === state.selectedAccount)"/>
+                        <t t-if="activeAcc and activeAcc.image_1920">
+                            <img t-attf-src="data:image/jpeg;base64,{{activeAcc.image_1920}}" class="chat-avatar" style="object-fit: cover; margin-right: 10px;"/>
+                        </t>
+                        <span>Chats</span>
+                    </div>
+                    <t t-if="state.accounts.length > 0">
+                        <select class="whatsapp-account-select" t-model="state.selectedAccount" t-on-change="loadChannels">
+                            <t t-foreach="state.accounts" t-as="acc" t-key="acc.id">
+                                <option t-att-value="acc.id"><t t-esc="acc.name"/></option>
+                            </t>
+                        </select>
+                    </t>
+                </div>
+                <div class="whatsapp-chat-list">
+                    <t t-foreach="state.channels" t-as="channel" t-key="channel.id">
+                        <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }}" t-on-click="() => this.selectChannel(channel)">
+                            <div class="chat-avatar-container">
+                                <t t-if="channel.customer_image">
+                                    <img t-attf-src="data:image/jpeg;base64,{{channel.customer_image}}" class="chat-avatar" style="object-fit: cover;"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="chat-avatar"><t t-esc="channel.name[0].toUpperCase()"/></div>
+                                </t>
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-name"><t t-esc="channel.name"/></div>
+                            </div>
+                            <t t-if="channel.unread_count and channel.unread_count > 0">
+                                <div class="chat-unread-badge">
+                                    <t t-esc="channel.unread_count"/>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </div>
+                <div class="whatsapp-sidebar-footer" style="padding: 10px; text-align: center; border-top: 1px solid #ddd; background: #f0f2f5;">
+                    <button class="whatsapp-attach-btn" title="Store Catalogue" t-on-click="openCatalogue" style="width: 100%; border-radius: 8px; background: #fff; padding: 10px; border: 1px solid #ddd;">
+                        <i class="fa fa-shopping-bag" style="margin-right: 8px;"/> View Catalogue
+                    </button>
+                </div>
+            </div>
+            <div class="whatsapp-main">
+                <t t-if="state.selectedChannel">
+                    <div class="whatsapp-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center;">
+                            <t t-if="state.selectedChannel.customer_image">
+                                <img t-attf-src="data:image/jpeg;base64,{{state.selectedChannel.customer_image}}" class="chat-avatar" style="object-fit: cover;"/>
+                            </t>
+                            <t t-else="">
+                                <div class="chat-avatar"><t t-esc="state.selectedChannel.name[0].toUpperCase()"/></div>
+                            </t>
+                            <span class="chat-header-name"><t t-esc="state.selectedChannel.name"/></span>
+                            
+                            <!-- Dropdown to select Business Account in the Chat Header -->
+                            <t t-if="state.accounts and state.accounts.length > 0">
+                                <select class="whatsapp-account-select" t-model="state.selectedChannel.wa_account_id" t-on-change="changeChatAccount" style="margin-left: 15px; font-size: 12px; padding: 2px;">
+                                    <t t-foreach="state.accounts" t-as="acc" t-key="acc.id">
+                                        <option t-att-value="acc.id"><t t-esc="acc.name"/></option>
+                                    </t>
+                                </select>
+                            </t>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <button class="whatsapp-header-btn" title="Video Call" t-on-click="callCustomer" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
+                                <i class="fa fa-video-camera"/>
+                            </button>
+                            <button class="whatsapp-header-btn" title="Voice Call" t-on-click="callCustomer" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
+                                <i class="fa fa-phone"/>
+                            </button>
+                            <button class="whatsapp-header-btn" title="Store Catalogue" t-on-click="openCatalogue" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
+                                <i class="fa fa-shopping-bag"/>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="whatsapp-messages" t-ref="messagesContainer">
+                        <t t-foreach="state.messages" t-as="msg" t-key="msg.id">
+                            <div t-attf-class="message-row {{ msg.isMe ? 'message-me' : 'message-other' }}">
+                                <div class="message-bubble">
+                                    <t t-if="msg.attachment_ids and msg.attachment_ids.length &gt; 0">
+                                        <div class="message-attachments">
+                                            <t t-foreach="msg.attachment_ids" t-as="att_id" t-key="att_id">
+                                                <img class="message-img" t-attf-src="/web/image/{{att_id}}"/>
+                                            </t>
+                                        </div>
+                                    </t>
+                                    <div class="message-body" t-esc="msg.bodyText"/>
+                                    <div class="message-time"><t t-esc="msg.timeText"/></div>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                    <div class="whatsapp-footer">
+                        <t t-if="state.pendingFile">
+                            <div class="whatsapp-file-preview">
+                                <div class="preview-close" t-on-click="removePendingFile">
+                                    <i class="fa fa-times"/>
+                                </div>
+                                <t t-if="state.pendingFile.type.startsWith('image/')">
+                                    <img class="preview-img" t-att-src="state.pendingFile.dataUrl"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="preview-doc">
+                                        <i class="fa fa-file-text-o fa-2x"/>
+                                        <div class="preview-filename"><t t-esc="state.pendingFile.name"/></div>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                        <div class="whatsapp-input-area">
+                            <input type="file" id="whatsapp-file-input" style="display: none;" t-on-change="onFileSelect"/>
+                            <label for="whatsapp-file-input" class="whatsapp-attach-btn" title="Attach File" style="margin: 0; cursor: pointer; padding: 8px;">
+                                <i class="fa fa-paperclip"/>
+                            </label>
+                            <button class="whatsapp-attach-btn" title="WhatsApp Templates" t-on-click="openTemplatesModal" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent;">
+                                <i class="fa fa-plus"/>
+                            </button>
+                            <input type="text" class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown"/>
+                            <button class="whatsapp-send-btn" t-on-click="sendMessage">
+                                <i class="fa fa-paper-plane"/>
+                            </button>
+                        </div>
+                    </div>
+                </t>
+                <t t-else="">
+                    <div class="whatsapp-empty">
+                        <div class="empty-text">Select a chat to start messaging</div>
+                    </div>
+                </t>
+            </div>
+        </div>
+
+        <t t-if="state.showCatalogue">
+            <div class="catalogue-modal">
+                <div class="catalogue-content">
+                    <div class="catalogue-header">
+                        <h3>Product Catalogue</h3>
+                        <button class="preview-close" t-on-click="closeCatalogue" style="position: static;"><i class="fa fa-times"></i></button>
+                    </div>
+                    <div class="catalogue-grid">
+                        <t t-foreach="state.products" t-as="product" t-key="product.id">
+                            <div class="product-card" t-on-click="() => this.selectProduct(product)">
+                                <t t-if="product.image_128">
+                                    <img t-attf-src="data:image/jpeg;base64,{{product.image_128}}" class="product-img"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="product-img-placeholder"><i class="fa fa-box"></i></div>
+                                </t>
+                                <div class="product-info">
+                                    <div class="product-name"><t t-esc="product.name"/></div>
+                                    <div class="product-price">$<t t-esc="product.list_price.toFixed(2)"/></div>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <t t-if="state.showTemplatesModal">
+            <div class="catalogue-modal">
+                <div class="catalogue-content">
+                    <div class="catalogue-header">
+                        <h3>WhatsApp Templates</h3>
+                        <button class="preview-close" t-on-click="closeTemplatesModal" style="position: static;"><i class="fa fa-times"></i></button>
+                    </div>
+                    <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto;">
+                        <t t-if="state.wa_templates.length === 0">
+                            <div style="text-align:center; color:#888; padding:20px;">No templates found.</div>
+                        </t>
+                        <t t-foreach="state.wa_templates" t-as="tmpl" t-key="tmpl.id">
+                            <div class="template-card" t-on-click="() => this.selectTemplate(tmpl)"
+                                 style="background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:14px 16px; cursor:pointer; transition:box-shadow 0.2s;">
+                                <div style="font-weight:600; font-size:14px; color:#128C7E; margin-bottom:6px;">
+                                    <t t-esc="tmpl.template_name"/>
+                                </div>
+                                <div style="font-size:13px; color:#333; white-space:pre-wrap; line-height:1.5;">
+                                    <t t-esc="tmpl.body"/>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </t>
+</templates>

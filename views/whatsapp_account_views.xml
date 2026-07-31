@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_whatsapp_account_form_inherit" model="ir.ui.view">
+        <field name="name">whatsapp.account.form.inherit.chats</field>
+        <field name="model">whatsapp.account</field>
+        <field name="inherit_id" ref="whatsapp.whatsapp_account_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <field name="image_1920" widget="image" class="oe_avatar" options="{'size': [90, 90]}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
