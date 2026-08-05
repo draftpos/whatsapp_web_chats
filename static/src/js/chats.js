@@ -178,8 +178,14 @@ export class WhatsAppChatsAction extends Component {
         
         this.state.messages = messages.map(msg => {
             let isMe = true;
-            if (msg.author_id && this.state.selectedChannel && this.state.selectedChannel.whatsapp_partner_id) {
-                isMe = (msg.author_id[0] !== this.state.selectedChannel.whatsapp_partner_id[0]);
+            if (msg.author_id) {
+                if (this.myPartnerId && msg.author_id[0] === this.myPartnerId) {
+                    isMe = true;
+                } else if (this.state.selectedChannel && this.state.selectedChannel.whatsapp_partner_id) {
+                    isMe = (msg.author_id[0] !== this.state.selectedChannel.whatsapp_partner_id[0]);
+                } else {
+                    isMe = false;
+                }
             }
             
             let tmp = document.createElement("DIV");
