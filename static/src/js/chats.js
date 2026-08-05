@@ -93,10 +93,11 @@ export class WhatsAppChatsAction extends Component {
             domain.push(["wa_account_id", "=", parseInt(this.state.selectedAccount)]);
         }
 
-        const channels = await this.orm.searchRead(
-            "discuss.channel",
-            domain,
-            ["id", "name", "channel_type", "whatsapp_partner_id", "wa_account_id"]
+        const channels = await this.orm.call(
+            "whatsapp.account",
+            "get_whatsapp_web_channels",
+            [],
+            { wa_account_id: this.state.selectedAccount }
         );
         
         if (channels.length > 0 && this.myPartnerId) {
@@ -169,11 +170,10 @@ export class WhatsAppChatsAction extends Component {
     async loadMessages(channelId = null) {
         const id = channelId || (this.state.selectedChannel ? this.state.selectedChannel.id : null);
         if (!id) return;
-        const messages = await this.orm.searchRead(
-            "mail.message",
-            [["res_id", "=", id], ["model", "=", "discuss.channel"]],
-            ["id", "body", "author_id", "date", "attachment_ids"],
-            { limit: 100, order: "date asc" }
+        const messages = await this.orm.call(
+            "whatsapp.account",
+            "get_whatsapp_web_messages",
+            [id]
         );
         
         this.state.messages = messages.map(msg => {
