@@ -2,17 +2,20 @@
     display: flex;
     height: 100%;
     width: 100%;
-    background-color: #f0f2f5;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #111b21;
 }
 
 .whatsapp-sidebar {
-    width: 30%;
-    min-width: 300px;
+    width: 32%;
+    min-width: 320px;
     background-color: #ffffff;
-    border-right: 1px solid #d1d7db;
+    border-right: 1px solid #e9ecef;
     display: flex;
     flex-direction: column;
+    z-index: 10;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.03);
 }
 
 .whatsapp-main {
@@ -23,17 +26,27 @@
     background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
     background-size: cover;
     background-position: center;
+    position: relative;
+}
+
+.whatsapp-main::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.4);
+    z-index: 0;
 }
 
 .whatsapp-header {
-    height: 60px;
-    background-color: #f0f2f5;
+    height: 65px;
+    background-color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px;
+    padding: 10px 20px;
     box-sizing: border-box;
-    border-bottom: 1px solid #d1d7db;
+    border-bottom: 1px solid #e9ecef;
+    z-index: 1;
 }
 
 .whatsapp-header span {
@@ -43,50 +56,82 @@
 }
 
 .whatsapp-account-select {
-    padding: 5px;
-    border-radius: 5px;
+    padding: 6px 12px;
+    border-radius: 8px;
     border: 1px solid #d1d7db;
-    background-color: white;
+    background-color: #f8f9fa;
     font-size: 14px;
+    font-weight: 500;
     color: #111b21;
-    max-width: 150px;
+    max-width: 160px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.whatsapp-account-select:hover {
+    background-color: #e9ecef;
 }
 
 .chat-avatar {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background-color: #dfe5e7;
+    background: linear-gradient(135deg, #00bfa5 0%, #008069 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 20px;
-    font-weight: bold;
+    font-weight: 600;
     color: #fff;
     margin-right: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .chat-header-name {
-    margin-left: 15px;
+    margin-left: 10px;
+    font-weight: 600;
+    font-size: 16px;
 }
 
 .whatsapp-chat-list {
     flex: 1;
     overflow-y: auto;
+    background: #ffffff;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.15); 
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.25); 
 }
 
 .whatsapp-chat-item {
     display: flex;
     align-items: center;
-    padding: 0 15px;
-    height: 72px;
+    padding: 0 20px;
+    height: 75px;
     cursor: pointer;
     background-color: #ffffff;
-    border-bottom: 1px solid #f2f2f2;
+    border-bottom: 1px solid #f8f9fa;
+    transition: background-color 0.2s ease;
 }
 
-.whatsapp-chat-item:hover, .whatsapp-chat-item.active {
-    background-color: #f5f6f6;
+.whatsapp-chat-item:hover {
+    background-color: #f8f9fa;
+}
+
+.whatsapp-chat-item.active {
+    background-color: #f0f2f5;
 }
 
 .chat-info {
@@ -97,36 +142,45 @@
 }
 
 .chat-name {
-    font-size: 17px;
+    font-size: 16px;
+    font-weight: 500;
     color: #111b21;
 }
 
 .chat-unread-badge {
     background-color: #25d366;
     color: white;
-    border-radius: 50%;
-    padding: 0 6px;
+    border-radius: 20px;
+    padding: 2px 8px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     min-width: 20px;
-    height: 20px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-left: 10px;
+    box-shadow: 0 2px 4px rgba(37,211,102,0.3);
 }
 
 .whatsapp-messages {
     flex: 1;
-    padding: 20px;
+    padding: 24px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    z-index: 1;
 }
 
 .message-row {
     display: flex;
     margin-bottom: 12px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .message-me {
@@ -139,72 +193,91 @@
 
 .message-bubble {
     max-width: 65%;
-    padding: 6px 7px 8px 9px;
-    border-radius: 7.5px;
+    padding: 8px 12px;
+    border-radius: 12px;
     position: relative;
-    box-shadow: 0 1px 0.5px rgba(11, 20, 26, .13);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
+    font-size: 14.5px;
 }
 
 .message-me .message-bubble {
     background-color: #d9fdd3;
-    border-top-right-radius: 0;
+    border-bottom-right-radius: 4px;
 }
 
 .message-other .message-bubble {
     background-color: #ffffff;
-    border-top-left-radius: 0;
+    border-bottom-left-radius: 4px;
 }
 
 .message-body p {
     margin: 0;
-    font-size: 14px;
-    line-height: 19px;
+    line-height: 20px;
     color: #111b21;
     word-wrap: break-word;
 }
 
 .message-time {
     font-size: 11px;
-    color: #667781;
+    color: rgba(17, 27, 33, 0.6);
     text-align: right;
     margin-top: 4px;
+    font-weight: 500;
 }
 
 .whatsapp-input-area {
-    height: 62px;
-    background-color: #f0f2f5;
+    height: 70px;
+    background-color: #ffffff;
     display: flex;
     align-items: center;
-    padding: 5px 10px;
+    padding: 10px 20px;
     box-sizing: border-box;
+    border-top: 1px solid #e9ecef;
+    z-index: 1;
 }
 
 .whatsapp-input {
     flex: 1;
-    height: 42px;
-    border-radius: 8px;
-    border: none;
-    padding: 9px 12px;
+    height: 44px;
+    border-radius: 22px;
+    border: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+    padding: 10px 20px;
     font-size: 15px;
-    margin: 0 10px;
+    margin: 0 15px;
     box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .whatsapp-input:focus {
     outline: none;
+    border-color: #00bfa5;
+    box-shadow: 0 0 0 3px rgba(0,191,165,0.1);
+    background-color: #ffffff;
 }
 
 .whatsapp-send-btn, .whatsapp-attach-btn {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 20px;
-    color: #54656f;
-    padding: 8px;
+    font-size: 22px;
+    color: #8696a0;
+    padding: 10px;
     display: flex;
     align-items: center;
+    transition: color 0.2s ease, transform 0.1s ease;
+    border-radius: 50%;
+}
+
+.whatsapp-send-btn:hover, .whatsapp-attach-btn:hover {
+    color: #00bfa5;
+    background-color: #f0f2f5;
+}
+
+.whatsapp-send-btn:active {
+    transform: scale(0.95);
 }
 
 .whatsapp-empty {
@@ -212,55 +285,63 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1;
 }
 
 .empty-text {
-    background-color: #fff;
-    padding: 10px 20px;
-    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 12px 24px;
+    border-radius: 24px;
     color: #54656f;
     font-size: 14px;
-    box-shadow: 0 1px 0.5px rgba(11, 20, 26, .13);
+    font-weight: 500;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
 .whatsapp-footer {
     display: flex;
     flex-direction: column;
-    background-color: #f0f2f5;
+    background-color: #ffffff;
+    z-index: 1;
 }
 
 .whatsapp-file-preview {
-    background-color: #f0f2f5;
+    background-color: #f8f9fa;
     padding: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-top: 1px solid #d1d7db;
+    border-top: 1px solid #e9ecef;
     position: relative;
     max-height: 250px;
 }
 
 .preview-close {
     position: absolute;
-    top: 10px;
-    right: 20px;
+    top: 15px;
+    right: 25px;
     cursor: pointer;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0,0,0,0.6);
     color: white;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
+    transition: background-color 0.2s ease;
+}
+
+.preview-close:hover {
+    background-color: #ff3b30;
 }
 
 .preview-img {
     max-width: 100%;
     max-height: 200px;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .preview-doc {
@@ -269,35 +350,43 @@
     align-items: center;
     justify-content: center;
     background: white;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .preview-filename {
-    margin-top: 10px;
-    font-size: 14px;
+    margin-top: 15px;
+    font-size: 15px;
+    font-weight: 500;
     color: #111b21;
 }
 
 .message-attachments {
-    margin-bottom: 5px;
+    margin-bottom: 8px;
 }
 
 .message-img {
     max-width: 100%;
     max-height: 250px;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
 .catalogue-modal {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255,255,255,0.95);
+    background: rgba(255,255,255,0.98);
     z-index: 1000;
     display: flex;
     flex-direction: column;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .catalogue-content {
@@ -307,75 +396,39 @@
     max-width: 800px;
     margin: 0 auto;
     width: 100%;
-    background: #f0f2f5;
+    background: #ffffff;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
 }
 
 .catalogue-header {
-    height: 60px;
-    background-color: #008069;
-    color: white;
+    height: 65px;
+    background-color: #ffffff;
+    color: #111b21;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
+    padding: 0 24px;
+    border-bottom: 1px solid #e9ecef;
 }
 
 .catalogue-header h3 {
     margin: 0;
     font-size: 18px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
-.catalogue-grid {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-}
-
-.product-card {
-    background: white;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.template-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 16px 20px;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-.product-card:hover {
-    transform: translateY(-5px);
-}
-
-.product-img {
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
-}
-
-.product-img-placeholder {
-    width: 100%;
-    height: 150px;
-    background: #e9edef;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    color: #8696a0;
-}
-
-.product-info {
-    padding: 15px;
-}
-
-.product-name {
-    font-weight: 500;
-    color: #111b21;
-    margin-bottom: 5px;
-}
-
-.product-price {
-    color: #008069;
-    font-weight: bold;
+.template-card:hover {
+    border-color: #00bfa5;
+    box-shadow: 0 4px 12px rgba(0,191,165,0.1);
+    transform: translateY(-2px);
 }

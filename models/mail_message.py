@@ -10,26 +10,60 @@ class MailMessage(models.Model):
         for rec in records:
             if rec.model == 'wa.chatbot.session' and rec.res_id:
                 try:
+                    import logging
+                    _logger = logging.getLogger(__name__)
+                    
                     session = self.env['wa.chatbot.session'].sudo().browse(rec.res_id)
                     if session.exists():
-                        WaMessage = self.env['whatsapp.message'].sudo()
-                        if hasattr(WaMessage, '_find_or_create_discuss_channel'):
-                            # Find or create the standard discuss.channel
-                            channel = WaMessage._find_or_create_discuss_channel(
-                                session.phone,
-                                session.partner_id or False,
-                                session.chatbot_id.account_id
+                        account = session.chatbot_id.account_id
+                        phone = session.phone
+                        partner = session.partner_id
+                        
+                        _logger.error("DEBUG: Found session for phone %s, account %s", phone, account.id)
+                        
+                        Channel = self.env['discuss.channel'].sudo()
+                        channel = Channel.search([
+                            ('channel_type', '=', 'whatsapp'),
+                            ('wa_account_id', '=', account.id),
+                            ('whatsapp_number', '=', phone),
+                        ], limit=1)
+                        
+                        _logger.error("DEBUG: Searched for channel, found: %s", channel.id if channel else False)
+                        
+                        if not channel and hasattr(Channel, '_get_whatsapp_channel'):
+                            _logger.error("DEBUG: Calling _get_whatsapp_channel...")
+                            channel = Channel._get_whatsapp_channel(
+                                whatsapp_number=phone,
+                                wa_account_id=account,
+                                sender_name=partner.name if partner else phone,
+                                create_if_not_found=True,
+                                related_message=False,
                             )
-                            if channel:
-                                # Duplicate the message into the discuss.channel so operators can see it
-                                # Use message_type 'whatsapp_message' so it's formatted correctly in Odoo
-                                rec.sudo().copy({
-                                    'model': 'discuss.channel',
-                                    'res_id': channel.id,
-                                    'message_type': 'whatsapp_message',
-                                })
-                except Exception:
-                    # Fail silently if chatbot module is not installed or errors occur
-                    pass
+                            _logger.error("DEBUG: Created/Found channel: %s", channel.id if channel else False)
+                            
+                        if channel:
+                            direction = self.env.context.get('wa_direction')
+                            body_html = rec.body or ''
+                            
+                            if direction == 'inbound':
+                                new_author_id = partner.id if partner else False
+                            elif direction == 'outbound':
+                                new_author_id = self.env.ref('base.partner_root').id
+                            else:
+                                # Fallback if context is missing
+                                new_author_id = rec.author_id.id
+
+                            # Duplicate the message into the discuss.channel so operators can see it
+                            rec.sudo().copy({
+                                'model': 'discuss.channel',
+                                'res_id': channel.id,
+                                'message_type': 'whatsapp_message',
+                                'author_id': new_author_id,
+                                'body': body_html,
+                            })
+                            _logger.error("DEBUG: Message copied successfully!")
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error("DEBUG: Failed to mirror chatbot msg to discuss.channel: %s", e)
 
         return records

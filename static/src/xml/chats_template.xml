@@ -10,23 +10,81 @@
                             <img t-attf-src="data:image/jpeg;base64,{{activeAcc.image_1920}}" class="chat-avatar" style="object-fit: cover; margin-right: 10px;"/>
                         </t>
                         <span>Chats</span>
+                        <t t-if="state.selectedChannels.length > 0">
+                            <i class="fa fa-trash" t-on-click="deleteSelectedChannels" style="margin-left: 10px; font-size: 16px; cursor: pointer; color: #f24a4a;" title="Delete Selected Chats"></i>
+                            <span style="margin-left: 5px; font-size: 12px; color: #f24a4a;"><t t-esc="state.selectedChannels.length"/> selected</span>
+                        </t>
+                        <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="New Chat"></i>
                     </div>
                     <t t-if="state.accounts.length > 0">
-                        <select class="whatsapp-account-select" t-model="state.selectedAccount" t-on-change="loadChannels">
-                            <t t-foreach="state.accounts" t-as="acc" t-key="acc.id">
-                                <option t-att-value="acc.id"><t t-esc="acc.name"/></option>
+                        <div class="custom-account-dropdown" style="position: relative;">
+                            <div class="dropdown-header" t-on-click="toggleAccountDropdown" style="display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 6px 12px; border-radius: 20px; cursor: pointer; border: 1px solid #d1d7db; min-width: 140px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <span style="font-size: 14px; font-weight: 500; color: #111b21;">
+                                    <t t-esc="activeAcc ? activeAcc.name : 'Select Account'"/>
+                                </span>
+                                <i class="fa fa-chevron-down" style="font-size: 12px; color: #54656f; margin-left: 10px; transition: transform 0.3s;" t-attf-style="{{ state.isAccountDropdownOpen ? 'transform: rotate(180deg);' : '' }}"></i>
+                            </div>
+                            <t t-if="state.isAccountDropdownOpen">
+                                <div class="dropdown-list" style="position: absolute; top: 100%; right: 0; margin-top: 6px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); width: max-content; min-width: 200px; z-index: 100; overflow: hidden; animation: slideDown 0.2s ease-out;">
+                                    <t t-foreach="state.accounts" t-as="acc" t-key="acc.id">
+                                        <div class="dropdown-item" t-on-click="() => this.selectAccount(acc.id)" style="display: flex; align-items: center; padding: 10px 16px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f0f2f5;">
+                                            <t t-if="acc.image_1920">
+                                                <img t-attf-src="data:image/jpeg;base64,{{acc.image_1920}}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #eee;"/>
+                                            </t>
+                                            <t t-else="">
+                                                <div style="width: 24px; height: 24px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; margin-right: 12px; color: white; font-size: 10px; font-weight: bold;">
+                                                    <t t-esc="acc.name[0].toUpperCase()"/>
+                                                </div>
+                                            </t>
+                                            <span style="font-size: 14px; color: #111b21; flex-grow: 1;"><t t-esc="acc.name"/></span>
+                                            <t t-if="acc.id.toString() === state.selectedAccount">
+                                                <i class="fa fa-check" style="color: #25D366; font-size: 14px;"></i>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </div>
                             </t>
-                        </select>
+                        </div>
+                        <style>
+                            .dropdown-item:hover { background: #f5f6f6 !important; }
+                            .dropdown-item:last-child { border-bottom: none !important; }
+                            @keyframes slideDown {
+                                from { opacity: 0; transform: translateY(-10px); }
+                                to { opacity: 1; transform: translateY(0); }
+                            }
+                            .whatsapp-chat-item { position: relative; }
+                            .chat-selection { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; background: rgba(255,255,255,0.9); border-radius: 50%; padding: 2px; z-index: 2; display: flex; align-items: center; justify-content: center; }
+                            .whatsapp-chat-item:hover .chat-selection, .whatsapp-chat-item.selected-bg .chat-selection { opacity: 1; }
+                            .contact-item:hover .contact-selection, .contact-item .contact-selection.selected { opacity: 1 !important; }
+                        </style>
                     </t>
                 </div>
                 <div class="whatsapp-chat-list">
                     <t t-foreach="state.channels" t-as="channel" t-key="channel.id">
-                        <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }}" t-on-click="() => this.selectChannel(channel)">
+                        <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)">
+                            <div class="chat-selection" t-on-click="(ev) => this.toggleChannelSelection(channel.id, ev)">
+                                <t t-if="state.selectedChannels.includes(channel.id)">
+                                    <i class="fa fa-check-circle" style="color: #25D366; font-size: 20px;"></i>
+                                </t>
+                                <t t-else="">
+                                    <i class="fa fa-circle-o" style="color: #b1b3b5; font-size: 20px;"></i>
+                                </t>
+                            </div>
                             <div class="chat-avatar-container">
                                 <div class="chat-avatar"><t t-esc="(channel.name and channel.name.length > 0) ? channel.name[0].toUpperCase() : '?'"/></div>
                             </div>
                             <div class="chat-info">
-                                <div class="chat-name"><t t-esc="channel.name || 'Unknown'"/></div>
+                                <div class="chat-name-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div class="chat-name"><t t-esc="channel.name || 'Unknown'"/></div>
+                                    <div class="chat-time" style="font-size:11px; color:#8696a0; white-space:nowrap; margin-left:6px;">
+                                        <t t-if="channel.last_message_time">
+                                            <t t-esc="this.formatChatTime(channel.last_message_time)"/>
+                                        </t>
+                                    </div>
+                                </div>
+                                <div class="chat-preview" style="font-size:12px; color:#8696a0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
+                                    <t t-esc="channel.last_message_preview || ''"/>
+                                </div>
                             </div>
                             <t t-if="channel.unread_count and channel.unread_count > 0">
                                 <div class="chat-unread-badge">
@@ -36,44 +94,53 @@
                         </div>
                     </t>
                 </div>
-                <div class="whatsapp-sidebar-footer" style="padding: 10px; text-align: center; border-top: 1px solid #ddd; background: #f0f2f5;">
-                    <button class="whatsapp-attach-btn" title="Store Catalogue" t-on-click="openCatalogue" style="width: 100%; border-radius: 8px; background: #fff; padding: 10px; border: 1px solid #ddd;">
-                        <i class="fa fa-shopping-bag" style="margin-right: 8px;"/> View Catalogue
-                    </button>
-                </div>
+
             </div>
             <div class="whatsapp-main">
                 <t t-if="state.selectedChannel">
                     <div class="whatsapp-header" style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center;">
+                        <div style="display: flex; align-items: center; cursor: pointer;" t-on-click="toggleContactInfo" title="Contact Info">
                             <div class="chat-avatar"><t t-esc="(state.selectedChannel.name and state.selectedChannel.name.length > 0) ? state.selectedChannel.name[0].toUpperCase() : '?'"/></div>
                             <span class="chat-header-name"><t t-esc="state.selectedChannel.name || 'Unknown'"/></span>
-                            
+                        </div>
+                        <div style="display: flex; align-items: center;">
                             <!-- Dropdown to select Business Account in the Chat Header -->
                             <t t-if="state.accounts and state.accounts.length > 0">
-                                <select class="whatsapp-account-select" t-model="state.selectedChannel.wa_account_id" t-on-change="changeChatAccount" style="margin-left: 15px; font-size: 12px; padding: 2px;">
+                                <select class="whatsapp-account-select" t-model="state.selectedChannel.wa_account_id" t-on-change="changeChatAccount" style="margin-right: 15px; font-size: 12px; padding: 2px;">
                                     <t t-foreach="state.accounts" t-as="acc" t-key="acc.id">
                                         <option t-att-value="acc.id"><t t-esc="acc.name"/></option>
                                     </t>
                                 </select>
                             </t>
-                        </div>
-                        <div style="display: flex; align-items: center;">
+                            <t t-if="state.selectedMessages.length > 0">
+                                <span style="margin-right: 10px; font-size: 13px; color: #f24a4a;"><t t-esc="state.selectedMessages.length"/> selected</span>
+                                <button class="whatsapp-header-btn" title="Delete Selected Messages" t-on-click="deleteSelectedMessages" style="background: transparent; border: none; cursor: pointer; color: #f24a4a; font-size: 20px; padding: 10px; margin-right: 15px;">
+                                    <i class="fa fa-trash"/>
+                                </button>
+                            </t>
                             <button class="whatsapp-header-btn" title="Video Call" t-on-click="callCustomer" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
                                 <i class="fa fa-video-camera"/>
                             </button>
                             <button class="whatsapp-header-btn" title="Voice Call" t-on-click="callCustomer" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
                                 <i class="fa fa-phone"/>
                             </button>
-                            <button class="whatsapp-header-btn" title="Store Catalogue" t-on-click="openCatalogue" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
-                                <i class="fa fa-shopping-bag"/>
+                            <button class="whatsapp-header-btn" title="Delete Chat" t-on-click="() => this.deleteChat(state.selectedChannel.id)" style="background: transparent; border: none; cursor: pointer; color: #f24a4a; font-size: 20px; padding: 10px; margin-left: 10px;">
+                                <i class="fa fa-trash"/>
                             </button>
                         </div>
                     </div>
                     <div class="whatsapp-messages" t-ref="messagesContainer">
                         <t t-foreach="state.messages" t-as="msg" t-key="msg.id">
-                            <div t-attf-class="message-row {{ msg.isMe ? 'message-me' : 'message-other' }}">
-                                <div class="message-bubble">
+                            <div t-attf-class="message-row {{ msg.isMe ? 'message-me' : 'message-other' }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }}">
+                                <div class="message-selection" t-on-click="(ev) => this.toggleMessageSelection(msg.id, ev)">
+                                    <t t-if="state.selectedMessages.includes(msg.id)">
+                                        <i class="fa fa-check-circle" style="color: #1976D2; font-size: 18px;"></i>
+                                    </t>
+                                    <t t-else="">
+                                        <i class="fa fa-circle-o" style="color: #b1b3b5; font-size: 18px;"></i>
+                                    </t>
+                                </div>
+                                <div class="message-bubble" t-on-click="(ev) => state.selectedMessages.length > 0 ? this.toggleMessageSelection(msg.id, ev) : null">
                                     <t t-if="msg.attachment_ids and msg.attachment_ids.length &gt; 0">
                                         <div class="message-attachments">
                                             <t t-foreach="msg.attachment_ids" t-as="att_id" t-key="att_id">
@@ -82,11 +149,53 @@
                                         </div>
                                     </t>
                                     <div class="message-body" t-esc="msg.bodyText"/>
-                                    <div class="message-time"><t t-esc="msg.timeText"/></div>
+                                    <div class="message-time">
+                                        <t t-if="msg.isMe and msg.authorName">
+                                            <span style="margin-right: 4px;">[<t t-esc="msg.authorName"/>]</span>
+                                        </t>
+                                        <t t-esc="msg.timeText"/>
+                                        <t t-if="msg.isMe">
+                                            <i class="fa fa-check" style="margin-left: 4px; color: #53bdeb;"/>
+                                            <i class="fa fa-check" style="margin-left: -8px; color: #53bdeb;"/>
+                                        </t>
+                                    </div>
+                                    <div class="message-delete-btn" t-on-click="() => this.deleteMessage(msg.id)" title="Delete Message">
+                                        <i class="fa fa-trash"/>
+                                    </div>
                                 </div>
                             </div>
                         </t>
                     </div>
+                        <style>
+                            .message-row { position: relative; display: flex; align-items: center; margin-bottom: 8px; }
+                            .message-row.message-me { justify-content: flex-end; }
+                            .message-row.message-other { justify-content: flex-start; }
+                            .message-row.selected-msg { background: rgba(25, 118, 210, 0.1); border-radius: 8px; }
+                        .message-selection { position: absolute; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; background: rgba(255,255,255,0.8); border-radius: 50%; padding: 2px; z-index: 10; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+                        .message-me .message-selection { right: 10px; }
+                        .message-other .message-selection { left: 10px; }
+                        .message-row:hover .message-selection, .message-row.selected-msg .message-selection { opacity: 1; }
+                        
+                        .message-delete-btn {
+                            position: absolute;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            opacity: 0;
+                            cursor: pointer;
+                            color: #f24a4a;
+                            font-size: 14px;
+                            transition: opacity 0.2s;
+                            padding: 8px;
+                            background: rgba(255,255,255,0.8);
+                            border-radius: 50%;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                        }
+                        .message-row:hover .message-delete-btn {
+                            opacity: 1;
+                        }
+                        .message-me .message-delete-btn { right: calc(100% + 5px); }
+                        .message-other .message-delete-btn { left: calc(100% + 5px); }
+                    </style>
                     <div class="whatsapp-footer">
                         <t t-if="state.pendingFile">
                             <div class="whatsapp-file-preview">
@@ -104,19 +213,28 @@
                                 </t>
                             </div>
                         </t>
-                        <div class="whatsapp-input-area">
-                            <input type="file" id="whatsapp-file-input" style="display: none;" t-on-change="onFileSelect"/>
-                            <label for="whatsapp-file-input" class="whatsapp-attach-btn" title="Attach File" style="margin: 0; cursor: pointer; padding: 8px;">
-                                <i class="fa fa-paperclip"/>
-                            </label>
-                            <button class="whatsapp-attach-btn" title="WhatsApp Templates" t-on-click="openTemplatesModal" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent;">
-                                <i class="fa fa-plus"/>
-                            </button>
-                            <input type="text" class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown"/>
-                            <button class="whatsapp-send-btn" t-on-click="sendMessage">
-                                <i class="fa fa-paper-plane"/>
-                            </button>
-                        </div>
+                        <t t-if="this.isWithin24hWindow">
+                            <div class="whatsapp-input-area">
+                                <input type="file" id="whatsapp-file-input" style="display: none;" t-on-change="onFileSelect"/>
+                                <label for="whatsapp-file-input" class="whatsapp-attach-btn" title="Attach File" style="margin: 0; cursor: pointer; padding: 8px;">
+                                    <i class="fa fa-paperclip"/>
+                                </label>
+                                <button class="whatsapp-attach-btn" title="WhatsApp Templates" t-on-click="openTemplatesModal" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent;">
+                                    <i class="fa fa-plus"/>
+                                </button>
+                                <input type="text" class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown"/>
+                                <button class="whatsapp-send-btn" t-on-click="sendMessage">
+                                    <i class="fa fa-paper-plane"/>
+                                </button>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div class="whatsapp-input-area" style="justify-content: center; background: #f0f2f5;">
+                                <button class="btn btn-primary" style="background: #00a884; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; color: white; display: flex; align-items: center;" t-on-click="openTemplatesModal">
+                                    <i class="fa fa-file-text-o" style="margin-right: 8px;"></i> Send Template to Start Chat
+                                </button>
+                            </div>
+                        </t>
                     </div>
                 </t>
                 <t t-else="">
@@ -125,34 +243,89 @@
                     </div>
                 </t>
             </div>
-        </div>
-
-        <t t-if="state.showCatalogue">
-            <div class="catalogue-modal">
-                <div class="catalogue-content">
-                    <div class="catalogue-header">
-                        <h3>Product Catalogue</h3>
-                        <button class="preview-close" t-on-click="closeCatalogue" style="position: static;"><i class="fa fa-times"></i></button>
+            
+            <!-- Contact Info Panel -->
+            <t t-if="state.showContactInfo">
+                <div class="whatsapp-contact-info" style="width: 350px; min-width: 350px; background: #f0f2f5; border-left: 1px solid #d1d7db; display: flex; flex-direction: column; overflow-y: auto;">
+                    <div class="whatsapp-header" style="display: flex; align-items: center; background: #f0f2f5; min-height: 60px;">
+                        <i class="fa fa-times" style="font-size: 20px; color: #54656f; cursor: pointer; margin-right: 20px;" t-on-click="toggleContactInfo"></i>
+                        <span style="font-size: 16px; color: #111b21;">Contact info</span>
                     </div>
-                    <div class="catalogue-grid">
-                        <t t-foreach="state.products" t-as="product" t-key="product.id">
-                            <div class="product-card" t-on-click="() => this.selectProduct(product)">
-                                <t t-if="product.image_128">
-                                    <img t-attf-src="data:image/jpeg;base64,{{product.image_128}}" class="product-img"/>
-                                </t>
-                                <t t-else="">
-                                    <div class="product-img-placeholder"><i class="fa fa-box"></i></div>
-                                </t>
-                                <div class="product-info">
-                                    <div class="product-name"><t t-esc="product.name"/></div>
-                                    <div class="product-price">$<t t-esc="product.list_price.toFixed(2)"/></div>
-                                </div>
+                    
+                    <div style="padding: 30px 20px; text-align: center; background: white; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                        <div style="width: 200px; height: 200px; border-radius: 50%; background: #dfe5e7; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; overflow: hidden;">
+                            <t t-if="state.selectedChannel.customer_image">
+                                <img t-attf-src="data:image/jpeg;base64,{{state.selectedChannel.customer_image}}" style="width:100%; height:100%; object-fit:cover;"/>
+                            </t>
+                            <t t-else="">
+                                <i class="fa fa-user" style="color: white; font-size: 80px;"></i>
+                            </t>
+                        </div>
+                        
+                        <t t-if="state.isEditingContactName">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                                <input type="text" t-model="state.editingContactNameValue" style="padding: 5px 10px; border: 1px solid #d1d7db; border-radius: 4px; font-size: 16px; width: 200px;" t-on-keydown="onContactNameKeydown"/>
+                                <button t-on-click="saveContactName" style="background: #25D366; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                                    <i class="fa fa-check"></i>
+                                </button>
+                                <button t-on-click="toggleEditContactName" style="background: transparent; color: #54656f; border: none; cursor: pointer; padding: 6px;">
+                                    <i class="fa fa-times"></i>
+                                </button>
                             </div>
+                        </t>
+                        <t t-else="">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <h2 style="margin: 0; font-size: 24px; color: #111b21; font-weight: normal;"><t t-esc="state.selectedChannel.name || 'Unknown'"/></h2>
+                                <i class="fa fa-pencil" style="font-size: 14px; color: #54656f; cursor: pointer;" t-on-click="toggleEditContactName" title="Edit Contact Name"></i>
+                            </div>
+                        </t>
+                        
+                        <div style="font-size: 16px; color: #667781; margin-top: 10px;">
+                            <t t-esc="state.selectedChannel.customer_phone || state.selectedChannel.whatsapp_number || ''"/>
+                        </div>
+                    </div>
+                    
+                    <div style="background: white; padding: 20px; flex-grow: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                        <h3 style="margin-top: 0; font-size: 14px; color: #54656f; margin-bottom: 15px; font-weight: normal;">Media, links and docs</h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+                            <t t-foreach="state.contactMedia" t-as="media" t-key="media.id">
+                                <t t-if="media.mimetype and media.mimetype.startsWith('image/')">
+                                    <div style="aspect-ratio: 1; background: #eee; cursor: pointer;" t-att-title="media.name">
+                                        <a t-attf-href="/web/image/{{media.id}}" target="_blank">
+                                            <img t-attf-src="/web/image/{{media.id}}" style="width: 100%; height: 100%; object-fit: cover;"/>
+                                        </a>
+                                    </div>
+                                </t>
+                            </t>
+                        </div>
+                        
+                        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                            <t t-foreach="state.contactMedia" t-as="media" t-key="media.id">
+                                <t t-if="!(media.mimetype and media.mimetype.startsWith('image/'))">
+                                    <div style="display: flex; align-items: center; padding: 10px; background: #f0f2f5; border-radius: 8px; cursor: pointer;" t-att-title="media.name">
+                                        <div style="width: 40px; height: 40px; background: #FF5252; color: white; display: flex; align-items: center; justify-content: center; border-radius: 4px; margin-right: 15px;">
+                                            <i class="fa fa-file-text-o"></i>
+                                        </div>
+                                        <div style="overflow: hidden; flex-grow: 1;">
+                                            <div style="font-size: 14px; color: #111b21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><t t-esc="media.name"/></div>
+                                            <div style="font-size: 12px; color: #667781;"><t t-esc="media.create_date"/></div>
+                                        </div>
+                                        <a t-attf-href="/web/content/{{media.id}}?download=true" style="color: #54656f;">
+                                            <i class="fa fa-download"></i>
+                                        </a>
+                                    </div>
+                                </t>
+                            </t>
+                        </div>
+                        
+                        <t t-if="state.contactMedia.length === 0">
+                            <div style="text-align: center; color: #667781; font-size: 14px; padding: 20px;">No media found</div>
                         </t>
                     </div>
                 </div>
-            </div>
-        </t>
+            </t>
+        </div>
 
         <t t-if="state.showTemplatesModal">
             <div class="catalogue-modal">
@@ -173,6 +346,61 @@
                                 </div>
                                 <div style="font-size:13px; color:#333; white-space:pre-wrap; line-height:1.5;">
                                     <t t-esc="tmpl.body"/>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+        
+        <!-- New Chat Modal -->
+        <t t-if="state.isNewChatModalOpen">
+            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div class="modal-content" style="background: white; width: 400px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div class="modal-header" style="background: #008069; color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center;">
+                            <span style="font-size: 16px; font-weight: 500;">New Chat</span>
+                            <t t-if="state.selectedContacts.length > 0">
+                                <span style="margin-left: 15px; font-size: 13px;"><t t-esc="state.selectedContacts.length"/> selected</span>
+                                <i class="fa fa-trash" t-on-click="deleteSelectedContacts" style="margin-left: 10px; cursor: pointer; color: #ffcccc;" title="Delete Selected Contacts"></i>
+                            </t>
+                        </div>
+                        <i class="fa fa-times" style="cursor: pointer;" t-on-click="closeNewChatModal"></i>
+                    </div>
+                    <div class="modal-search" style="padding: 10px 15px; border-bottom: 1px solid #ddd; background: #f6f6f6;">
+                        <input type="text" class="form-control" placeholder="Search contacts or enter number..." t-on-keyup="onContactSearch" style="border-radius: 20px; border: none; padding: 8px 15px; outline: none;"/>
+                    </div>
+                    <div class="modal-body" style="max-height: 400px; overflow-y: auto; background: white;">
+                        <t t-if="state.filteredContacts.length === 0 and !state.newNumberQuery">
+                            <div style="padding: 20px; text-align: center; color: #999;">No contacts found.</div>
+                        </t>
+                        <t t-if="state.newNumberQuery">
+                            <div class="contact-item" style="padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f2f2f2; background: #e8f5e9;" t-on-click="() => this.startChatWithNumber(state.newNumberQuery)">
+                                <div style="display:flex; align-items:center;">
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                        <i class="fa fa-whatsapp" style="color: white; font-size: 20px;"></i>
+                                    </div>
+                                    <div style="font-size: 15px; color: #111b21; font-weight: bold;">Start chat with <t t-esc="state.newNumberQuery"/></div>
+                                </div>
+                            </div>
+                        </t>
+                        <t t-foreach="state.filteredContacts" t-as="contact" t-key="contact.id">
+                            <div class="contact-item" t-attf-style="position: relative; display: flex; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f2f2f2; {{ state.selectedContacts.includes(contact.id) ? 'background: #f0f7f5;' : '' }}" t-on-click="(ev) => state.selectedContacts.length > 0 ? this.toggleContactSelection(contact.id, ev) : this.startNewChat(contact.id)">
+                                <div t-attf-class="contact-selection {{ state.selectedContacts.includes(contact.id) ? 'selected' : '' }}" style="position: absolute; left: 15px; opacity: 0; transition: opacity 0.2s; background: rgba(255,255,255,0.9); z-index: 2; border-radius: 4px; padding: 2px; display: flex;" t-on-click="(ev) => this.toggleContactSelection(contact.id, ev)">
+                                    <t t-if="state.selectedContacts.includes(contact.id)">
+                                        <i class="fa fa-check-square" style="color: #008069; font-size: 20px;"></i>
+                                    </t>
+                                    <t t-else="">
+                                        <i class="fa fa-square-o" style="color: #ccc; font-size: 20px;"></i>
+                                    </t>
+                                </div>
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: #dfe5e7; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                    <i class="fa fa-user" style="color: white; font-size: 20px;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 15px; color: #111b21;"><t t-esc="contact.name"/></div>
+                                    <div style="font-size: 13px; color: #667781;"><t t-esc="contact.phone || contact.mobile"/></div>
                                 </div>
                             </div>
                         </t>

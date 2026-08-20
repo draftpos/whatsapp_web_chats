@@ -8,6 +8,7 @@
         'views/whatsapp_account_views.xml',
         'views/chats_action.xml',
         'views/product_template_views.xml',
+        'views/res_users_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
