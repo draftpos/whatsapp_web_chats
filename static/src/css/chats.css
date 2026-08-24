@@ -124,6 +124,7 @@
     background-color: #ffffff;
     border-bottom: 1px solid #f8f9fa;
     transition: background-color 0.2s ease;
+    position: relative;
 }
 
 .whatsapp-chat-item:hover {
@@ -257,6 +258,53 @@
     box-shadow: 0 0 0 3px rgba(0,191,165,0.1);
     background-color: #ffffff;
 }
+
+/* Account Dropdown and Chat Selection/Dropdown */
+.dropdown-item:hover { background: #f5f6f6 !important; }
+.dropdown-item:last-child { border-bottom: none !important; }
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.chat-selection { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; background: rgba(255,255,255,0.9); border-radius: 50%; padding: 2px; z-index: 2; display: flex; align-items: center; justify-content: center; }
+.whatsapp-chat-item:hover .chat-selection, .whatsapp-chat-item.selected-bg .chat-selection { opacity: 1; }
+.contact-item:hover .contact-selection, .contact-item .contact-selection.selected { opacity: 1 !important; }
+
+/* Chat Transfer Dropdown */
+.chat-dropdown-btn { 
+    position: absolute; 
+    right: 15px; 
+    bottom: 10px; 
+    opacity: 0; 
+    transition: opacity 0.2s; 
+    cursor: pointer; 
+    color: #8696a0; 
+    font-size: 14px;
+    z-index: 10;
+    padding: 5px;
+}
+.whatsapp-chat-item:hover .chat-dropdown-btn { opacity: 1; }
+.chat-dropdown-btn:hover { color: #54656f; }
+
+.chat-dropdown-menu { 
+    position: absolute; 
+    right: 15px; 
+    top: calc(100% - 15px); 
+    background: white; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15); 
+    border-radius: 4px; 
+    padding: 5px 0; 
+    z-index: 20; 
+    min-width: 150px; 
+    border: 1px solid #d1d7db; 
+}
+.chat-dropdown-item { 
+    padding: 10px 15px; 
+    cursor: pointer; 
+    font-size: 14px; 
+    color: #111b21; 
+}
+.chat-dropdown-item:hover { background-color: #f5f6f6; }
 
 .whatsapp-send-btn, .whatsapp-attach-btn {
     background: none;
@@ -432,3 +480,58 @@
     box-shadow: 0 4px 12px rgba(0,191,165,0.1);
     transform: translateY(-2px);
 }
+
+.message-bubble.is-menu {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.chat-card {
+    width: 320px;
+    background: #2a2a2a;
+    border-radius: 16px;
+    border: 0.5px solid #3a3a3a;
+    padding: 1.25rem 1.25rem 1rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    color: #f2f2f2;
+    margin-top: 5px;
+}
+.chat-card .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.chat-card .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #2f4a6b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.chat-card .avatar i { font-size: 18px; color: #85b7eb; }
+.chat-card .header p { margin: 0; }
+.chat-card .name { font-weight: 500; font-size: 14px; color: #f2f2f2; text-transform: capitalize; }
+.chat-card .status { font-size: 12px; color: #9a9a9a; }
+.chat-card .message { font-size: 15px; line-height: 1.5; margin: 0 0 14px; color: #f2f2f2; white-space: pre-wrap; }
+.chat-card .options { display: flex; flex-direction: column; gap: 8px; }
+.chat-card .option-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    text-align: left;
+    background: transparent;
+    border: 0.5px solid #444;
+    border-radius: 8px;
+    color: #f2f2f2;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.chat-card .option-btn:hover { background: #333; }
+.chat-card .option-btn:active { transform: scale(0.98); }
+.chat-card .option-btn i { font-size: 18px; color: #b0b0b0; }

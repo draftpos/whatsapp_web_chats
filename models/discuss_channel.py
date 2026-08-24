@@ -9,13 +9,7 @@ class DiscussChannel(models.Model):
         ('routed', 'Routed')
     ], string='WhatsApp Bot State')
     
-    wa_department = fields.Selection([
-        ('accounting', 'Accounting'),
-        ('operations', 'Operations'),
-        ('tech', 'Tech'),
-        ('sales', 'Sales'),
-        ('marketing', 'Marketing')
-    ], string='Selected Department')
+    wa_department = fields.Many2one('hr.department', string='Selected Department')
     
     wa_agent_id = fields.Many2one('res.users', string='Selected Agent')
 
@@ -61,3 +55,28 @@ class DiscussChannel(models.Model):
         if partners_to_add_new:
             new_members = [(0, 0, {'partner_id': pid}) for pid in partners_to_add_new]
             self.write({'channel_member_ids': new_members})
+
+    @api.model
+    def transfer_whatsapp_chat(self, channel_id, department_id, agent_id=False):
+        channel = self.browse(channel_id)
+        if not channel.exists():
+            return False
+            
+        channel.write({
+            'wa_department': department_id,
+            'wa_agent_id': agent_id,
+            'wa_bot_state': 'routed',
+        })
+        
+        channel._wa_bot_route_chat()
+        
+        # Post a message noting the transfer
+        dept = self.env['hr.department'].browse(department_id)
+        agent = self.env['res.users'].browse(agent_id) if agent_id else False
+        
+        msg = f"Chat transferred to {dept.name} department"
+        if agent:
+            msg += f", agent {agent.name}"
+            
+        channel.message_post(body=msg, message_type='notification')
+        return True

@@ -45,18 +45,7 @@
                                 </div>
                             </t>
                         </div>
-                        <style>
-                            .dropdown-item:hover { background: #f5f6f6 !important; }
-                            .dropdown-item:last-child { border-bottom: none !important; }
-                            @keyframes slideDown {
-                                from { opacity: 0; transform: translateY(-10px); }
-                                to { opacity: 1; transform: translateY(0); }
-                            }
-                            .whatsapp-chat-item { position: relative; }
-                            .chat-selection { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; background: rgba(255,255,255,0.9); border-radius: 50%; padding: 2px; z-index: 2; display: flex; align-items: center; justify-content: center; }
-                            .whatsapp-chat-item:hover .chat-selection, .whatsapp-chat-item.selected-bg .chat-selection { opacity: 1; }
-                            .contact-item:hover .contact-selection, .contact-item .contact-selection.selected { opacity: 1 !important; }
-                        </style>
+
                     </t>
                 </div>
                 <div class="whatsapp-chat-list">
@@ -89,6 +78,17 @@
                             <t t-if="channel.unread_count and channel.unread_count > 0">
                                 <div class="chat-unread-badge">
                                     <t t-esc="channel.unread_count"/>
+                                </div>
+                            </t>
+                            
+                            <div class="chat-dropdown-btn" t-on-click="(ev) => this.toggleChatDropdown(channel.id, ev)">
+                                <i class="fa fa-chevron-down"></i>
+                            </div>
+                            <t t-if="state.showChatDropdownId === channel.id">
+                                <div class="chat-dropdown-menu" t-on-click.stop="() => {}">
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.openTransferModal(channel.id, ev)">
+                                        Transfer Chat
+                                    </div>
                                 </div>
                             </t>
                         </div>
@@ -140,7 +140,7 @@
                                         <i class="fa fa-circle-o" style="color: #b1b3b5; font-size: 18px;"></i>
                                     </t>
                                 </div>
-                                <div class="message-bubble" t-on-click="(ev) => state.selectedMessages.length > 0 ? this.toggleMessageSelection(msg.id, ev) : null">
+                                <div t-attf-class="message-bubble {{ msg.isMenu ? 'is-menu' : '' }}" t-on-click="(ev) => state.selectedMessages.length > 0 ? this.toggleMessageSelection(msg.id, ev) : null">
                                     <t t-if="msg.attachment_ids and msg.attachment_ids.length &gt; 0">
                                         <div class="message-attachments">
                                             <t t-foreach="msg.attachment_ids" t-as="att_id" t-key="att_id">
@@ -148,7 +148,31 @@
                                             </t>
                                         </div>
                                     </t>
-                                    <div class="message-body" t-esc="msg.bodyText"/>
+                                    
+                                    <t t-if="msg.isMenu">
+                                        <div class="chat-card">
+                                            <div class="header">
+                                                <div class="avatar"><i class="fa fa-headset"></i></div>
+                                                <div>
+                                                    <p class="name"><t t-esc="msg.authorName || 'Support bot'"/></p>
+                                                    <p class="status">Online</p>
+                                                </div>
+                                            </div>
+                                            <p class="message"><t t-esc="msg.menuTitle"/></p>
+                                            <div class="options">
+                                                <t t-foreach="msg.menuOptions" t-as="opt" t-key="opt">
+                                                    <button class="option-btn" t-on-click="() => this.sendMenuReply(opt)">
+                                                        <i class="fa fa-chevron-right"></i>
+                                                        <span><t t-esc="opt"/></span>
+                                                    </button>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="message-body" t-esc="msg.bodyText"/>
+                                    </t>
+
                                     <div class="message-time">
                                         <t t-if="msg.isMe and msg.authorName">
                                             <span style="margin-right: 4px;">[<t t-esc="msg.authorName"/>]</span>
@@ -404,6 +428,42 @@
                                 </div>
                             </div>
                         </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+        <!-- Transfer Chat Modal -->
+        <t t-if="state.transferModalOpen">
+            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div class="modal-content" style="background: white; width: 400px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div class="modal-header" style="background: #008069; color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 16px; font-weight: 500;">Transfer Chat</span>
+                        <i class="fa fa-times" style="cursor: pointer;" t-on-click="closeTransferModal"></i>
+                    </div>
+                    <div class="modal-body" style="padding: 20px; background: white; display: flex; flex-direction: column; gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #111b21;">Select Department</label>
+                            <select class="form-control" t-on-change="onTransferDeptChange" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d7db;">
+                                <option value="">-- Select Department --</option>
+                                <t t-foreach="state.transferDepartments" t-as="dept" t-key="dept.id">
+                                    <option t-att-value="dept.id" t-att-selected="state.selectedTransferDeptId === dept.id"><t t-esc="dept.name"/></option>
+                                </t>
+                            </select>
+                        </div>
+                        <t t-if="state.selectedTransferDeptId">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #111b21;">Select Agent</label>
+                                <select class="form-control" t-model="state.selectedTransferAgentId" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d7db;">
+                                    <option value="any">Any available agent</option>
+                                    <t t-foreach="state.transferAgents" t-as="agent" t-key="agent.id">
+                                        <option t-att-value="agent.id"><t t-esc="agent.name"/></option>
+                                    </t>
+                                </select>
+                            </div>
+                        </t>
+                        <button class="btn btn-primary" t-on-click="submitTransfer" style="margin-top: 10px; background: #008069; border: none; padding: 10px; border-radius: 4px; color: white; font-weight: bold; cursor: pointer;">
+                            Transfer
+                        </button>
                     </div>
                 </div>
             </div>

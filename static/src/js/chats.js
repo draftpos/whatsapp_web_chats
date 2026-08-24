@@ -34,6 +34,13 @@ export class WhatsAppChatsAction extends Component {
             contactMedia: [],
             isEditingContactName: false,
             editingContactNameValue: "",
+            transferModalOpen: false,
+            transferChannelId: null,
+            transferDepartments: [],
+            transferAgents: [],
+            selectedTransferDeptId: null,
+            selectedTransferAgentId: "any",
+            showChatDropdownId: null,
         });
         
         this.myPartnerId = null;
@@ -484,6 +491,32 @@ export class WhatsAppChatsAction extends Component {
                 tmp.innerHTML = msg.body || "";
                 let bodyText = tmp.textContent || tmp.innerText || "";
                 
+                // --- Menu Detection Logic ---
+                let isMenu = false;
+                let menuTitle = "";
+                let menuOptions = [];
+                let lines = bodyText.trim().split('\n');
+                let optLines = [];
+                let txtLines = [];
+                
+                for (let line of lines) {
+                    if (/^\d+\.\s+(.+)$/.test(line.trim())) {
+                        optLines.push(line.trim());
+                    } else if (line.trim() !== '') {
+                        txtLines.push(line.trim());
+                    }
+                }
+                
+                if (optLines.length >= 2 && txtLines.length > 0) {
+                    isMenu = true;
+                    menuTitle = txtLines.join('\n');
+                    menuOptions = optLines.map(opt => {
+                        let match = opt.match(/^\d+\.\s+(.+)$/);
+                        return match ? match[1] : opt;
+                    });
+                }
+                // --- End Menu Detection ---
+                
                 let timeText = '';
                 if (msg.date) {
                     try {
@@ -503,7 +536,7 @@ export class WhatsAppChatsAction extends Component {
                     }
                 }
                 
-                return { ...msg, isMe, bodyText, timeText, authorName };
+                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions };
             });
             
             // Check for newly failed messages and alert the user
@@ -625,6 +658,11 @@ export class WhatsAppChatsAction extends Component {
     
     removePendingFile() {
         this.state.pendingFile = null;
+    }
+
+    async sendMenuReply(optionText) {
+        this.state.newMessage = optionText;
+        await this.sendMessage();
     }
 
     async sendMessage() {
@@ -864,6 +902,85 @@ export class WhatsAppChatsAction extends Component {
         } catch (e) {
             console.error("Error updating name", e);
             alert("Error updating name: " + e.message);
+        }
+    }
+
+    async openTransferModal(channelId, ev) {
+        if (ev) {
+            ev.stopPropagation();
+        }
+        this.state.transferChannelId = channelId;
+        this.state.transferModalOpen = true;
+        this.state.showChatDropdownId = null;
+        
+        try {
+            const depts = await this.orm.searchRead("hr.department", [], ["id", "name"]);
+            this.state.transferDepartments = depts;
+            this.state.selectedTransferDeptId = null;
+            this.state.transferAgents = [];
+            this.state.selectedTransferAgentId = "any";
+        } catch (e) {
+            console.error("Failed to load departments", e);
+        }
+    }
+    
+    closeTransferModal() {
+        this.state.transferModalOpen = false;
+        this.state.transferChannelId = null;
+    }
+    
+    async onTransferDeptChange(ev) {
+        const deptId = parseInt(ev.target.value);
+        this.state.selectedTransferDeptId = deptId;
+        this.state.selectedTransferAgentId = "any";
+        
+        if (deptId) {
+            try {
+                const agents = await this.orm.searchRead("res.users", [["wa_department", "=", deptId]], ["id", "name"]);
+                this.state.transferAgents = agents;
+            } catch (e) {
+                console.error("Failed to load agents", e);
+                this.state.transferAgents = [];
+            }
+        } else {
+            this.state.transferAgents = [];
+        }
+    }
+    
+    async submitTransfer() {
+        if (!this.state.transferChannelId || !this.state.selectedTransferDeptId) {
+            alert("Please select a department.");
+            return;
+        }
+        
+        const agentId = this.state.selectedTransferAgentId === "any" ? false : parseInt(this.state.selectedTransferAgentId);
+        
+        try {
+            const result = await this.orm.call("discuss.channel", "transfer_whatsapp_chat", [
+                this.state.transferChannelId,
+                this.state.selectedTransferDeptId,
+                agentId
+            ]);
+            
+            if (result) {
+                this.closeTransferModal();
+                // Optionally reload channels or messages if it's the active one
+                await this.loadChannels();
+            } else {
+                alert("Failed to transfer chat.");
+            }
+        } catch (e) {
+            console.error("Transfer error", e);
+            alert("Error transferring chat.");
+        }
+    }
+    
+    toggleChatDropdown(channelId, ev) {
+        if (ev) ev.stopPropagation();
+        if (this.state.showChatDropdownId === channelId) {
+            this.state.showChatDropdownId = null;
+        } else {
+            this.state.showChatDropdownId = channelId;
         }
     }
 

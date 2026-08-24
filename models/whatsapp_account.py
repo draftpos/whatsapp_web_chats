@@ -301,41 +301,54 @@ class WhatsAppAccount(models.Model):
             
             if not channel.wa_bot_state or channel.wa_bot_state == 'idle':
                 channel.wa_bot_state = 'ask_department'
-                self._send_bot_reply(channel, "Welcome! Which department do you need support from?\n1. Accounting\n2. Operations\n3. Tech\n4. Sales\n5. Marketing")
+                departments = self.env['hr.department'].sudo().search([])
+                if not departments:
+                    self._send_bot_reply(channel, "Welcome! No departments are currently available.")
+                    return
+                
+                fallback_lines = ["Welcome! Which department do you need support from?"]
+                for i, d in enumerate(departments):
+                    fallback_lines.append(f"{i+1}. {d.name}")
+                    
+                self._send_bot_reply(channel, "\n".join(fallback_lines))
                 
             elif channel.wa_bot_state == 'ask_department':
-                dept_map = {
-                    '1': 'accounting', 'accounting': 'accounting',
-                    '2': 'operations', 'operations': 'operations',
-                    '3': 'tech', 'tech': 'tech',
-                    '4': 'sales', 'sales': 'sales',
-                    '5': 'marketing', 'marketing': 'marketing'
-                }
-                selected_dept = dept_map.get(text_body)
+                departments = self.env['hr.department'].sudo().search([])
+                selected_dept = False
+                try:
+                    idx = int(text_body) - 1
+                    if 0 <= idx < len(departments):
+                        selected_dept = departments[idx]
+                except ValueError:
+                    pass
+                
                 if selected_dept:
-                    channel.wa_department = selected_dept
+                    channel.wa_department = selected_dept.id
                     channel.wa_bot_state = 'ask_agent'
                     
-                    agents = self.env['res.users'].sudo().search([('wa_department', '=', selected_dept)])
+                    agents = self.env['res.users'].sudo().search([('wa_department', '=', selected_dept.id)])
                     if not agents:
                         channel.wa_bot_state = 'routed'
                         channel._wa_bot_route_chat()
-                        self._send_bot_reply(channel, f"Let me direct you to {selected_dept.title()} department and start a chat...")
+                        self._send_bot_reply(channel, f"Let me direct you to {selected_dept.name} department and start a chat...")
                     else:
                         agent_list = "\n".join([f"{i+1}. {a.name}" for i, a in enumerate(agents)])
-                        msg = f"Please select an individual in {selected_dept.title()} to speak with:\n{agent_list}\n0. Any available agent"
+                        msg = f"Please select an individual in {selected_dept.name} to speak with:\n{agent_list}\n0. Any available agent"
                         self._send_bot_reply(channel, msg)
                 else:
-                    self._send_bot_reply(channel, "Invalid selection. Which department do you need support from?\n1. Accounting\n2. Operations\n3. Tech\n4. Sales\n5. Marketing")
+                    fallback_lines = ["Invalid selection. Which department do you need support from?"]
+                    for i, d in enumerate(departments):
+                        fallback_lines.append(f"{i+1}. {d.name}")
+                    self._send_bot_reply(channel, "\n".join(fallback_lines))
                     
             elif channel.wa_bot_state == 'ask_agent':
                 if text_body == '0' or text_body == 'any':
                     channel.wa_agent_id = False
                     channel.wa_bot_state = 'routed'
                     channel._wa_bot_route_chat()
-                    self._send_bot_reply(channel, f"Let me direct you to {channel.wa_department.title()} department and start a chat...")
+                    self._send_bot_reply(channel, f"Let me direct you to {channel.wa_department.name} department and start a chat...")
                 else:
-                    agents = self.env['res.users'].sudo().search([('wa_department', '=', channel.wa_department)])
+                    agents = self.env['res.users'].sudo().search([('wa_department', '=', channel.wa_department.id)])
                     try:
                         idx = int(text_body) - 1
                         if 0 <= idx < len(agents):
@@ -348,17 +361,17 @@ class WhatsAppAccount(models.Model):
                     except ValueError:
                         self._send_bot_reply(channel, "Invalid selection. Please reply with a number.")
 
-    def _send_bot_reply(self, channel, body_text):
+    def _send_bot_reply(self, channel, body_text, interactive_payload=None):
         try:
-            # Post the message in the discuss channel
+            # Always post as a comment so Odoo doesn't automatically send a WhatsApp text message
             mail_msg = channel.sudo().message_post(
                 body=body_text,
-                message_type='whatsapp_message',
+                message_type='comment',
                 subtype_xmlid='mail.mt_comment',
                 author_id=self.env.ref('base.partner_root').id,
             )
             
-            # Send via whatsapp api
+            # Send via whatsapp api natively
             phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
             if phone:
                 wa_msg = self.env['whatsapp.message'].sudo().create({
