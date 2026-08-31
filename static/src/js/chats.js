@@ -41,6 +41,10 @@ export class WhatsAppChatsAction extends Component {
             selectedTransferDeptId: null,
             selectedTransferAgentId: "any",
             showChatDropdownId: null,
+            chatFilter: "all",
+            showLabels: true,
+            availableTags: [],
+            fullscreenMedia: null, // {id: att_id, type: 'image' | 'video'}
         });
         
         this.myPartnerId = null;
@@ -49,6 +53,7 @@ export class WhatsAppChatsAction extends Component {
             await this.loadChannels();
             await this.loadProducts();
             await this.loadTemplates();
+            await this.loadTags();
         });
         
         onMounted(() => {
@@ -62,6 +67,38 @@ export class WhatsAppChatsAction extends Component {
                 clearInterval(this.pollInterval);
             }
         });
+    }
+
+    async loadTags() {
+        try {
+            this.state.availableTags = await this.orm.call("whatsapp.account", "get_all_chat_tags", []);
+        } catch (e) {
+            console.error("Failed to load tags", e);
+        }
+    }
+
+    async toggleChatTag(channelId, tagId, ev) {
+        if (ev) ev.stopPropagation();
+        
+        const channel = this.state.channels.find(c => c.id === channelId);
+        if (!channel) return;
+        
+        if (!channel.wa_tags) channel.wa_tags = [];
+        const hasTag = channel.wa_tags.some(t => t.id === tagId);
+        
+        if (hasTag) {
+            channel.wa_tags = channel.wa_tags.filter(t => t.id !== tagId);
+        } else {
+            const tagDef = this.state.availableTags.find(t => t.id === tagId);
+            if (tagDef) channel.wa_tags.push(tagDef);
+        }
+        
+        try {
+            await this.orm.call("whatsapp.account", "update_chat_tags", [channelId, channel.wa_tags.map(t => t.id)]);
+        } catch (e) {
+            console.error("Failed to update tags", e);
+            this.loadChannels();
+        }
     }
 
     get isWithin24hWindow() {
@@ -259,12 +296,14 @@ export class WhatsAppChatsAction extends Component {
             domain.push(["wa_account_id", "=", parseInt(this.state.selectedAccount)]);
         }
 
-        const channels = await this.orm.call(
+        const response = await this.orm.call(
             "whatsapp.account",
             "get_whatsapp_web_channels",
             [],
             { wa_account_id: this.state.selectedAccount }
         );
+        const channels = response.channels || [];
+        this.state.showLabels = response.show_labels;
         
         if (channels.length > 0 && this.myPartnerId) {
             const members = await this.orm.searchRead(
@@ -516,6 +555,7 @@ export class WhatsAppChatsAction extends Component {
                     });
                 }
                 // --- End Menu Detection ---
+                let isSystem = msg.message_type === 'notification';
                 
                 let timeText = '';
                 if (msg.date) {
@@ -536,7 +576,7 @@ export class WhatsAppChatsAction extends Component {
                     }
                 }
                 
-                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions };
+                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem };
             });
             
             // Check for newly failed messages and alert the user
@@ -580,6 +620,32 @@ export class WhatsAppChatsAction extends Component {
         } catch (e) {
             return '';
         }
+    }
+    
+    openMedia(attId, ev, type='image') {
+        if (ev) ev.stopPropagation();
+        this.state.fullscreenMedia = { id: attId, type: type, scale: 1, translateX: 0, translateY: 0 };
+    }
+    
+    closeMedia() {
+        this.state.fullscreenMedia = null;
+    }
+    
+    handleMediaWheel(ev) {
+        if (!this.state.fullscreenMedia || this.state.fullscreenMedia.type !== 'image') return;
+        ev.preventDefault();
+        
+        let scale = this.state.fullscreenMedia.scale;
+        if (ev.deltaY < 0) {
+            scale += 0.1;
+        } else {
+            scale -= 0.1;
+        }
+        
+        if (scale < 0.5) scale = 0.5;
+        if (scale > 5) scale = 5;
+        
+        this.state.fullscreenMedia.scale = scale;
     }
 
     async pollMessages() {
@@ -806,6 +872,7 @@ export class WhatsAppChatsAction extends Component {
                     isMe: true,
                     timeText: timeText,
                     date: sentDate,
+                    isSystem: false,
                     attachment_ids: [],
                 }];
                 this.scrollToBottom();

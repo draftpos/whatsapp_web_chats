@@ -34,8 +34,10 @@ class WAChatbotSession(models.Model):
 class WhatsAppAccount(models.Model):
     _inherit = 'whatsapp.account'
 
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
     image_1920 = fields.Image(string="Profile Picture", max_width=1920, max_height=1920)
     wa_bot_active = fields.Boolean(string="Automated Bot Responses", default=True)
+    wa_department_routing_active = fields.Boolean(string="Auto Response for Departments", default=True)
 
     @api.model
     def toggle_account_bot(self, wa_account_id, active):
@@ -96,7 +98,8 @@ class WhatsAppAccount(models.Model):
             import re
             def clean_name(n):
                 if not n: return n
-                return re.sub(r'\s*\(\s*School\s*\)', '', n, flags=re.IGNORECASE).strip()
+                # Strip any trailing parenthetical e.g. "(School)", "(Havano Support)", etc.
+                return re.sub(r'\s*\([^)]+\)\s*$', '', n, flags=re.IGNORECASE).strip()
                 
             res.append({
                 'id': c.id,
@@ -112,10 +115,43 @@ class WhatsAppAccount(models.Model):
                 'wa_bot_state': c.wa_bot_state,
                 'wa_department': c.wa_department,
                 'wa_agent_id': [c.wa_agent_id.id, c.wa_agent_id.name] if c.wa_agent_id else False,
+                'wa_is_done': c.wa_is_done,
+                'wa_is_unread_global': c.wa_is_unread_global,
+                'wa_is_favourite': c.wa_is_favourite,
+                'wa_tags': [{'id': t.id, 'name': t.name, 'color': t.color} for t in c.wa_tag_ids],
             })
             
         res.sort(key=lambda x: x['write_date'], reverse=True)
-        return res
+        show_labels = self.env['ir.config_parameter'].sudo().get_param('whatsapp_web_chats.wa_show_labels', 'True') == 'True'
+        return {
+            'channels': res,
+            'show_labels': show_labels
+        }
+
+    @api.model
+    def get_all_chat_tags(self):
+        tags = self.env['wa.chat.tag'].sudo().search([])
+        return [{'id': t.id, 'name': t.name, 'color': t.color} for t in tags]
+
+    @api.model
+    def update_chat_tags(self, channel_id, tag_ids):
+        channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
+        if channel.exists():
+            channel.sudo().write({'wa_tag_ids': [(6, 0, tag_ids)]})
+            return True
+        return False
+
+    @api.model
+    def set_whatsapp_chat_state(self, channel_id, field, value):
+        channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
+        if channel.exists() and field in ['wa_is_done', 'wa_is_unread_global', 'wa_is_favourite']:
+            channel.sudo().write({field: bool(value)})
+            # If marked as done, remove unread flag
+            if field == 'wa_is_done' and value:
+                channel.sudo().write({'wa_is_unread_global': False})
+                self.mark_whatsapp_web_messages_read(channel_id)
+            return {'success': True}
+        return {'success': False, 'error': 'Invalid channel or field'}
         
     @api.model
     def get_whatsapp_web_messages(self, channel_id):
@@ -124,7 +160,7 @@ class WhatsAppAccount(models.Model):
         messages = self.env['mail.message'].sudo().search([
             ('res_id', '=', int(channel_id)),
             ('model', '=', 'discuss.channel'),
-            ('message_type', '!=', 'notification'),  # exclude system/auto notifications only
+            ('message_type', 'in', ('comment', 'notification', 'whatsapp_message')),
         ], order='date asc')
         
         import re
@@ -166,7 +202,7 @@ class WhatsAppAccount(models.Model):
                 'author_id': [m.author_id.id, clean_name(m.author_id.name)] if m.author_id else False,
                 'date': date_str,
                 'message_type': m.message_type,
-                'attachment_ids': m.attachment_ids.ids,
+                'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype} for a in m.attachment_ids],
                 'is_me': is_me,
             }
             res.append(msg_dict)
@@ -211,6 +247,19 @@ class WhatsAppAccount(models.Model):
                 
         try:
             for message in value.get('messages', []):
+                wa_id = message.get('from')
+                if wa_id:
+                    clean_phone = ''.join([c for c in str(wa_id) if c.isdigit() or c == '+'])
+                    channel = self.env['discuss.channel'].sudo().search([
+                        ('channel_type', '=', 'whatsapp'),
+                        ('whatsapp_number', '=', clean_phone),
+                        ('wa_account_id', '=', self.id)
+                    ], limit=1)
+                    
+                    if channel:
+                        channel.wa_is_unread_global = True
+                        channel.wa_is_done = False
+                        
                 if message.get('type') == 'order':
                     order = message.get('order', {})
                     items = order.get('product_items', [])
@@ -261,10 +310,24 @@ class WhatsAppAccount(models.Model):
         return res
 
     def _process_routing_bot(self, value):
+        if not self.wa_department_routing_active:
+            return
+            
         from datetime import datetime, timezone
         
         for message in value.get('messages', []):
-            if message.get('type') != 'text':
+            m_type = message.get('type')
+            if m_type == 'interactive':
+                inter = message.get('interactive', {})
+                if inter.get('type') == 'list_reply':
+                    text_body = inter.get('list_reply', {}).get('id', '')
+                elif inter.get('type') == 'button_reply':
+                    text_body = inter.get('button_reply', {}).get('id', '')
+                else:
+                    text_body = ''
+            elif m_type == 'text':
+                text_body = message.get('text', {}).get('body', '').strip().lower()
+            else:
                 continue
                 
             wa_id = message.get('from')
@@ -283,7 +346,7 @@ class WhatsAppAccount(models.Model):
             if not channel:
                 continue
                 
-            # Check for 30 minutes inactivity to reset
+            # Check for 24 hours inactivity to reset
             last_msgs = self.env['mail.message'].sudo().search([
                 ('model', '=', 'discuss.channel'),
                 ('res_id', '=', channel.id),
@@ -292,12 +355,12 @@ class WhatsAppAccount(models.Model):
             
             if len(last_msgs) == 2:
                 time_diff = last_msgs[0].date - last_msgs[1].date
-                if time_diff.total_seconds() > 30 * 60:
+                if time_diff.total_seconds() > 24 * 60 * 60:
                     channel.wa_bot_state = False
                     channel.wa_agent_id = False
                     channel.wa_department = False
 
-            text_body = message.get('text', {}).get('body', '').strip().lower()
+            # text_body is already extracted above
             
             if not channel.wa_bot_state or channel.wa_bot_state == 'idle':
                 channel.wa_bot_state = 'ask_department'
@@ -310,7 +373,19 @@ class WhatsAppAccount(models.Model):
                 for i, d in enumerate(departments):
                     fallback_lines.append(f"{i+1}. {d.name}")
                     
-                self._send_bot_reply(channel, "\n".join(fallback_lines))
+                interactive = {
+                    "type": "list",
+                    "body": {"text": "Welcome! Which department do you need support from?"},
+                    "action": {
+                        "button": "Departments",
+                        "sections": [{
+                            "title": "Departments",
+                            "rows": [{"id": str(i+1), "title": d.name[:24]} for i, d in enumerate(departments[:10])]
+                        }]
+                    }
+                }
+                    
+                self._send_bot_reply(channel, "\n".join(fallback_lines), interactive_payload=interactive)
                 
             elif channel.wa_bot_state == 'ask_department':
                 departments = self.env['hr.department'].sudo().search([])
@@ -326,36 +401,67 @@ class WhatsAppAccount(models.Model):
                     channel.wa_department = selected_dept.id
                     channel.wa_bot_state = 'ask_agent'
                     
-                    agents = self.env['res.users'].sudo().search([('wa_department', '=', selected_dept.id)])
+                    employees = self.env['hr.employee'].sudo().search([('department_id', '=', selected_dept.id), ('user_id', '!=', False)])
+                    wa_users = self.env['res.users'].sudo().search([('wa_department', '=', selected_dept.id)])
+                    agents = (employees.mapped('user_id') | wa_users)
                     if not agents:
                         channel.wa_bot_state = 'routed'
                         channel._wa_bot_route_chat()
-                        self._send_bot_reply(channel, f"Let me direct you to {selected_dept.name} department and start a chat...")
+                        self._send_bot_reply(channel, f"Your chat has been successfully transferred to the {selected_dept.name} department under any available agent. Your issue will be solved soon, and we will get back to you when done.")
                     else:
                         agent_list = "\n".join([f"{i+1}. {a.name}" for i, a in enumerate(agents)])
                         msg = f"Please select an individual in {selected_dept.name} to speak with:\n{agent_list}\n0. Any available agent"
-                        self._send_bot_reply(channel, msg)
+                        
+                        rows = [{"id": str(i+1), "title": a.name[:24]} for i, a in enumerate(agents[:9])]
+                        rows.append({"id": "0", "title": "Any available agent"})
+                        
+                        interactive = {
+                            "type": "list",
+                            "body": {"text": f"Please select an individual in {selected_dept.name} to speak with:"},
+                            "action": {
+                                "button": "Agents",
+                                "sections": [{
+                                    "title": "Agents",
+                                    "rows": rows
+                                }]
+                            }
+                        }
+                        self._send_bot_reply(channel, msg, interactive_payload=interactive)
                 else:
                     fallback_lines = ["Invalid selection. Which department do you need support from?"]
                     for i, d in enumerate(departments):
                         fallback_lines.append(f"{i+1}. {d.name}")
-                    self._send_bot_reply(channel, "\n".join(fallback_lines))
+                        
+                    interactive = {
+                        "type": "list",
+                        "body": {"text": "Invalid selection. Which department do you need support from?"},
+                        "action": {
+                            "button": "Departments",
+                            "sections": [{
+                                "title": "Departments",
+                                "rows": [{"id": str(i+1), "title": d.name[:24]} for i, d in enumerate(departments[:10])]
+                            }]
+                        }
+                    }
+                    self._send_bot_reply(channel, "\n".join(fallback_lines), interactive_payload=interactive)
                     
             elif channel.wa_bot_state == 'ask_agent':
                 if text_body == '0' or text_body == 'any':
                     channel.wa_agent_id = False
                     channel.wa_bot_state = 'routed'
                     channel._wa_bot_route_chat()
-                    self._send_bot_reply(channel, f"Let me direct you to {channel.wa_department.name} department and start a chat...")
+                    self._send_bot_reply(channel, f"Your chat has been successfully transferred to the {channel.wa_department.name} department under any available agent. Your issue will be solved soon, and we will get back to you when done.")
                 else:
-                    agents = self.env['res.users'].sudo().search([('wa_department', '=', channel.wa_department.id)])
+                    employees = self.env['hr.employee'].sudo().search([('department_id', '=', channel.wa_department.id), ('user_id', '!=', False)])
+                    wa_users = self.env['res.users'].sudo().search([('wa_department', '=', channel.wa_department.id)])
+                    agents = (employees.mapped('user_id') | wa_users)
                     try:
                         idx = int(text_body) - 1
                         if 0 <= idx < len(agents):
                             channel.wa_agent_id = agents[idx].id
                             channel.wa_bot_state = 'routed'
                             channel._wa_bot_route_chat()
-                            self._send_bot_reply(channel, f"Let me direct you to {agents[idx].name} and start a chat...")
+                            self._send_bot_reply(channel, f"Your chat has been successfully transferred to the {channel.wa_department.name} department under {agents[idx].name}. Your issue will be solved soon, and we will get back to you when done.")
                         else:
                             self._send_bot_reply(channel, "Invalid selection. Please select an individual or 0 for Any.")
                     except ValueError:
@@ -374,15 +480,44 @@ class WhatsAppAccount(models.Model):
             # Send via whatsapp api natively
             phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
             if phone:
-                wa_msg = self.env['whatsapp.message'].sudo().create({
-                    'mobile_number': phone,
-                    'wa_account_id': channel.wa_account_id.id,
-                    'mail_message_id': mail_msg.id,
-                    'state': 'outgoing',
-                    'message_type': 'outbound',
-                    'body': body_text,
-                })
-                wa_msg._send(force_send_by_cron=False)
+                account = channel.wa_account_id
+                if account.phone_uid and account.token:
+                    import requests
+                    url = f"https://graph.facebook.com/v19.0/{account.phone_uid}/messages"
+                    headers = {
+                        "Authorization": f"Bearer {account.token}",
+                        "Content-Type": "application/json"
+                    }
+                    if interactive_payload:
+                        payload = {
+                            "messaging_product": "whatsapp",
+                            "recipient_type": "individual",
+                            "to": phone,
+                            "type": "interactive",
+                            "interactive": interactive_payload
+                        }
+                    else:
+                        payload = {
+                            "messaging_product": "whatsapp",
+                            "recipient_type": "individual",
+                            "to": phone,
+                            "type": "text",
+                            "text": {"body": body_text}
+                        }
+                    try:
+                        requests.post(url, headers=headers, json=payload, timeout=5)
+                    except Exception:
+                        pass
+                else:
+                    wa_msg = self.env['whatsapp.message'].sudo().create({
+                        'mobile_number': phone,
+                        'wa_account_id': channel.wa_account_id.id,
+                        'mail_message_id': mail_msg.id,
+                        'state': 'outgoing',
+                        'message_type': 'outbound',
+                        'body': body_text,
+                    })
+                    wa_msg._send(force_send_by_cron=False)
         except Exception as e:
             import logging
             logging.getLogger(__name__).error("Failed to send bot reply: %s", e)
@@ -533,6 +668,7 @@ class WhatsAppAccount(models.Model):
             'whatsapp_partner_id': partner.id,
             'whatsapp_number': clean_phone,
             'wa_account_id': account.id,
+            'company_id': account.company_id.id if account.company_id else False,
             'channel_member_ids': members
         })
         

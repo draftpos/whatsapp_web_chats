@@ -39,7 +39,8 @@
 
 .whatsapp-header {
     height: 65px;
-    background-color: #ffffff;
+    background-color: #1976d2;
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -52,7 +53,7 @@
 .whatsapp-header span {
     font-weight: 600;
     font-size: 16px;
-    color: #111b21;
+    color: #ffffff;
 }
 
 .whatsapp-account-select {
@@ -76,7 +77,7 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #00bfa5 0%, #008069 100%);
+    background: linear-gradient(135deg, #42a5f5 0%, #1565c0 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -149,7 +150,7 @@
 }
 
 .chat-unread-badge {
-    background-color: #25d366;
+    background-color: #1976d2;
     color: white;
     border-radius: 20px;
     padding: 2px 8px;
@@ -161,7 +162,7 @@
     align-items: center;
     justify-content: center;
     margin-left: 10px;
-    box-shadow: 0 2px 4px rgba(37,211,102,0.3);
+    box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
 }
 
 .whatsapp-messages {
@@ -204,7 +205,7 @@
 }
 
 .message-me .message-bubble {
-    background-color: #d9fdd3;
+    background-color: #e3f2fd;
     border-bottom-right-radius: 4px;
 }
 
@@ -241,7 +242,8 @@
 
 .whatsapp-input {
     flex: 1;
-    height: 44px;
+    min-height: 44px;
+    max-height: 120px;
     border-radius: 22px;
     border: 1px solid #e9ecef;
     background-color: #f8f9fa;
@@ -250,12 +252,15 @@
     margin: 0 15px;
     box-sizing: border-box;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    resize: none;
+    overflow-y: auto;
+    color: #111b21 !important;
 }
 
 .whatsapp-input:focus {
     outline: none;
-    border-color: #00bfa5;
-    box-shadow: 0 0 0 3px rgba(0,191,165,0.1);
+    border-color: #1e88e5;
+    box-shadow: 0 0 0 3px rgba(30,136,229,0.1);
     background-color: #ffffff;
 }
 
@@ -320,7 +325,7 @@
 }
 
 .whatsapp-send-btn:hover, .whatsapp-attach-btn:hover {
-    color: #00bfa5;
+    color: #1976d2;
     background-color: #f0f2f5;
 }
 
@@ -476,8 +481,8 @@
 }
 
 .template-card:hover {
-    border-color: #00bfa5;
-    box-shadow: 0 4px 12px rgba(0,191,165,0.1);
+    border-color: #1976d2;
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.1);
     transform: translateY(-2px);
 }
 
@@ -535,3 +540,21 @@
 .chat-card .option-btn:hover { background: #333; }
 .chat-card .option-btn:active { transform: scale(0.98); }
 .chat-card .option-btn i { font-size: 18px; color: #b0b0b0; }
+
+.chat-filter-pill {
+    padding: 6px 12px;
+    border-radius: 16px;
+    background-color: #f0f2f5;
+    color: #54656f;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.chat-filter-pill:hover {
+    background-color: #e9ecef;
+}
+.chat-filter-pill.active {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}

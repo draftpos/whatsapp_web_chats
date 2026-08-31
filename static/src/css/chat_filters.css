@@ -1,0 +1,19 @@
+.chat-filter-pill {
+    padding: 6px 12px;
+    border-radius: 16px;
+    background-color: #f0f2f5;
+    color: #54656f;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chat-filter-pill:hover {
+    background-color: #e9ecef;
+}
+
+.chat-filter-pill.active {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}

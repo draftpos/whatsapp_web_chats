@@ -1,4 +1,4 @@
-from odoo import models, api
+from odoo import models, fields, api
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -6,10 +6,15 @@ _logger = logging.getLogger(__name__)
 class WhatsAppMessage(models.Model):
     _inherit = 'whatsapp.message'
 
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+
+
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
         for rec in records:
+            if not rec.company_id and rec.wa_account_id and rec.wa_account_id.company_id:
+                rec.company_id = rec.wa_account_id.company_id.id
             if rec.mail_message_id:
                 # Find the copied discuss.channel message
                 copied_msg = self.env['mail.message'].sudo().search([

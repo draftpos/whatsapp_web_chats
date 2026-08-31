@@ -6,5 +6,15 @@
     </record>
 
     <!-- We don't need a root menu anymore since it's under WhatsApp -->
-    <menuitem id="menu_whatsapp_web_chats_action" name="Chats" parent="whatsapp.whatsapp_menu_main" action="action_whatsapp_web_chats" sequence="10"/>
+    <!-- Main Chats Menu - set sequence to 0 so it appears first -->
+    <menuitem id="menu_whatsapp_web_chats_action" name="Chats" parent="whatsapp.whatsapp_menu_main" action="action_whatsapp_web_chats" sequence="0"/>
+
+    <!-- Move Messages to Configuration -->
+    <menuitem id="whatsapp.whatsapp_message_menu" parent="whatsapp.whatsapp_configuration_menu" sequence="10"/>
+    
+    <!-- Move Templates to Configuration -->
+    <menuitem id="whatsapp.whatsapp_template_menu" parent="whatsapp.whatsapp_configuration_menu" sequence="20"/>
+
+    <!-- Move Chatbot to Configuration (if dev_whatsapp_chatbot_ent exists) -->
+    <menuitem id="dev_whatsapp_chatbot_ent.menu_wa_chatbot_parent" parent="whatsapp.whatsapp_configuration_menu" sequence="30"/>
 </odoo>

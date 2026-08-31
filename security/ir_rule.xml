@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- WhatsApp Account Multi-Company Rule -->
+        <record id="whatsapp_account_company_rule" model="ir.rule">
+            <field name="name">WhatsApp Account Company Rule</field>
+            <field name="model_id" ref="whatsapp.model_whatsapp_account"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Discuss Channel Multi-Company Rule -->
+        <record id="discuss_channel_company_rule" model="ir.rule">
+            <field name="name">Discuss Channel Company Rule</field>
+            <field name="model_id" ref="mail.model_discuss_channel"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- WhatsApp Message Multi-Company Rule -->
+        <record id="whatsapp_message_company_rule" model="ir.rule">
+            <field name="name">WhatsApp Message Company Rule</field>
+            <field name="model_id" ref="whatsapp.model_whatsapp_message"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- WhatsApp Template Multi-Company Rule -->
+        <record id="whatsapp_template_company_rule" model="ir.rule">
+            <field name="name">WhatsApp Template Company Rule</field>
+            <field name="model_id" ref="whatsapp.model_whatsapp_template"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+    </data>
+</odoo>

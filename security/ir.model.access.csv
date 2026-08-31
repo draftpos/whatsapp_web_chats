@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_wa_chat_tag,wa.chat.tag,model_wa_chat_tag,,1,1,1,1

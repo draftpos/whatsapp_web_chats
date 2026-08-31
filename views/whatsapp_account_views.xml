@@ -9,10 +9,16 @@
                 <field name="image_1920" widget="image" class="oe_avatar" options="{'size': [90, 90]}"/>
             </xpath>
             <xpath expr="//div[@id='tocontrol']" position="after">
-                <div class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small">Chatbot</div>
+                <div class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small">Chatbot &amp; Routing</div>
                 <div class="row mt16 o_settings_container" id="chatbot_control">
                     <setting>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </setting>
+                    <setting>
                         <field name="wa_bot_active"/>
+                    </setting>
+                    <setting>
+                        <field name="wa_department_routing_active"/>
                     </setting>
                 </div>
             </xpath>

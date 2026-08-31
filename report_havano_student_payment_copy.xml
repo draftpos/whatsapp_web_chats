@@ -1,0 +1,696 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Paper Format for Main Receipt (A4) -->
+    <record id="paperformat_payment_receipt_main" model="report.paperformat">
+        <field name="name">Payment Receipt Main (A4)</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">10</field>
+        <field name="margin_right">10</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+    </record>
+
+    <!-- Paper Format for Thermal Receipt (80mm) -->
+    <record id="paperformat_payment_receipt_thermal" model="report.paperformat">
+        <field name="name">Payment Receipt Thermal (80mm)</field>
+        <field name="default" eval="False"/>
+        <field name="format">custom</field>
+        <field name="page_height">297</field>
+        <field name="page_width">80</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">2</field>
+        <field name="margin_bottom">2</field>
+        <field name="margin_left">2</field>
+        <field name="margin_right">2</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+    </record>
+
+    <!-- Report |ction: Main Receipt -->
+    <record id="action_report_payment_receipt_main" model="ir.actions.report">
+        <field name="name">Official Payment Receipt</field>
+        <field name="model">havano.student.payment</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">havano_schools_odoo.report_payment_receipt_main</field>
+        <field name="report_file">havano_schools_odoo.report_payment_receipt_main</field>
+        <field name="binding_model_id" ref="havano_schools_odoo.model_havano_student_payment"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_payment_receipt_main"/>
+    </record>
+
+    <!-- Report |ction: Thermal Receipt -->
+    <record id="action_report_payment_receipt_thermal" model="ir.actions.report">
+        <field name="name">Payment Receipt (Thermal)</field>
+        <field name="model">havano.student.payment</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">havano_schools_odoo.report_payment_receipt_thermal</field>
+        <field name="report_file">havano_schools_odoo.report_payment_receipt_thermal</field>
+        <field name="binding_model_id" ref="havano_schools_odoo.model_havano_student_payment"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_payment_receipt_thermal"/>
+    </record>
+
+    <!-- M|IN RECEIPT DOCUMENT -->
+    <template id="report_payment_receipt_main_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <div class="article" t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id" t-att-data-oe-lang="o and o.env.context.get('lang')">
+                    <style>
+                        :root{
+                            --navy: #0a1b4d;
+                            --navy-deep: #071336;
+                            --gold: #d4af37;
+                            --paper: #FBF|F6;
+                            --ink: #20242C;
+                            --muted: #6B7280;
+                            --line: #DCD8CC;
+                            --seal: #2F6B4F;
+                        }
+                        *{box-sizing:border-box;}
+                        .receipt-body{
+                            font-family:'Inter',sans-serif;
+                            color:#20242C;
+                            display:flex;
+                            justify-content:center;
+                            padding:0;
+                            margin: 0;
+                        }
+                        .sheet{
+                            width:100%;
+                            background:#FBF|F6;
+                            position:relative;
+                            overflow:hidden;
+                        }
+                        .sheet::before{
+                            content:"";
+                            position:absolute;
+                            top:0;left:0;right:0;
+                            height:6px;
+                            background:linear-gradient(90deg,#0a1b4d 0%, #0a1b4d 70%, #d4af37 70%, #d4af37 100%);
+                        }
+                        .sheet::after{
+                            content:"";
+                            position:absolute;
+                            bottom:0;left:0;right:0;
+                            height:6px;
+                            background:linear-gradient(90deg,#d4af37 0%, #d4af37 30%, #0a1b4d 30%, #0a1b4d 100%);
+                        }
+                        .ribbon{
+                            position:absolute;
+                            top:22px; right:-46px;
+                            width:190px;
+                            transform:rotate(40deg);
+                            background:#d4af37;
+                            color:#071336;
+                            text-align:center;
+                            font-weight:700;
+                            font-size:12px;
+                            letter-spacing:2px;
+                            padding:5px 0;
+                            box-shadow:0 2px 6px rgba(0,0,0,0.2);
+                            z-index:2;
+                        }
+                        .ornament{
+                            display:flex;
+                            align-items:center;
+                            gap:10px;
+                            padding:0 48px;
+                            margin:2px 0 -6px;
+                        }
+                        .ornament .rule{ flex:1; height:1px; background:#DCD8CC; }
+                        .ornament .glyph{ color:#d4af37; font-size:11px; letter-spacing:2px; }
+                        .progress-wrap{ padding:2px 48px 6px; }
+                        .progress-labels{
+                            display:flex; justify-content:space-between;
+                            font-size:10.5px; color:#6B7280;
+                            text-transform:uppercase; letter-spacing:0.5px;
+                            margin-bottom:6px;
+                        }
+                        .progress{
+                            height:7px;
+                            background:#DCD8CC;
+                            border-radius:99px;
+                            overflow:hidden;
+                        }
+                        .progress-fill{
+                            height:100%;
+                            background:linear-gradient(90deg,#d4af37,#0a1b4d);
+                            border-radius:99px;
+                        }
+                        .verify-block{
+                            display:flex;
+                            align-items:center;
+                            gap:14px;
+                        }
+                        .qr{
+                            width:58px;height:58px;
+                            border-radius:6px;
+                            border:1px solid #DCD8CC;
+                            background:
+                            linear-gradient(#20242C 0 0) 0 0/13px 13px,
+                            linear-gradient(#20242C 0 0) 17px 0/13px 13px,
+                            linear-gradient(#20242C 0 0) 0 17px/13px 13px,
+                            linear-gradient(#20242C 0 0) 34px 34px/9px 9px,
+                            linear-gradient(#20242C 0 0) 17px 34px/7px 7px,
+                            linear-gradient(#20242C 0 0) 34px 17px/7px 7px;
+                            background-repeat:no-repeat;
+                            background-color:#fff;
+                            flex-shrink:0;
+                        }
+                        .verify-text{
+                            font-size:10.5px;
+                            color:#6B7280;
+                            line-height:1.5;
+                            max-width:180px;
+                        }
+                        .verify-text strong{
+                            display:block;
+                            color:#20242C;
+                            font-size:11.5px;
+                            margin-bottom:2px;
+                        }
+                        .letterhead{
+                            padding:36px 48px 24px;
+                        }
+                        .brand{
+                            display:flex;
+                            gap:16px;
+                            align-items:center;
+                        }
+                        .crest{
+                            width:64px;height:64px;
+                            border-radius:50%;
+                            background:#0a1b4d;
+                            display:flex;align-items:center;justify-content:center;
+                            position:relative;
+                            flex-shrink:0;
+                            box-shadow:0 0 0 3px #FBF|F6, 0 0 0 4px #d4af37;
+                        }
+                        .crest img { max-width:40px; max-height:40px; }
+                        .brand-text h1{
+                            font-size:24px;
+                            margin:0;
+                            color:#071336;
+                            letter-spacing:0.3px;
+                            font-weight: 700;
+                        }
+                        .brand-text p{
+                            margin:4px 0 0;
+                            font-size:12px;
+                            color:#6B7280;
+                            letter-spacing:0.5px;
+                            text-transform:uppercase;
+                        }
+                        .school-address{
+                            text-align:right;
+                            font-size:12px;
+                            color:#6B7280;
+                            line-height:1.6;
+                            max-width:220px;
+                        }
+                        .school-address strong{
+                            display:block;
+                            color:#20242C;
+                            font-size:13px;
+                            margin-bottom:2px;
+                        }
+                        .title-bar{
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            padding:20px 48px;
+                            background:#071336;
+                            color:#fff;
+                        }
+                        .title-bar h2{
+                            font-size:17px;
+                            margin:0;
+                            font-weight:600;
+                            letter-spacing:0.4px;
+                        }
+                        .title-bar .meta{
+                            font-size:12px;
+                            text-align:right;
+                            line-height:1.6;
+                            color:#D9E2EC;
+                        }
+                        .title-bar .meta span{ color:#d4af37; font-weight:600; }
+                        .details{
+                            padding:28px 48px 8px;
+                            overflow: hidden; /* Clear floats */
+                        }
+                        .field{
+                            float: left;
+                            width: 50%;
+                            padding:10px 20px 10px 0;
+                            border-bottom:1px solid #DCD8CC;
+                            margin-bottom:14px;
+                            box-sizing: border-box;
+                        }
+                        .field:nth-child(2n+1) { clear: left; }
+                        .field .label{
+                            font-size:10.5px;
+                            text-transform:uppercase;
+                            letter-spacing:0.8px;
+                            color:#6B7280;
+                            margin-bottom:4px;
+                        }
+                        .field .value{
+                            font-size:15px;
+                            font-weight:600;
+                            color:#20242C;
+                        }
+                        .field .value.mono{ font-weight:500; }
+                        .table-wrap{ padding:8px 48px 0; }
+                        .table-wrap h3{
+                            font-size:13px;
+                            text-transform:uppercase;
+                            letter-spacing:0.6px;
+                            color:#071336;
+                            border-bottom:2px solid #0a1b4d;
+                            padding-bottom:8px;
+                            margin:16px 0 0;
+                        }
+                        table{
+                            width:100%;
+                            border-collapse:collapse;
+                            font-size:13px;
+                            margin-top:4px;
+                        }
+                        thead th{
+                            text-align:left;
+                            font-size:10.5px;
+                            text-transform:uppercase;
+                            letter-spacing:0.5px;
+                            color:#6B7280;
+                            font-weight:600;
+                            padding:10px 6px;
+                            border-bottom:1px solid #DCD8CC;
+                        }
+                        thead th.num, tbody td.num{ text-align:right; }
+                        tbody td{
+                            padding:11px 6px;
+                            border-bottom:1px solid #DCD8CC;
+                            color:#20242C;
+                        }
+                        tbody tr:last-child td{ border-bottom:none; }
+                        tbody tr:nth-child(even){ background:rgba(10,27,77,0.035); }
+                        .totals{
+                            display:flex;
+                            justify-content:flex-end;
+                            padding:18px 48px 6px;
+                        }
+                        .totals-box{
+                            width:280px;
+                        }
+                        .totals-row{
+                            display:flex;
+                            justify-content:space-between;
+                            font-size:13px;
+                            padding:8px 0;
+                            color:#6B7280;
+                            border-bottom:1px solid #DCD8CC;
+                        }
+                        .totals-row .amt{ color:#20242C; font-weight: bold;}
+                        .totals-row.grand{
+                            border-bottom:none;
+                            border-top:2px solid #0a1b4d;
+                            margin-top:4px;
+                            padding-top:12px;
+                            font-size:15px;
+                            font-weight:700;
+                            color:#071336;
+                        }
+                        .totals-row.grand .amt{ font-size:18px; color:#071336; }
+                        .footer{
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            padding:30px 48px 36px;
+                            margin-top:10px;
+                            position:relative;
+                            z-index:1;
+                        }
+                        .signature{
+                            font-size:12px;
+                            color:#6B7280;
+                        }
+                        .sig-line{
+                            width:190px;
+                            border-bottom:1px solid #20242C;
+                            margin-bottom:6px;
+                            height:36px;
+                        }
+                        .seal{
+                            width:104px;height:104px;
+                            border-radius:50%;
+                            border:3px double #2F6B4F;
+                            color:#2F6B4F;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            text-align:center;
+                            transform:rotate(-11deg);
+                            font-weight:700;
+                            font-size:15px;
+                            letter-spacing:1px;
+                            line-height:1.3;
+                            opacity:0.9;
+                            flex-shrink:0;
+                        }
+                        .note{
+                            padding:0 48px 32px;
+                            font-size:11px;
+                            color:#6B7280;
+                            text-align:center;
+                            letter-spacing:0.3px;
+                        }
+                    </style>
+                    <div class="receipt-body">
+                        <div class="sheet">
+                            <t t-if="o.state != 'posted'">
+                                <div class="ribbon">DR|FT</div>
+                            </t>
+
+                            <table class="letterhead" style="width: 100%; margin:0; padding:36px 48px 24px; border-bottom:2px solid #0a1b4d; border-collapse: collapse;">
+                                <tr>
+                                    <td class="letterhead-details" style="width: 50%; vertical-align: top; text-align: left; padding: 0;">
+                                        <h1 style="font-size:24px; margin:0; color:#071336; font-weight:700;"><t t-esc="o.company_id.name"/></h1>
+                                        <p style="margin:0; font-size:12px; color:#6B7280; text-transform:uppercase;">Official Payment Receipt</p>
+                                        <div class="school-address" style="margin-top:8px; font-size:12px; color:#6B7280; line-height:1.6; text-align: left;">
+                                            <strong><t t-esc="o.company_id.name"/></strong><br/>
+                                            <t t-if="o.company_id.street"><t t-esc="o.company_id.street"/><br/></t>
+                                            <t t-if="o.company_id.phone"><t t-esc="o.company_id.phone"/> | </t> <t t-if="o.company_id.email"><t t-esc="o.company_id.email"/></t><br/>
+                                            <t t-if="o.company_id.company_registry">Reg. No. <t t-esc="o.company_id.company_registry"/></t>
+                                        </div>
+                                    </td>
+                                    <td class="brand-logo" style="width: 50%; vertical-align: top; text-align: right; padding: 0;">
+                                        <div class="crest" style="width:72px;height:72px;border-radius:50%;background:#0a1b4d;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #FBFAF6, 0 0 0 4px #d4af37; float: right;">
+                                            <img t-if="o.company_id.logo" t-att-src="image_data_uri(o.company_id.logo)" alt="Logo" style="max-width:48px; max-height:48px;"/>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div class="title-bar">
+                                <h2>Student Payment Receipt</h2>
+                                <div class="meta">
+                                    Receipt No. <span><t t-esc="o.name"/></span><br/>
+                                    Date Issued <span><t t-esc="o.date" t-options='{"widget": "date"}'/></span>
+                                </div>
+                            </div>
+
+                            <div class="ornament"><div class="rule"></div><span class="glyph">❖</span><div class="rule"></div></div>
+
+                            <div class="details">
+                                <div class="field">
+                                    <div class="label">Student Name</div>
+                                    <div class="value"><t t-esc="o.student_id.name"/></div>
+                                </div>
+                                <div class="field">
+                                    <div class="label">Date</div>
+                                    <div class="value mono"><t t-esc="o.date" t-options='{"widget": "date"}'/></div>
+                                </div>
+                                <div class="field">
+                                    <div class="label">Class</div>
+                                    <div class="value"><t t-esc="o.course_id.name or '—'"/></div>
+                                </div>
+                                <div class="field">
+                                    <div class="label">|ccount Paid To</div>
+                                    <div class="value"><t t-esc="o.journal_id.name or '—'"/></div>
+                                </div>
+                                <div class="field">
+                                    <div class="label">Section</div>
+                                    <div class="value"><t t-esc="o.batch_id.name or '—'"/></div>
+                                </div>
+                                <div class="field">
+                                    <div class="label">|llocated |mount</div>
+                                    <div class="value mono"><t t-esc="o.allocated_amount" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></div>
+                                </div>
+                            </div>
+
+                            <div class="table-wrap">
+                                <h3>Outstanding Invoices</h3>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Invoice No.</th>
+                                            <th>Fees Structure</th>
+                                            <th>Invoice Date</th>
+                                            <th>Year</th>
+                                            <th>Term</th>
+                                            <th class="num">Outstanding</th>
+                                            <th class="num">|llocated</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="o.line_ids" t-as="line">
+                                            <tr>
+                                                <td class="mono"><t t-esc="line.name"/></td>
+                                                <td><t t-esc="line.sub_fees_structure_id.name"/></td>
+                                                <td><t t-esc="line.invoice_date" t-options='{"widget": "date"}'/></td>
+                                                <td><t t-esc="line.academic_year_id.name"/></td>
+                                                <td><t t-esc="line.term_id.name"/></td>
+                                                <td class="num mono"><t t-esc="line.amount_residual" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                                <td class="num mono"><t t-esc="line.amount_allocated" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="totals">
+                                <div class="totals-box">
+                                    <div class="totals-row">
+                                        <span>Total Outstanding</span>
+                                        <span class="amt"><t t-esc="o.total_balance" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></span>
+                                    </div>
+                                    <div class="totals-row">
+                                        <span>|llocated |mount</span>
+                                        <span class="amt"><t t-esc="o.allocated_amount" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></span>
+                                    </div>
+                                    <div class="totals-row grand">
+                                        <span>Balance Due</span>
+                                        <span class="amt"><t t-esc="o.total_balance - o.allocated_amount" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="progress-wrap">
+                                <div class="progress-labels"><span>|llocated</span><span>Outstanding</span></div>
+                                <div class="progress">
+                                    <div class="progress-fill" t-attf-style="width: {{ (o.allocated_amount / o.total_balance * 100) if o.total_balance > 0 else 0 }}%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="footer">
+                                <div class="signature">
+                                    <div class="sig-line"></div>
+                                    |uthorised Signature — Bursar's Office
+                                </div>
+                                <div class="seal">OFFICI|L<br/>RECEIPT</div>
+                                <div class="verify-block">
+                                    <div class="qr"></div>
+                                    <div class="verify-text">
+                                        <strong>Verify this receipt</strong>
+                                        <t t-esc="o.company_id.website or 'portal.havanohigh.ac.zw'"/>/verify/<t t-esc="o.name"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="note">This receipt is computer-generated and valid without a signature when issued through the <t t-esc="o.company_id.name"/> portal.</div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_payment_receipt_main">
+        <t t-call="web.html_container">
+            <t t-call="havano_schools_odoo.report_payment_receipt_main_document"/>
+        </t>
+    </template>
+
+    <!-- THERM|L RECEIPT DOCUMENT -->
+    <template id="report_payment_receipt_thermal_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <div class="article" t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id" t-att-data-oe-lang="o and o.env.context.get('lang')">
+                    <style>
+                        :root{
+                            --paper:#FFFDF6;
+                            --ink:#181818;
+                            --red:#B23|2E;
+                            --grey:#9C9C94;
+                            --dash:#CFCBBE;
+                        }
+                        *{box-sizing:border-box;}
+                        .thermal-body{
+                            font-family:monospace;
+                            color:#20242C;
+                            display:flex;
+                            justify-content:center;
+                            padding:0;
+                            margin:0;
+                        }
+                        .receipt{
+                            width:100%;
+                            background:#FBF|F6;
+                            padding:10px 10px 20px;
+                            position:relative;
+                        }
+                        .center{ text-align:center; }
+                        .school-name{
+                            font-weight:700;
+                            font-size:18px;
+                            letter-spacing:1px;
+                            margin:0;
+                        }
+                        .crest-line{
+                            font-size:10px;
+                            letter-spacing:3px;
+                            color:#9C9C94;
+                            margin:4px 0 10px;
+                        }
+                        .addr{
+                            font-size:10.5px;
+                            color:#9C9C94;
+                            line-height:1.6;
+                            margin-bottom:14px;
+                        }
+                        .dash{
+                            border:none;
+                            border-top:1px dashed #CFCBBE;
+                            margin:14px 0;
+                        }
+                        .row{
+                            display:flex;
+                            justify-content:space-between;
+                            font-size:11.5px;
+                            padding:3px 0;
+                        }
+                        .row .l{ color:#9C9C94; }
+                        .row .v{ font-weight:700; text-align:right; }
+                        .tag{
+                            display:inline-block;
+                            font-size:10px;
+                            letter-spacing:2px;
+                            background:#20242C;
+                            color:#FBF|F6;
+                            padding:3px 8px;
+                            margin-bottom:2px;
+                        }
+                        table{ width:100%; border-collapse:collapse; font-size:11px; margin-top:6px; }
+                        thead th{
+                            text-align:left;
+                            font-size:9.5px;
+                            letter-spacing:0.5px;
+                            color:#9C9C94;
+                            font-weight:400;
+                            padding-bottom:6px;
+                            border-bottom:1px dashed #CFCBBE;
+                        }
+                        thead th.r, tbody td.r{ text-align:right; }
+                        tbody td{ padding:6px 0; border-bottom:1px dotted #CFCBBE; }
+                        tbody tr:last-child td{ border-bottom:none; }
+                        .totals{ margin-top:6px; }
+                        .totals .row.grand{
+                            font-size:15px;
+                            padding-top:10px;
+                            border-top:1px solid #20242C;
+                            margin-top:8px;
+                        }
+                        .stamp{
+                            margin:20px auto 6px;
+                            width:120px;
+                            border:2px solid #B23|2E;
+                            color:#B23|2E;
+                            text-align:center;
+                            font-weight:700;
+                            font-size:12px;
+                            letter-spacing:2px;
+                            padding:5px 0;
+                            transform:rotate(-4deg);
+                        }
+                        .barcode{
+                            height:36px;
+                            margin:16px 0 4px;
+                            background:repeating-linear-gradient(90deg, #20242C 0 2px, transparent 2px 4px, #20242C 4px 5px, transparent 5px 9px, #20242C 9px 12px, transparent 12px 14px);
+                        }
+                        .foot-note{
+                            text-align:center;
+                            font-size:9.5px;
+                            color:#9C9C94;
+                            letter-spacing:0.5px;
+                            margin-top:6px;
+                        }
+                    </style>
+                    <div class="thermal-body">
+                        <div class="receipt">
+                            <div class="center">
+                                <p class="school-name"><t t-esc="o.company_id.name.upper()"/></p>
+                                <p class="crest-line">★ ★ ★ OFFICI|L RECEIPT ★ ★ ★</p>
+                                <p class="addr">
+                                    <t t-if="o.company_id.street"><t t-esc="o.company_id.street"/><br/></t>
+                                    <t t-if="o.company_id.phone"><t t-esc="o.company_id.phone"/> · </t>
+                                    <t t-if="o.company_id.company_registry">Reg. <t t-esc="o.company_id.company_registry"/></t>
+                                </p>
+                            </div>
+
+                            <hr class="dash"/>
+
+                            <div class="row"><span class="l">RECEIPT NO.</span><span class="v"><t t-esc="o.name"/></span></div>
+                            <div class="row"><span class="l">D|TE</span><span class="v"><t t-esc="o.date" t-options='{"widget": "date"}'/></span></div>
+                            <div class="row"><span class="l">STUDENT</span><span class="v"><t t-esc="o.student_id.name.upper()"/></span></div>
+                            <div class="row"><span class="l">CL|SS</span><span class="v"><t t-esc="(o.course_id.name or '—').upper()"/></span></div>
+                            <div class="row"><span class="l">|CCOUNT</span><span class="v"><t t-esc="(o.journal_id.name or '—').upper()"/></span></div>
+
+                            <hr class="dash"/>
+                            <span class="tag">OUTST|NDING INVOICES</span>
+
+                            <table>
+                                <thead>
+                                    <tr><th>INV</th><th>TERM</th><th class="r">OUT</th><th class="r">|LLOC</th></tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="o.line_ids" t-as="line">
+                                        <tr>
+                                            <td><t t-esc="line.name"/></td>
+                                            <td><t t-esc="line.term_id.name"/></td>
+                                            <td class="r"><t t-esc="line.amount_residual" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                            <td class="r"><t t-esc="line.amount_allocated" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+
+                            <div class="totals">
+                                <div class="row"><span class="l">TOT|L OUTST|NDING</span><span class="v"><t t-esc="o.total_balance" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></span></div>
+                                <div class="row"><span class="l">|LLOC|TED</span><span class="v"><t t-esc="o.allocated_amount" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></span></div>
+                                <div class="row grand"><span class="l">B|L|NCE DUE</span><span class="v"><t t-esc="o.total_balance - o.allocated_amount" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/></span></div>
+                            </div>
+
+                            <t t-if="o.state != 'posted'">
+                                <div class="stamp">DR|FT</div>
+                            </t>
+
+                            <div class="barcode"></div>
+                            <div class="foot-note"><t t-esc="o.name"/> · KEEP FOR YOUR RECORDS</div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_payment_receipt_thermal">
+        <t t-call="web.html_container">
+            <t t-call="havano_schools_odoo.report_payment_receipt_thermal_document"/>
+        </t>
+    </template>
+</odoo>

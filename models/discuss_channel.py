@@ -3,6 +3,13 @@ from odoo import models, fields, api
 class DiscussChannel(models.Model):
     _inherit = 'discuss.channel'
 
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+
+    wa_is_done = fields.Boolean(string="WhatsApp Chat Done", default=False)
+    wa_is_unread_global = fields.Boolean(string="WhatsApp Chat Unread (Global)", default=False)
+    wa_is_favourite = fields.Boolean(string="WhatsApp Chat Favourite", default=False)
+    wa_tag_ids = fields.Many2many('wa.chat.tag', string='WhatsApp Tags')
+
     wa_bot_state = fields.Selection([
         ('ask_department', 'Asking Department'),
         ('ask_agent', 'Asking Agent'),
@@ -12,6 +19,19 @@ class DiscussChannel(models.Model):
     wa_department = fields.Many2one('hr.department', string='Selected Department')
     
     wa_agent_id = fields.Many2one('res.users', string='Selected Agent')
+
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('channel_type') == 'whatsapp' and not vals.get('whatsapp_partner_id'):
+                number = vals.get('whatsapp_number')
+                if number:
+                    partner = self.env['res.partner'].search([('phone', 'ilike', number)], limit=1)
+                    if not partner:
+                        partner = self.env['res.partner'].create({'name': number, 'phone': number})
+                    vals['whatsapp_partner_id'] = partner.id
+        return super().create(vals_list)
 
     def _wa_bot_route_chat(self):
         self.ensure_one()
@@ -26,9 +46,13 @@ class DiscussChannel(models.Model):
         elif self.wa_department:
             # Add all agents in this department
             department_users = self.env['res.users'].sudo().search([
-                ('wa_department', '=', self.wa_department)
+                ('wa_department', '=', self.wa_department.id)
+            ])
+            department_employees = self.env['hr.employee'].sudo().search([
+                ('department_id', '=', self.wa_department.id), ('user_id', '!=', False)
             ])
             users_to_add.extend(department_users.ids)
+            users_to_add.extend(department_employees.mapped('user_id').ids)
             
         # Ensure the user sending messages (if they have a user) or public user is handled?
         # Typically discuss.channel members are res.partner
@@ -70,7 +94,7 @@ class DiscussChannel(models.Model):
         
         channel._wa_bot_route_chat()
         
-        # Post a message noting the transfer
+        # Post a message noting the transfer internally
         dept = self.env['hr.department'].browse(department_id)
         agent = self.env['res.users'].browse(agent_id) if agent_id else False
         
@@ -79,4 +103,11 @@ class DiscussChannel(models.Model):
             msg += f", agent {agent.name}"
             
         channel.message_post(body=msg, message_type='notification')
+        
+        # Send automated message to the customer via WhatsApp API
+        customer_msg = f"Your chat has been successfully transferred to the {dept.name} department under {agent.name if agent else 'any available agent'}. Your issue will be solved soon, and we will get back to you when done."
+        if channel.wa_account_id:
+            channel.wa_account_id._send_bot_reply(channel, customer_msg)
+        else:
+            channel.message_post(body=customer_msg, message_type='comment', subtype_xmlid='mail.mt_comment')
         return True
