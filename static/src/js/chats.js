@@ -376,6 +376,10 @@ export class WhatsAppChatsAction extends Component {
         // We could also attempt to update the backend channel record here if needed.
     }
 
+    setChatFilter(filterType) {
+        this.state.chatFilter = filterType;
+    }
+
     async selectChannel(channel, event) {
         if (event && this.state.selectedChannels.length > 0) {
             this.toggleChannelSelection(channel.id, event);
@@ -622,13 +626,52 @@ export class WhatsAppChatsAction extends Component {
         }
     }
     
-    openMedia(attId, ev, type='image') {
+    openMedia(attId, ev, type='image', filename='') {
         if (ev) ev.stopPropagation();
-        this.state.fullscreenMedia = { id: attId, type: type, scale: 1, translateX: 0, translateY: 0 };
+        this.state.fullscreenMedia = {
+            id: attId,
+            type: type,
+            filename: filename || '',
+            scale: 1,
+            translateX: 0,
+            translateY: 0,
+        };
+        // Bind drag handlers (stored so we can remove them)
+        this._lbDragging = false;
+        this._lbDragStartX = 0;
+        this._lbDragStartY = 0;
+        this._lbDragOriginX = 0;
+        this._lbDragOriginY = 0;
     }
     
     closeMedia() {
         this.state.fullscreenMedia = null;
+        this._lbDragging = false;
+    }
+    
+    zoomIn(ev) {
+        if (ev) ev.stopPropagation();
+        if (!this.state.fullscreenMedia) return;
+        let scale = this.state.fullscreenMedia.scale + 0.25;
+        if (scale > 5) scale = 5;
+        this.state.fullscreenMedia = { ...this.state.fullscreenMedia, scale };
+    }
+
+    zoomOut(ev) {
+        if (ev) ev.stopPropagation();
+        if (!this.state.fullscreenMedia) return;
+        let scale = this.state.fullscreenMedia.scale - 0.25;
+        if (scale < 0.25) scale = 0.25;
+        // Reset pan if zoomed out to 1 or below
+        const translateX = scale <= 1 ? 0 : this.state.fullscreenMedia.translateX;
+        const translateY = scale <= 1 ? 0 : this.state.fullscreenMedia.translateY;
+        this.state.fullscreenMedia = { ...this.state.fullscreenMedia, scale, translateX, translateY };
+    }
+
+    resetZoom(ev) {
+        if (ev) ev.stopPropagation();
+        if (!this.state.fullscreenMedia) return;
+        this.state.fullscreenMedia = { ...this.state.fullscreenMedia, scale: 1, translateX: 0, translateY: 0 };
     }
     
     handleMediaWheel(ev) {
@@ -636,16 +679,54 @@ export class WhatsAppChatsAction extends Component {
         ev.preventDefault();
         
         let scale = this.state.fullscreenMedia.scale;
-        if (ev.deltaY < 0) {
-            scale += 0.1;
-        } else {
-            scale -= 0.1;
-        }
+        const delta = ev.deltaY < 0 ? 0.15 : -0.15;
+        scale += delta;
         
-        if (scale < 0.5) scale = 0.5;
+        if (scale < 0.25) scale = 0.25;
         if (scale > 5) scale = 5;
         
-        this.state.fullscreenMedia.scale = scale;
+        const translateX = scale <= 1 ? 0 : this.state.fullscreenMedia.translateX;
+        const translateY = scale <= 1 ? 0 : this.state.fullscreenMedia.translateY;
+        this.state.fullscreenMedia = { ...this.state.fullscreenMedia, scale, translateX, translateY };
+    }
+
+    startMediaDrag(ev) {
+        if (!this.state.fullscreenMedia || this.state.fullscreenMedia.type !== 'image') return;
+        if (this.state.fullscreenMedia.scale <= 1) return;
+        ev.preventDefault();
+        this._lbDragging = true;
+        this._lbDragStartX = ev.clientX;
+        this._lbDragStartY = ev.clientY;
+        this._lbDragOriginX = this.state.fullscreenMedia.translateX;
+        this._lbDragOriginY = this.state.fullscreenMedia.translateY;
+    }
+
+    onMediaDrag(ev) {
+        if (!this._lbDragging || !this.state.fullscreenMedia) return;
+        const dx = ev.clientX - this._lbDragStartX;
+        const dy = ev.clientY - this._lbDragStartY;
+        this.state.fullscreenMedia = {
+            ...this.state.fullscreenMedia,
+            translateX: this._lbDragOriginX + dx,
+            translateY: this._lbDragOriginY + dy,
+        };
+    }
+
+    stopMediaDrag(ev) {
+        this._lbDragging = false;
+    }
+
+    getMediaDownloadUrl() {
+        if (!this.state.fullscreenMedia) return '#';
+        if (this.state.fullscreenMedia.type === 'video') {
+            return `/web/content/${this.state.fullscreenMedia.id}?download=true`;
+        }
+        return `/web/image/${this.state.fullscreenMedia.id}?download=true`;
+    }
+
+    getZoomPercent() {
+        if (!this.state.fullscreenMedia) return '100%';
+        return Math.round(this.state.fullscreenMedia.scale * 100) + '%';
     }
 
     async pollMessages() {
@@ -776,6 +857,28 @@ export class WhatsAppChatsAction extends Component {
             ev.preventDefault();
             this.sendMessage();
         }
+    }
+
+    onInputResize(ev) {
+        const el = ev.target;
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight) + 'px';
+        if (el.scrollHeight > 150) {
+            el.style.overflowY = 'auto';
+        } else {
+            el.style.overflowY = 'hidden';
+        }
+    }
+
+    closeChat() {
+        this.state.selectedChannel = null;
+        this.state.messages = [];
+        this.state.showContactInfo = false;
+    }
+
+    selectAllContacts() {
+        if (!this.state.contacts) return;
+        this.state.selectedContacts = this.state.contacts.map(c => c.id);
     }
 
     openCatalogue() {

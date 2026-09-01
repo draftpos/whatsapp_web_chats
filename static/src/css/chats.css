@@ -205,7 +205,7 @@
 }
 
 .message-me .message-bubble {
-    background-color: #e3f2fd;
+    background-color: #dcf8c6;
     border-bottom-right-radius: 4px;
 }
 
@@ -557,4 +557,162 @@
 .chat-filter-pill.active {
     background-color: #e3f2fd;
     color: #1976d2;
+}
+
+/* =====================================================
+   MEDIA LIGHTBOX / VIEWER
+   ===================================================== */
+.media-lightbox {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: lbFadeIn 0.2s ease;
+    overflow: hidden;
+}
+
+@keyframes lbFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Top toolbar */
+.media-lightbox-toolbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+    z-index: 10001;
+    color: #ffffff;
+}
+
+.media-lightbox-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #e0e0e0;
+    max-width: 50%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-lightbox-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.media-lb-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #ffffff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.2s ease, transform 0.1s ease;
+    text-decoration: none;
+}
+
+.media-lb-btn:hover {
+    background: rgba(255,255,255,0.25);
+    transform: scale(1.1);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.media-lb-btn:active {
+    transform: scale(0.95);
+}
+
+.media-lb-btn.close-btn:hover {
+    background: rgba(220, 50, 50, 0.7);
+}
+
+/* Zoom badge */
+.media-lb-zoom-badge {
+    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    min-width: 55px;
+    text-align: center;
+    user-select: none;
+}
+
+/* Image/video container */
+.media-lightbox-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.media-lb-image {
+    max-width: 90vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    transition: transform 0.15s ease-out;
+    transform-origin: center center;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.media-lb-image.dragging {
+    cursor: grabbing;
+    transition: none;
+}
+
+.media-lb-image:not(.dragging) {
+    cursor: zoom-in;
+}
+
+.media-lb-image.zoomed {
+    cursor: grab;
+}
+
+.media-lb-image.zoomed.dragging {
+    cursor: grabbing;
+}
+
+.media-lb-video {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 4px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+
+/* Bottom hint bar */
+.media-lightbox-hint {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%);
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 10001;
 }

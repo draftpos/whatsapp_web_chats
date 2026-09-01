@@ -67,8 +67,8 @@ class WhatsAppAccount(models.Model):
     @api.model
     def get_whatsapp_web_channels(self, wa_account_id=None):
         domain = [('channel_type', '=', 'whatsapp'), '|', ('whatsapp_partner_id', '!=', False), ('whatsapp_number', '!=', False)]
-        if wa_account_id:
-            domain.append(('wa_account_id', '=', int(wa_account_id)))
+        #if wa_account_id:
+        #    domain.append(('wa_account_id', '=', int(wa_account_id)))
         
         channels = self.env['discuss.channel'].sudo().search(domain)
         

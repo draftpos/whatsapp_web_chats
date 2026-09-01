@@ -15,13 +15,13 @@
                             </div>
                             <span>Chats</span>
                         </div>
-                        <t t-if="state.selectedChannels.length > 0">
+                        <t t-if="state.selectedChannels?.length > 0">
                             <i class="fa fa-trash" t-on-click="deleteSelectedChannels" style="margin-left: 10px; font-size: 16px; cursor: pointer; color: #f24a4a;" title="Delete Selected Chats"></i>
-                            <span style="margin-left: 5px; font-size: 12px; color: #f24a4a;"><t t-esc="state.selectedChannels.length"/> selected</span>
+                            <span style="margin-left: 5px; font-size: 12px; color: #f24a4a;"><t t-esc="state.selectedChannels?.length"/> selected</span>
                         </t>
                         <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="New Chat"></i>
                     </div>
-                    <t t-if="state.accounts.length > 0">
+                    <t t-if="state.accounts?.length > 0">
                         <div class="custom-account-dropdown" style="position: relative;">
                             <div class="dropdown-header" t-on-click="toggleAccountDropdown" style="display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 6px 12px; border-radius: 20px; cursor: pointer; border: 1px solid #d1d7db; min-width: 140px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                                 <span style="font-size: 14px; font-weight: 500; color: #111b21;">
@@ -31,7 +31,7 @@
                             </div>
                             <t t-if="state.isAccountDropdownOpen">
                                 <div class="dropdown-list" style="position: absolute; top: 100%; right: 0; margin-top: 6px; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); width: max-content; min-width: 200px; z-index: 100; overflow: hidden; animation: slideDown 0.2s ease-out;">
-                                    <t t-foreach="state.accounts" t-as="acc" t-key="acc.id">
+                                    <t t-foreach="state.accounts || []" t-as="acc" t-key="acc.id">
                                         <div class="dropdown-item" t-on-click="() => this.selectAccount(acc.id)" style="display: flex; align-items: center; padding: 10px 16px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f0f2f5;">
                                             <t t-if="acc.image_1920">
                                                 <img t-attf-src="data:image/jpeg;base64,{{acc.image_1920}}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #eee;"/>
@@ -60,10 +60,10 @@
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'done' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('done')">Done</div>
                 </div>
                 <div class="whatsapp-chat-list">
-                    <t t-if="this.filteredChannels.length === 0">
+                    <t t-if="this.filteredChannels?.length === 0">
                         <div style="padding: 20px; text-align: center; color: #8696a0; font-size: 14px;">No chats found</div>
                     </t>
-                    <t t-foreach="this.filteredChannels" t-as="channel" t-key="channel.id">
+                    <t t-foreach="this.filteredChannels || []" t-as="channel" t-key="channel.id">
                         <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)">
                             <div class="chat-selection" t-on-click="(ev) => this.toggleChannelSelection(channel.id, ev)">
                                 <t t-if="state.selectedChannels.includes(channel.id)">
@@ -74,11 +74,11 @@
                                 </t>
                             </div>
                             <div class="chat-avatar-container">
-                                <div class="chat-avatar"><t t-esc="(channel.name and channel.name.length > 0) ? channel.name[0].toUpperCase() : '?'"/></div>
+                                <div class="chat-avatar"><t t-esc="(channel.name and channel.name?.length > 0) ? channel.name[0].toUpperCase() : '?'"/></div>
                             </div>
                             <div class="chat-info">
-                                <div class="chat-tags-row" t-if="state.showLabels and channel.wa_tags and channel.wa_tags.length > 0" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px;">
-                                    <t t-foreach="channel.wa_tags" t-as="tag" t-key="tag.id">
+                                <div class="chat-tags-row" t-if="state.showLabels and channel.wa_tags and channel.wa_tags?.length > 0" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px;">
+                                    <t t-foreach="channel.wa_tags || []" t-as="tag" t-key="tag.id">
                                         <span t-attf-style="background-color:{{tag.color}}; color:white; font-size:9px; padding:2px 6px; border-radius:8px;">
                                             <t t-esc="tag.name"/>
                                         </span>
@@ -135,10 +135,10 @@
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_favourite', !channel.wa_is_favourite, ev)">
                                         <t t-esc="channel.wa_is_favourite ? 'Remove Favourite' : 'Add to Favourites'"/>
                                     </div>
-                                    <t t-if="state.showLabels and state.availableTags and state.availableTags.length > 0">
+                                    <t t-if="state.showLabels and state.availableTags and state.availableTags?.length > 0">
                                         <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                         <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Labels</div>
-                                        <t t-foreach="state.availableTags" t-as="tag" t-key="tag.id">
+                                        <t t-foreach="state.availableTags || []" t-as="tag" t-key="tag.id">
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleChatTag(channel.id, tag.id, ev)" style="display:flex; align-items:center;">
                                                 <i t-attf-class="fa {{ (channel.wa_tags and channel.wa_tags.find(t => t.id === tag.id)) ? 'fa-check-square' : 'fa-square-o' }}" style="margin-right:8px; color:#54656f;"></i>
                                                 <span t-attf-style="color:{{tag.color}}; font-weight:500;"><t t-esc="tag.name"/></span>
@@ -161,7 +161,7 @@
                     <div class="whatsapp-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; cursor: pointer;" t-on-click="toggleContactInfo" title="Contact Info">
                             <i class="fa fa-arrow-left" t-on-click.stop="closeChat" style="font-size: 20px; color: #54656f; cursor: pointer; margin-right: 15px;" title="Back to chats"></i>
-                            <div class="chat-avatar"><t t-esc="(state.selectedChannel.name and state.selectedChannel.name.length > 0) ? state.selectedChannel.name[0].toUpperCase() : '?'"/></div>
+                            <div class="chat-avatar"><t t-esc="(state.selectedChannel.name and state.selectedChannel.name?.length > 0) ? state.selectedChannel.name[0].toUpperCase() : '?'"/></div>
                             <div style="display:flex; flex-direction:column;">
                                 <span class="chat-header-name"><t t-esc="state.selectedChannel.name || 'Unknown'"/></span>
                                 <span t-if="state.selectedChannel.wa_agent_id" style="font-size: 11px; color: #1976D2;">
@@ -174,15 +174,15 @@
                         </div>
                         <div style="display: flex; align-items: center;">
                             <!-- Dropdown to select Business Account in the Chat Header -->
-                            <t t-if="state.accounts and state.accounts.length > 0">
+                            <t t-if="state.accounts and state.accounts?.length > 0">
                                 <select class="whatsapp-account-select" t-model="state.selectedChannel.wa_account_id" t-on-change="changeChatAccount" style="margin-right: 15px; font-size: 12px; padding: 2px;">
-                                    <t t-foreach="state.accounts" t-as="acc" t-key="acc.id">
+                                    <t t-foreach="state.accounts || []" t-as="acc" t-key="acc.id">
                                         <option t-att-value="acc.id"><t t-esc="acc.name"/></option>
                                     </t>
                                 </select>
                             </t>
-                            <t t-if="state.selectedMessages.length > 0">
-                                <span style="margin-right: 10px; font-size: 13px; color: #f24a4a;"><t t-esc="state.selectedMessages.length"/> selected</span>
+                            <t t-if="state.selectedMessages?.length > 0">
+                                <span style="margin-right: 10px; font-size: 13px; color: #f24a4a;"><t t-esc="state.selectedMessages?.length"/> selected</span>
                                 <button class="whatsapp-header-btn" title="Delete Selected Messages" t-on-click="deleteSelectedMessages" style="background: transparent; border: none; cursor: pointer; color: #f24a4a; font-size: 20px; padding: 10px; margin-right: 15px;">
                                     <i class="fa fa-trash"/>
                                 </button>
@@ -199,7 +199,7 @@
                         </div>
                     </div>
                     <div class="whatsapp-messages" t-ref="messagesContainer">
-                        <t t-foreach="state.messages" t-as="msg" t-key="msg.id">
+                        <t t-foreach="state.messages || []" t-as="msg" t-key="msg.id">
                             <div t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }}">
                                 <div class="message-selection" t-on-click="(ev) => this.toggleMessageSelection(msg.id, ev)" t-if="!msg.isSystem">
                                     <t t-if="state.selectedMessages.includes(msg.id)">
@@ -209,12 +209,12 @@
                                         <i class="fa fa-circle-o" style="color: #b1b3b5; font-size: 18px;"></i>
                                     </t>
                                 </div>
-                                <div t-attf-class="message-bubble {{ msg.isMenu ? 'is-menu' : '' }}" t-on-click="(ev) => state.selectedMessages.length > 0 ? this.toggleMessageSelection(msg.id, ev) : null">
-                                    <t t-if="msg.attachment_ids and msg.attachment_ids.length &gt; 0">
+                                <div t-attf-class="message-bubble {{ msg.isMenu ? 'is-menu' : '' }}" t-on-click="(ev) => state.selectedMessages?.length > 0 ? this.toggleMessageSelection(msg.id, ev) : null">
+                                    <t t-if="msg.attachment_ids and msg.attachment_ids?.length &gt; 0">
                                         <div class="message-attachments">
-                                            <t t-foreach="msg.attachment_ids" t-as="att" t-key="att.id">
+                                    <t t-foreach="msg.attachment_ids || []" t-as="att" t-key="att.id">
                                                 <t t-if="att.mimetype and att.mimetype.includes('video')">
-                                                    <div class="video-preview" style="position:relative; cursor:pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, 'video')">
+                                                    <div class="video-preview" style="position:relative; cursor:pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, 'video', att.name)">
                                                         <video class="message-video" t-attf-src="/web/content/{{att.id}}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"/>
                                                         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.5); border-radius:50%; padding:10px; color:white;">
                                                             <i class="fa fa-play fa-2x"/>
@@ -222,7 +222,7 @@
                                                     </div>
                                                 </t>
                                                 <t t-else="">
-                                                    <img class="message-img" t-attf-src="/web/image/{{att.id}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image')" style="cursor: zoom-in;"/>
+                                                    <img class="message-img" t-attf-src="/web/image/{{att.id}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name)" style="cursor: zoom-in;"/>
                                                 </t>
                                             </t>
                                         </div>
@@ -239,7 +239,7 @@
                                             </div>
                                             <p class="message"><t t-esc="msg.menuTitle"/></p>
                                             <div class="options">
-                                                <t t-foreach="msg.menuOptions" t-as="opt" t-key="opt">
+                                                <t t-foreach="msg.menuOptions || []" t-as="opt" t-key="opt">
                                                     <button class="option-btn" t-on-click="() => this.sendMenuReply(opt)">
                                                         <i class="fa fa-chevron-right"></i>
                                                         <span><t t-esc="opt"/></span>
@@ -253,6 +253,9 @@
                                     </t>
 
                                     <div class="message-time">
+                                        <t t-if="msg.authorName">
+                                            [<t t-esc="msg.authorName"/>] 
+                                        </t>
                                         <t t-esc="msg.timeText"/>
                                         <t t-if="msg.isMe">
                                             <i class="fa fa-check" style="margin-left: 4px; color: #53bdeb;"/>
@@ -297,32 +300,6 @@
                         }
                         .message-me .message-delete-btn { right: calc(100% + 5px); }
                         .message-other .message-delete-btn { left: calc(100% + 5px); }
-                        
-                        .media-lightbox {
-                            position: fixed;
-                            top: 0; left: 0; width: 100%; height: 100%;
-                            background: rgba(0,0,0,0.9);
-                            z-index: 10000;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            overflow: hidden;
-                        }
-                        .media-lightbox-close {
-                            position: absolute;
-                            top: 20px; right: 30px;
-                            color: white; cursor: pointer; z-index: 10001;
-                            padding: 10px;
-                        }
-                        .media-lightbox img {
-                            max-width: 90%;
-                            max-height: 90%;
-                            object-fit: contain;
-                        }
-                        .media-lightbox video {
-                            max-width: 90%;
-                            max-height: 90%;
-                        }
                     </style>
                     <div class="whatsapp-footer">
                         <t t-if="state.pendingFile">
@@ -420,20 +397,27 @@
                         <h3 style="margin-top: 0; font-size: 14px; color: #54656f; margin-bottom: 15px; font-weight: normal;">Media, links and docs</h3>
                         
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
-                            <t t-foreach="state.contactMedia" t-as="media" t-key="media.id">
+                            <t t-foreach="state.contactMedia || []" t-as="media" t-key="media.id">
                                 <t t-if="media.mimetype and media.mimetype.startsWith('image/')">
-                                    <div style="aspect-ratio: 1; background: #eee; cursor: pointer;" t-att-title="media.name">
-                                        <a t-attf-href="/web/image/{{media.id}}" target="_blank">
-                                            <img t-attf-src="/web/image/{{media.id}}" style="width: 100%; height: 100%; object-fit: cover;"/>
-                                        </a>
+                                    <div style="aspect-ratio: 1; background: #eee; cursor: zoom-in; overflow: hidden; border-radius: 4px;"
+                                         t-att-title="media.name"
+                                         t-on-click="(ev) => this.openMedia(media.id, ev, 'image', media.name)">
+                                        <img t-attf-src="/web/image/{{media.id}}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"/>
+                                    </div>
+                                </t>
+                                <t t-if="media.mimetype and media.mimetype.startsWith('video/')">
+                                    <div style="aspect-ratio: 1; background: #1a1a1a; cursor: pointer; overflow: hidden; border-radius: 4px; display: flex; align-items: center; justify-content: center; position: relative;"
+                                         t-att-title="media.name"
+                                         t-on-click="(ev) => this.openMedia(media.id, ev, 'video', media.name)">
+                                        <i class="fa fa-play-circle" style="color: white; font-size: 28px; opacity: 0.85;"/>
                                     </div>
                                 </t>
                             </t>
                         </div>
                         
                         <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-                            <t t-foreach="state.contactMedia" t-as="media" t-key="media.id">
-                                <t t-if="!(media.mimetype and media.mimetype.startsWith('image/'))">
+                            <t t-foreach="state.contactMedia || []" t-as="media" t-key="media.id">
+                                <t t-if="!(media.mimetype and (media.mimetype.startsWith('image/') or media.mimetype.startsWith('video/')))">
                                     <div style="display: flex; align-items: center; padding: 10px; background: #f0f2f5; border-radius: 8px; cursor: pointer;" t-att-title="media.name">
                                         <div style="width: 40px; height: 40px; background: #FF5252; color: white; display: flex; align-items: center; justify-content: center; border-radius: 4px; margin-right: 15px;">
                                             <i class="fa fa-file-text-o"></i>
@@ -442,7 +426,7 @@
                                             <div style="font-size: 14px; color: #111b21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><t t-esc="media.name"/></div>
                                             <div style="font-size: 12px; color: #667781;"><t t-esc="media.create_date"/></div>
                                         </div>
-                                        <a t-attf-href="/web/content/{{media.id}}?download=true" style="color: #54656f;">
+                                        <a t-attf-href="/web/content/{{media.id}}?download=true" style="color: #54656f;" t-on-click.stop="() => {}">
                                             <i class="fa fa-download"></i>
                                         </a>
                                     </div>
@@ -450,7 +434,7 @@
                             </t>
                         </div>
                         
-                        <t t-if="state.contactMedia.length === 0">
+                        <t t-if="state.contactMedia?.length === 0">
                             <div style="text-align: center; color: #667781; font-size: 14px; padding: 20px;">No media found</div>
                         </t>
                     </div>
@@ -466,10 +450,10 @@
                         <button class="preview-close" t-on-click="closeTemplatesModal" style="position: static;"><i class="fa fa-times"></i></button>
                     </div>
                     <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto;">
-                        <t t-if="state.wa_templates.length === 0">
+                        <t t-if="state.wa_templates?.length === 0">
                             <div style="text-align:center; color:#888; padding:20px;">No templates found.</div>
                         </t>
-                        <t t-foreach="state.wa_templates" t-as="tmpl" t-key="tmpl.id">
+                        <t t-foreach="state.wa_templates || []" t-as="tmpl" t-key="tmpl.id">
                             <div class="template-card" t-on-click="() => this.selectTemplate(tmpl)"
                                  style="background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:14px 16px; cursor:pointer; transition:box-shadow 0.2s;">
                                 <div style="font-weight:600; font-size:14px; color:#128C7E; margin-bottom:6px;">
@@ -492,8 +476,8 @@
                     <div class="modal-header" style="background: #008069; color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center;">
                             <span style="font-size: 16px; font-weight: 500;">New Chat</span>
-                            <t t-if="state.selectedContacts.length > 0">
-                                <span style="margin-left: 15px; font-size: 13px;"><t t-esc="state.selectedContacts.length"/> selected</span>
+                            <t t-if="state.selectedContacts?.length > 0">
+                                <span style="margin-left: 15px; font-size: 13px;"><t t-esc="state.selectedContacts?.length"/> selected</span>
                                 <i class="fa fa-trash" t-on-click="deleteSelectedContacts" style="margin-left: 10px; cursor: pointer; color: #ffcccc;" title="Delete Selected Contacts"></i>
                             </t>
                         </div>
@@ -502,12 +486,12 @@
                     <div class="modal-search" style="padding: 10px 15px; border-bottom: 1px solid #ddd; background: #f6f6f6; display: flex; align-items: center; justify-content: space-between;">
                         <input type="text" class="form-control" placeholder="Search contacts or enter number..." t-on-keyup="onContactSearch" style="border-radius: 20px; border: none; padding: 8px 15px; outline: none; flex-grow: 1; margin-right: 10px;"/>
                         <button class="btn btn-sm" t-on-click="selectAllContacts" style="background: #e8f5e9; color: #008069; border: 1px solid #008069; border-radius: 20px; white-space: nowrap; padding: 4px 12px; font-weight: 500;">
-                            <t t-if="state.selectedContacts.length === state.filteredContacts.length and state.filteredContacts.length > 0">Deselect All</t>
+                            <t t-if="state.selectedContacts?.length === state.filteredContacts?.length and state.filteredContacts?.length > 0">Deselect All</t>
                             <t t-else="">Select All</t>
                         </button>
                     </div>
                     <div class="modal-body" style="max-height: 400px; overflow-y: auto; background: white;">
-                        <t t-if="state.filteredContacts.length === 0 and !state.newNumberQuery">
+                        <t t-if="state.filteredContacts?.length === 0 and !state.newNumberQuery">
                             <div style="padding: 20px; text-align: center; color: #999;">No contacts found.</div>
                         </t>
                         <t t-if="state.newNumberQuery">
@@ -520,8 +504,8 @@
                                 </div>
                             </div>
                         </t>
-                        <t t-foreach="state.filteredContacts" t-as="contact" t-key="contact.id">
-                            <div class="contact-item" t-attf-style="position: relative; display: flex; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f2f2f2; {{ state.selectedContacts.includes(contact.id) ? 'background: #f0f7f5;' : '' }}" t-on-click="(ev) => state.selectedContacts.length > 0 ? this.toggleContactSelection(contact.id, ev) : this.startNewChat(contact.id)">
+                        <t t-foreach="state.filteredContacts || []" t-as="contact" t-key="contact.id">
+                            <div class="contact-item" t-attf-style="position: relative; display: flex; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f2f2f2; {{ state.selectedContacts.includes(contact.id) ? 'background: #f0f7f5;' : '' }}" t-on-click="(ev) => state.selectedContacts?.length > 0 ? this.toggleContactSelection(contact.id, ev) : this.startNewChat(contact.id)">
                                 <div t-attf-class="contact-selection {{ state.selectedContacts.includes(contact.id) ? 'selected' : '' }}" style="position: absolute; left: 15px; opacity: 0; transition: opacity 0.2s; background: rgba(255,255,255,0.9); z-index: 2; border-radius: 4px; padding: 2px; display: flex;" t-on-click="(ev) => this.toggleContactSelection(contact.id, ev)">
                                     <t t-if="state.selectedContacts.includes(contact.id)">
                                         <i class="fa fa-check-square" style="color: #008069; font-size: 20px;"></i>
@@ -556,7 +540,7 @@
                             <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #111b21;">Select Department</label>
                             <select class="form-control" t-on-change="onTransferDeptChange" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d7db;">
                                 <option value="">-- Select Department --</option>
-                                <t t-foreach="state.transferDepartments" t-as="dept" t-key="dept.id">
+                                <t t-foreach="state.transferDepartments || []" t-as="dept" t-key="dept.id">
                                     <option t-att-value="dept.id" t-att-selected="state.selectedTransferDeptId === dept.id"><t t-esc="dept.name"/></option>
                                 </t>
                             </select>
@@ -566,7 +550,7 @@
                                 <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #111b21;">Select Agent</label>
                                 <select class="form-control" t-model="state.selectedTransferAgentId" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d7db;">
                                     <option value="any">Any available agent</option>
-                                    <t t-foreach="state.transferAgents" t-as="agent" t-key="agent.id">
+                                    <t t-foreach="state.transferAgents || []" t-as="agent" t-key="agent.id">
                                         <option t-att-value="agent.id"><t t-esc="agent.name"/></option>
                                     </t>
                                 </select>
@@ -579,21 +563,77 @@
                 </div>
             </div>
         </t>
-        <!-- Fullscreen Media Viewer -->
+        <!-- Fullscreen Media Viewer / Lightbox -->
         <t t-if="state.fullscreenMedia">
-            <div class="media-lightbox" t-on-click="closeMedia" t-on-wheel="handleMediaWheel">
-                <div class="media-lightbox-close" t-on-click="closeMedia">
-                    <i class="fa fa-times fa-2x"/>
+            <div class="media-lightbox"
+                 t-on-click="closeMedia"
+                 t-on-wheel="handleMediaWheel"
+                 t-on-mousemove="onMediaDrag"
+                 t-on-mouseup="stopMediaDrag"
+                 t-on-mouseleave="stopMediaDrag">
+
+                <!-- Toolbar -->
+                <div class="media-lightbox-toolbar" t-on-click.stop="() => {}">
+                    <div class="media-lightbox-title">
+                        <i class="fa fa-file-image-o" style="margin-right: 8px; opacity: 0.7;"/>
+                        <t t-esc="state.fullscreenMedia.filename || 'Media'"/>
+                    </div>
+                    <div class="media-lightbox-actions">
+                        <!-- Zoom controls (image only) -->
+                        <t t-if="state.fullscreenMedia.type === 'image'">
+                            <button class="media-lb-btn" title="Zoom Out" t-on-click="zoomOut">
+                                <i class="fa fa-search-minus"/>
+                            </button>
+                            <div class="media-lb-zoom-badge">
+                                <t t-esc="this.getZoomPercent()"/>
+                            </div>
+                            <button class="media-lb-btn" title="Zoom In" t-on-click="zoomIn">
+                                <i class="fa fa-search-plus"/>
+                            </button>
+                            <button class="media-lb-btn" title="Reset Zoom" t-on-click="resetZoom">
+                                <i class="fa fa-expand"/>
+                            </button>
+                        </t>
+                        <!-- Download button -->
+                        <a class="media-lb-btn"
+                           t-att-href="this.getMediaDownloadUrl()"
+                           t-att-download="state.fullscreenMedia.filename || 'media'"
+                           title="Download"
+                           t-on-click.stop="() => {}">
+                            <i class="fa fa-download"/>
+                        </a>
+                        <!-- Close button -->
+                        <button class="media-lb-btn close-btn" title="Close (Esc)" t-on-click="closeMedia">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
                 </div>
-                <t t-if="state.fullscreenMedia.type === 'image'">
-                    <img t-attf-src="/web/image/{{state.fullscreenMedia.id}}" 
-                         t-attf-style="transform: scale({{state.fullscreenMedia.scale}}) translate({{state.fullscreenMedia.translateX}}px, {{state.fullscreenMedia.translateY}}px); transition: transform 0.1s ease-out;" 
-                         t-on-click="(ev) => ev.stopPropagation()"/>
-                </t>
-                <t t-if="state.fullscreenMedia.type === 'video'">
-                    <video t-attf-src="/web/content/{{state.fullscreenMedia.id}}" controls="controls" autoplay="autoplay"
-                           t-on-click="(ev) => ev.stopPropagation()"/>
-                </t>
+
+                <!-- Media content -->
+                <div class="media-lightbox-content" t-on-click.stop="() => {}">
+                    <t t-if="state.fullscreenMedia.type === 'image'">
+                        <img t-attf-class="media-lb-image {{ state.fullscreenMedia.scale > 1 ? 'zoomed' : '' }}"
+                             t-attf-src="/web/image/{{state.fullscreenMedia.id}}"
+                             t-attf-style="transform: scale({{state.fullscreenMedia.scale}}) translate({{state.fullscreenMedia.translateX / state.fullscreenMedia.scale}}px, {{state.fullscreenMedia.translateY / state.fullscreenMedia.scale}}px);"
+                             t-on-mousedown="startMediaDrag"
+                             t-on-dblclick="resetZoom"
+                             draggable="false"/>
+                    </t>
+                    <t t-if="state.fullscreenMedia.type === 'video'">
+                        <video class="media-lb-video"
+                               t-attf-src="/web/content/{{state.fullscreenMedia.id}}"
+                               controls="controls"
+                               autoplay="autoplay"
+                               t-on-click.stop="() => {}"/>
+                    </t>
+                </div>
+
+                <!-- Bottom hint -->
+                <div class="media-lightbox-hint">
+                    <t t-if="state.fullscreenMedia.type === 'image'">
+                        Scroll to zoom · Drag to pan when zoomed · Double-click to reset
+                    </t>
+                </div>
             </div>
         </t>
     </t>
