@@ -153,7 +153,7 @@
                                         <t t-foreach="state.availableTags || []" t-as="tag" t-key="tag.id">
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleChatTag(channel.id, tag.id, ev)">
                                                 <span t-attf-style="color:{{tag.color}}; font-weight:500;">
-                                                    <t t-if="channel.wa_tags and channel.wa_tags.find(t => t.id === tag.id)">Remove <t t-esc="tag.name"/></t>
+                                                    <t t-if="channel.wa_tags and channel.wa_tags.find(t =&gt; t.id === tag.id)">Remove <t t-esc="tag.name"/></t>
                                                     <t t-else="">Mark as <t t-esc="tag.name"/></t>
                                                 </span>
                                             </div>
