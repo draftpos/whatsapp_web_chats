@@ -64,13 +64,14 @@
                         <div style="padding: 20px; text-align: center; color: #8696a0; font-size: 14px;">No chats found</div>
                     </t>
                     <t t-foreach="this.filteredChannels || []" t-as="channel" t-key="channel.id">
-                        <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)" style="position: relative; padding-top: 18px;">
+                        <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)" style="flex-direction: column; align-items: flex-start;">
                             <t t-if="channel.wa_agent_id">
-                                <div class="chat-agent-row" style="position: absolute; top: 4px; left: 15px; font-size:10px; color:#1976D2; font-weight:bold; display:flex; align-items:center;">
+                                <div class="chat-agent-row" style="font-size:11px; color:#1976D2; font-weight:bold; display:flex; align-items:center; margin-bottom: 4px; padding-left: 5px;">
                                     <i class="fa fa-user-circle" style="margin-right:4px;"></i>
                                     <t t-esc="channel.wa_agent_id[1]"/>
                                 </div>
                             </t>
+                            <div style="display: flex; align-items: center; width: 100%;">
                             <div class="chat-selection" t-on-click="(ev) => this.toggleChannelSelection(channel.id, ev)">
                                 <t t-if="state.selectedChannels.includes(channel.id)">
                                     <i class="fa fa-check-circle" style="color: #25D366; font-size: 20px;"></i>
@@ -151,12 +152,14 @@
                                         <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                         <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Labels</div>
                                         <t t-foreach="state.availableTags || []" t-as="tag" t-key="tag.id">
-                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleChatTag(channel.id, tag.id, ev)">
-                                                <span t-attf-style="color:{{tag.color}}; font-weight:500;">
-                                                    <t t-if="channel.wa_tags and channel.wa_tags.find(t =&gt; t.id === tag.id)">Remove <t t-esc="tag.name"/></t>
-                                                    <t t-else="">Mark as <t t-esc="tag.name"/></t>
-                                                </span>
-                                            </div>
+                                            <t t-if="tag.name.toLowerCase() !== 'urgent'">
+                                                <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleChatTag(channel.id, tag.id, ev)">
+                                                    <span t-attf-style="color:{{tag.color}}; font-weight:500;">
+                                                        <t t-if="channel.wa_tags and channel.wa_tags.find(t =&gt; t.id === tag.id)">Remove <t t-esc="tag.name"/></t>
+                                                        <t t-else="">Mark as <t t-esc="tag.name"/></t>
+                                                    </span>
+                                                </div>
+                                            </t>
                                         </t>
                                     </t>
                                     <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
@@ -165,6 +168,7 @@
                                     </div>
                                 </div>
                             </t>
+                            </div>
                         </div>
                     </t>
                 </div>
