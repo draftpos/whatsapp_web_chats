@@ -101,6 +101,7 @@
                                             </span>
                                         </t>
                                     </div>
+                                    </div>
                                     <div class="chat-time-col" style="display:flex; flex-direction:column; align-items:flex-end;">
                                         <t t-if="channel.wa_is_urgent">
                                             <span style="background-color: #f24a4a; color: white; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 2px;">URGENT</span>
