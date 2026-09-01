@@ -8,6 +8,7 @@ class DiscussChannel(models.Model):
     wa_is_done = fields.Boolean(string="WhatsApp Chat Done", default=False)
     wa_is_unread_global = fields.Boolean(string="WhatsApp Chat Unread (Global)", default=False)
     wa_is_favourite = fields.Boolean(string="WhatsApp Chat Favourite", default=False)
+    wa_is_urgent = fields.Boolean(string="WhatsApp Chat Urgent", default=False)
     wa_tag_ids = fields.Many2many('wa.chat.tag', string='WhatsApp Tags')
 
     wa_bot_state = fields.Selection([

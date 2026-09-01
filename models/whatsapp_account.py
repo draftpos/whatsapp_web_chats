@@ -118,6 +118,7 @@ class WhatsAppAccount(models.Model):
                 'wa_is_done': c.wa_is_done,
                 'wa_is_unread_global': c.wa_is_unread_global,
                 'wa_is_favourite': c.wa_is_favourite,
+                'wa_is_urgent': c.wa_is_urgent,
                 'wa_tags': [{'id': t.id, 'name': t.name, 'color': t.color} for t in c.wa_tag_ids],
             })
             
@@ -144,7 +145,7 @@ class WhatsAppAccount(models.Model):
     @api.model
     def set_whatsapp_chat_state(self, channel_id, field, value):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
-        if channel.exists() and field in ['wa_is_done', 'wa_is_unread_global', 'wa_is_favourite']:
+        if channel.exists() and field in ['wa_is_done', 'wa_is_unread_global', 'wa_is_favourite', 'wa_is_urgent']:
             channel.sudo().write({field: bool(value)})
             # If marked as done, remove unread flag
             if field == 'wa_is_done' and value:

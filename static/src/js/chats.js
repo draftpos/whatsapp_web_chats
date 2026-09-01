@@ -376,6 +376,29 @@ export class WhatsAppChatsAction extends Component {
         // We could also attempt to update the backend channel record here if needed.
     }
 
+    async setChatState(channelId, field, value, ev) {
+        if (ev) {
+            ev.stopPropagation();
+        }
+        try {
+            await this.orm.call(
+                "whatsapp.account",
+                "set_whatsapp_chat_state",
+                [channelId, field, value]
+            );
+            // Update local state
+            const channel = this.state.channels.find(c => c.id === channelId);
+            if (channel) {
+                channel[field] = value;
+                if (field === 'wa_is_done' && value) {
+                    channel.wa_is_unread_global = false;
+                }
+            }
+        } catch (e) {
+            console.error("Failed to update chat state", e);
+        }
+    }
+
     setChatFilter(filterType) {
         this.state.chatFilter = filterType;
     }

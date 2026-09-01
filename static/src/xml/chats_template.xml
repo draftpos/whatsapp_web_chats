@@ -84,12 +84,13 @@
                                         </span>
                                     </t>
                                 </div>
-                                <div class="chat-agent-row" t-if="channel.wa_agent_id" style="font-size:10px; color:#1976D2; margin-bottom:2px; display:flex; align-items:center;">
-                                    <i class="fa fa-user-circle" style="margin-right:4px;"></i>
-                                    <t t-esc="channel.wa_agent_id[1]"/>
-                                </div>
-                                <div class="chat-name-row" style="display:flex; justify-content:space-between; align-items:center;">
-                                    <div class="chat-name">
+                                <div class="chat-name-row" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                    <div class="chat-name-col" style="display:flex; flex-direction:column;">
+                                        <div class="chat-agent-row" t-if="channel.wa_agent_id" style="font-size:10px; color:#1976D2; margin-bottom:2px; display:flex; align-items:center; font-weight:bold;">
+                                            <i class="fa fa-user-circle" style="margin-right:4px;"></i>
+                                            <t t-esc="channel.wa_agent_id[1]"/>
+                                        </div>
+                                        <div class="chat-name">
                                         <t t-esc="channel.name || 'Unknown'"/>
                                         <t t-if="channel.wa_is_favourite">
                                             <i class="fa fa-star" style="color: #FFD700; margin-left: 5px; font-size: 12px;"></i>
@@ -100,10 +101,15 @@
                                             </span>
                                         </t>
                                     </div>
-                                    <div class="chat-time" style="font-size:11px; color:#8696a0; white-space:nowrap; margin-left:6px;">
-                                        <t t-if="channel.last_message_time">
-                                            <t t-esc="this.formatChatTime(channel.last_message_time)"/>
+                                    <div class="chat-time-col" style="display:flex; flex-direction:column; align-items:flex-end;">
+                                        <t t-if="channel.wa_is_urgent">
+                                            <span style="background-color: #f24a4a; color: white; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 2px;">URGENT</span>
                                         </t>
+                                        <div class="chat-time" style="font-size:11px; color:#8696a0; white-space:nowrap; margin-left:6px;">
+                                            <t t-if="channel.last_message_time">
+                                                <t t-esc="this.formatChatTime(channel.last_message_time)"/>
+                                            </t>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="chat-preview" style="font-size:12px; color:#8696a0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
@@ -128,6 +134,9 @@
                                 <div class="chat-dropdown-menu" t-on-click.stop="() => {}">
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_unread_global', !channel.wa_is_unread_global, ev)">
                                         <t t-esc="channel.wa_is_unread_global ? 'Mark as Read' : 'Mark as Unread'"/>
+                                    </div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_urgent', !channel.wa_is_urgent, ev)">
+                                        <t t-esc="channel.wa_is_urgent ? 'Remove Urgent' : 'Mark as Urgent'"/>
                                     </div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_done', !channel.wa_is_done, ev)">
                                         <t t-esc="channel.wa_is_done ? 'Mark as Not Done' : 'Mark as Done'"/>
