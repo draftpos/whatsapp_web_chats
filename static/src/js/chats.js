@@ -380,6 +380,28 @@ export class WhatsAppChatsAction extends Component {
         this.state.chatFilter = filterType;
     }
 
+    get filteredChannels() {
+        if (!this.state.channels) return [];
+        let filtered = this.state.channels;
+        
+        switch (this.state.chatFilter) {
+            case 'unread':
+                filtered = filtered.filter(c => c.wa_is_unread_global || (c.unread_count && c.unread_count > 0));
+                break;
+            case 'favourites':
+                filtered = filtered.filter(c => c.wa_is_favourite);
+                break;
+            case 'done':
+                filtered = filtered.filter(c => c.wa_is_done);
+                break;
+            case 'all':
+            default:
+                break;
+        }
+        
+        return filtered;
+    }
+
     async selectChannel(channel, event) {
         if (event && this.state.selectedChannels.length > 0) {
             this.toggleChannelSelection(channel.id, event);
