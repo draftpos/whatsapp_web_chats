@@ -84,13 +84,6 @@
                                 <div class="chat-avatar"><t t-esc="(channel.name and channel.name?.length > 0) ? channel.name[0].toUpperCase() : '?'"/></div>
                             </div>
                             <div class="chat-info">
-                                <div class="chat-tags-row" t-if="state.showLabels and channel.wa_tags and channel.wa_tags?.length > 0" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px;">
-                                    <t t-foreach="channel.wa_tags || []" t-as="tag" t-key="tag.id">
-                                        <span t-attf-style="background-color:{{tag.color}}; color:white; font-size:9px; padding:2px 6px; border-radius:8px;">
-                                            <t t-esc="tag.name"/>
-                                        </span>
-                                    </t>
-                                </div>
                                 <div class="chat-name-row" style="display:flex; justify-content:space-between; align-items:flex-start;">
                                     <div class="chat-name-col" style="display:flex; flex-direction:column;">
                                         <div class="chat-name">
@@ -108,6 +101,13 @@
                                     <div class="chat-time-col" style="display:flex; flex-direction:column; align-items:flex-end;">
                                         <t t-if="channel.wa_is_urgent">
                                             <span style="background-color: #f24a4a; color: white; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 2px;">URGENT</span>
+                                        </t>
+                                        <t t-if="state.showLabels and channel.wa_tags and channel.wa_tags?.length > 0">
+                                            <t t-foreach="channel.wa_tags || []" t-as="tag" t-key="tag.id">
+                                                <span t-attf-style="background-color:{{tag.color}}; color:white; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 2px;">
+                                                    <t t-esc="tag.name"/>
+                                                </span>
+                                            </t>
                                         </t>
                                         <div class="chat-time" style="font-size:11px; color:#8696a0; white-space:nowrap; margin-left:6px;">
                                             <t t-if="channel.last_message_time">
@@ -152,7 +152,7 @@
                                         <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                         <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Labels</div>
                                         <t t-foreach="state.availableTags || []" t-as="tag" t-key="tag.id">
-                                            <t t-if="tag.name.toLowerCase() !== 'urgent'">
+                                            <t t-if="tag.name.toLowerCase() != 'urgent'">
                                                 <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleChatTag(channel.id, tag.id, ev)">
                                                     <span t-attf-style="color:{{tag.color}}; font-weight:500;">
                                                         <t t-if="channel.wa_tags and channel.wa_tags.find(t =&gt; t.id === tag.id)">Remove <t t-esc="tag.name"/></t>
