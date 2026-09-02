@@ -7,6 +7,8 @@ class WAChatbotSession(models.Model):
     _name = 'wa.chatbot.session'
     _inherit = 'wa.chatbot.session'
 
+    tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
+
     @api.model_create_multi
     def create(self, vals_list):
         # Prevent creating bot sessions if the account bot is disabled
@@ -35,6 +37,7 @@ class WhatsAppAccount(models.Model):
     _inherit = 'whatsapp.account'
 
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+    tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
     image_1920 = fields.Image(string="Profile Picture", max_width=1920, max_height=1920)
     wa_bot_active = fields.Boolean(string="Automated Bot Responses", default=True)
     wa_department_routing_active = fields.Boolean(string="Auto Response for Departments", default=True)

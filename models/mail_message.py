@@ -1,7 +1,9 @@
-from odoo import models, api
+from odoo import models, fields, api
 
 class MailMessage(models.Model):
     _inherit = 'mail.message'
+
+    tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
 
     @api.model_create_multi
     def create(self, vals_list):

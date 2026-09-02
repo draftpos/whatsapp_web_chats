@@ -9,6 +9,7 @@ export class WhatsAppChatsAction extends Component {
     setup() {
         this.orm = useService("orm");
         this.messagesContainer = useRef("messagesContainer");
+        this.chatList = useRef("chatList");
         
         this.state = useState({
             channels: [],
@@ -60,11 +61,41 @@ export class WhatsAppChatsAction extends Component {
             this.pollInterval = setInterval(() => {
                 this.pollMessages();
             }, 5000);
+
+            // Close chat dropdown when clicking anywhere outside it
+            this._onDocumentClick = (ev) => {
+                if (this.state.showChatDropdownId !== null) {
+                    const menu = document.querySelector('.chat-dropdown-menu');
+                    const btn = document.querySelector('.chat-dropdown-btn');
+                    if (menu && !menu.contains(ev.target) && btn && !btn.contains(ev.target)) {
+                        this.state.showChatDropdownId = null;
+                    } else if (!menu) {
+                        this.state.showChatDropdownId = null;
+                    }
+                }
+            };
+            document.addEventListener('click', this._onDocumentClick, true);
+
+            // Close chat dropdown when the chat list is scrolled
+            this._onChatListScroll = () => {
+                if (this.state.showChatDropdownId !== null) {
+                    this.state.showChatDropdownId = null;
+                }
+            };
+            if (this.chatList.el) {
+                this.chatList.el.addEventListener('scroll', this._onChatListScroll);
+            }
         });
         
         onWillDestroy(() => {
             if (this.pollInterval) {
                 clearInterval(this.pollInterval);
+            }
+            if (this._onDocumentClick) {
+                document.removeEventListener('click', this._onDocumentClick, true);
+            }
+            if (this._onChatListScroll && this.chatList.el) {
+                this.chatList.el.removeEventListener('scroll', this._onChatListScroll);
             }
         });
     }
@@ -79,6 +110,8 @@ export class WhatsAppChatsAction extends Component {
 
     async toggleChatTag(channelId, tagId, ev) {
         if (ev) ev.stopPropagation();
+        // Close dropdown immediately after action
+        this.state.showChatDropdownId = null;
         
         const channel = this.state.channels.find(c => c.id === channelId);
         if (!channel) return;
@@ -380,6 +413,8 @@ export class WhatsAppChatsAction extends Component {
         if (ev) {
             ev.stopPropagation();
         }
+        // Close dropdown immediately after action
+        this.state.showChatDropdownId = null;
         try {
             await this.orm.call(
                 "whatsapp.account",

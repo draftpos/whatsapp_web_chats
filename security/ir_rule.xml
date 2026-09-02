@@ -1,32 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-        <!-- WhatsApp Account Multi-Company Rule -->
-        <record id="whatsapp_account_company_rule" model="ir.rule">
-            <field name="name">WhatsApp Account Company Rule</field>
+        <!-- WhatsApp Account Tenant Rule -->
+        <record id="whatsapp_account_tenant_rule" model="ir.rule">
+            <field name="name">WhatsApp Account Tenant Rule</field>
             <field name="model_id" ref="whatsapp.model_whatsapp_account"/>
-            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
         </record>
 
-        <!-- Discuss Channel Multi-Company Rule -->
-        <record id="discuss_channel_company_rule" model="ir.rule">
-            <field name="name">Discuss Channel Company Rule</field>
+        <!-- Discuss Channel Tenant Rule -->
+        <record id="discuss_channel_tenant_rule" model="ir.rule">
+            <field name="name">Discuss Channel Tenant Rule</field>
             <field name="model_id" ref="mail.model_discuss_channel"/>
-            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
         </record>
 
-        <!-- WhatsApp Message Multi-Company Rule -->
-        <record id="whatsapp_message_company_rule" model="ir.rule">
-            <field name="name">WhatsApp Message Company Rule</field>
+        <!-- WhatsApp Message Tenant Rule -->
+        <record id="whatsapp_message_tenant_rule" model="ir.rule">
+            <field name="name">WhatsApp Message Tenant Rule</field>
             <field name="model_id" ref="whatsapp.model_whatsapp_message"/>
-            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
         </record>
 
-        <!-- WhatsApp Template Multi-Company Rule -->
-        <record id="whatsapp_template_company_rule" model="ir.rule">
-            <field name="name">WhatsApp Template Company Rule</field>
+        <!-- WhatsApp Template Tenant Rule -->
+        <record id="whatsapp_template_tenant_rule" model="ir.rule">
+            <field name="name">WhatsApp Template Tenant Rule</field>
             <field name="model_id" ref="whatsapp.model_whatsapp_template"/>
-            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Res Users Tenant Rule -->
+        <record id="res_users_tenant_rule" model="ir.rule">
+            <field name="name">Res Users Tenant Rule</field>
+            <field name="model_id" ref="base.model_res_users"/>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Mail Message Tenant Rule -->
+        <record id="mail_message_tenant_rule" model="ir.rule">
+            <field name="name">Mail Message Tenant Rule</field>
+            <field name="model_id" ref="mail.model_mail_message"/>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Product Template Tenant Rule -->
+        <record id="product_template_tenant_rule" model="ir.rule">
+            <field name="name">Product Template Tenant Rule</field>
+            <field name="model_id" ref="product.model_product_template"/>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- WA Chat Tag Tenant Rule -->
+        <record id="wa_chat_tag_tenant_rule" model="ir.rule">
+            <field name="name">WA Chat Tag Tenant Rule</field>
+            <field name="model_id" ref="model_wa_chat_tag"/>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- WhatsApp Product Tenant Rule -->
+        <record id="whatsapp_product_tenant_rule" model="ir.rule">
+            <field name="name">WhatsApp Product Tenant Rule</field>
+            <field name="model_id" ref="model_whatsapp_product"/>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
         </record>
     </data>
 </odoo>

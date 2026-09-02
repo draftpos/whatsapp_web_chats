@@ -4,6 +4,7 @@ class DiscussChannel(models.Model):
     _inherit = 'discuss.channel'
 
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+    tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
 
     wa_is_done = fields.Boolean(string="WhatsApp Chat Done", default=False)
     wa_is_unread_global = fields.Boolean(string="WhatsApp Chat Unread (Global)", default=False)

@@ -59,7 +59,7 @@
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'favourites' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('favourites')">Favourites</div>
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'done' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('done')">Done</div>
                 </div>
-                <div class="whatsapp-chat-list">
+                <div class="whatsapp-chat-list" t-ref="chatList">
                     <t t-if="this.filteredChannels?.length === 0">
                         <div style="padding: 20px; text-align: center; color: #8696a0; font-size: 14px;">No chats found</div>
                     </t>
@@ -126,7 +126,7 @@
                                         <t t-esc="channel.unread_count"/>
                                     </t>
                                     <t t-else="">
-                                        <i class="fa fa-circle" style="font-size: 8px;"></i>
+                                        1
                                     </t>
                                 </div>
                             </t>

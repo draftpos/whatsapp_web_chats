@@ -5,6 +5,7 @@ class WhatsAppProduct(models.Model):
     _name = "whatsapp.product"
     _description = "WhatsApp Business Catalogue Product"
 
+    tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
     name = fields.Char(string="Name", required=True, translate=True)
     list_price = fields.Float(string="Price", digits="Product Price")
     image_128 = fields.Binary(string="Image", attachment=True)
