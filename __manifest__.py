@@ -6,7 +6,7 @@
     'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr'],
     'data': [
         'security/ir.model.access.csv',
-        'security/ir_rule.xml',
+        # 'security/ir_rule.xml',
         'data/wa_chat_tag_data.xml',
         'views/whatsapp_account_views.xml',
         'views/chats_action.xml',
