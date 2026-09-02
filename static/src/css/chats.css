@@ -716,3 +716,18 @@
     pointer-events: none;
     z-index: 10001;
 }
+
+/* Audio recording pulse animation */
+@keyframes wa-pulse {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Audio player in message bubble */
+.wa-audio-player audio {
+    outline: none;
+}
+.wa-audio-player audio::-webkit-media-controls-panel {
+    background: transparent;
+}

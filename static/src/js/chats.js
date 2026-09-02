@@ -46,6 +46,10 @@ export class WhatsAppChatsAction extends Component {
             showLabels: true,
             availableTags: [],
             fullscreenMedia: null, // {id: att_id, type: 'image' | 'video'}
+            isRecording: false,
+            recordingSeconds: 0,
+            recordingBlob: null,
+            recordingBlobUrl: null,
         });
         
         this.myPartnerId = null;
@@ -885,6 +889,121 @@ export class WhatsAppChatsAction extends Component {
     
     removePendingFile() {
         this.state.pendingFile = null;
+    }
+
+    async startRecording() {
+        if (this.state.isRecording) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this._mediaStream = stream;
+            this._audioChunks = [];
+
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+                    ? 'audio/ogg;codecs=opus'
+                    : 'audio/webm';
+
+            this._mediaRecorder = new MediaRecorder(stream, { mimeType });
+            this._mediaRecorder.ondataavailable = (ev) => {
+                if (ev.data && ev.data.size > 0) {
+                    this._audioChunks.push(ev.data);
+                }
+            };
+            this._mediaRecorder.onstop = () => {
+                const blob = new Blob(this._audioChunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                this.state.recordingBlob = blob;
+                this.state.recordingBlobUrl = url;
+                this.state.isRecording = false;
+                clearInterval(this._recordingTimer);
+            };
+
+            this._mediaRecorder.start();
+            this.state.isRecording = true;
+            this.state.recordingSeconds = 0;
+            this.state.recordingBlob = null;
+            this.state.recordingBlobUrl = null;
+            this._recordingTimer = setInterval(() => {
+                this.state.recordingSeconds++;
+            }, 1000);
+        } catch (e) {
+            console.error('Microphone access denied or error:', e);
+            alert('Could not access microphone. Please allow microphone access and try again.');
+        }
+    }
+
+    stopRecording() {
+        if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
+            this._mediaRecorder.stop();
+        }
+        if (this._mediaStream) {
+            this._mediaStream.getTracks().forEach(t => t.stop());
+            this._mediaStream = null;
+        }
+        clearInterval(this._recordingTimer);
+        this.state.isRecording = false;
+    }
+
+    cancelRecording() {
+        this.stopRecording();
+        this.state.recordingBlob = null;
+        this.state.recordingBlobUrl = null;
+        this.state.recordingSeconds = 0;
+    }
+
+    formatRecordingTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    async sendAudioMessage() {
+        if (!this.state.recordingBlob || !this.state.selectedChannel) return;
+        const blob = this.state.recordingBlob;
+        const ext = blob.type.includes('ogg') ? 'ogg' : 'webm';
+        const filename = `voice_${Date.now()}.${ext}`;
+
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < uint8.length; i++) {
+            binary += String.fromCharCode(uint8[i]);
+        }
+        const base64data = btoa(binary);
+
+        try {
+            const attachmentId = await this.orm.call('ir.attachment', 'create', [{
+                name: filename,
+                type: 'binary',
+                datas: base64data,
+                mimetype: blob.type || 'audio/webm',
+                res_model: 'discuss.channel',
+                res_id: this.state.selectedChannel.id,
+            }]);
+
+            await this.orm.call(
+                'discuss.channel',
+                'message_post',
+                [this.state.selectedChannel.id],
+                {
+                    body: '',
+                    message_type: 'whatsapp_message',
+                    subtype_xmlid: 'mail.mt_comment',
+                    attachment_ids: Array.isArray(attachmentId) ? attachmentId : [attachmentId],
+                }
+            );
+
+            this.state.recordingBlob = null;
+            this.state.recordingBlobUrl = null;
+            this.state.recordingSeconds = 0;
+            await new Promise(resolve => setTimeout(resolve, 400));
+            await this.loadMessages();
+            this.scrollToBottom();
+        } catch (e) {
+            console.error('Failed to send audio message:', e);
+            alert('Failed to send voice message.');
+        }
     }
 
     async sendMenuReply(optionText) {
