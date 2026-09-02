@@ -754,12 +754,29 @@ class WhatsAppAccount(models.Model):
                 return {'success': False, 'error': f'Template is not approved (status: {template.status})'}
 
             partner = channel.whatsapp_partner_id
-            if not partner:
-                return {'success': False, 'error': 'Channel has no partner attached'}
+            phone = channel.whatsapp_number or (partner.phone if partner else False)
 
-            phone = channel.whatsapp_number or partner.phone
+            if not partner and phone:
+                partner = self.env['res.partner'].sudo().search([('phone', 'ilike', phone)], limit=1)
+                if not partner:
+                    partner = self.env['res.partner'].sudo().create({
+                        'name': phone,
+                        'phone': phone,
+                    })
+                channel.sudo().write({'whatsapp_partner_id': partner.id})
+
+            if not partner:
+                return {'success': False, 'error': 'Channel has no partner attached and no phone number to create one'}
+
             if not phone:
                 return {'success': False, 'error': 'No phone number found for contact'}
+
+            # Force international E.164 format (with '+') so Odoo's core whatsapp module doesn't fail on country fallback
+            clean_phone = ''.join(filter(str.isdigit, phone))
+            if clean_phone:
+                phone = '+' + clean_phone
+            else:
+                return {'success': False, 'error': 'Phone number is invalid (no digits found)'}
 
             wa_account = channel.wa_account_id
             if not wa_account:
