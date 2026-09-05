@@ -410,9 +410,7 @@ export class WhatsAppChatsAction extends Component {
         validChannels.sort((a, b) => (b.write_date || '').localeCompare(a.write_date || ''));
         this.state.channels = validChannels;
         if (channels.length > 0) {
-            if (!this.state.selectedChannel) {
-                this.selectChannel(channels[0]);
-            } else {
+            if (this.state.selectedChannel) {
                 const currentId = this.state.selectedChannel.id;
                 const updated = channels.find(c => c.id === currentId);
                 if (updated) {
@@ -626,14 +624,6 @@ export class WhatsAppChatsAction extends Component {
                         } else if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system") {
                             isMe = true;
                         }
-                    }
-                    
-                    let rawBody = msg.body || "";
-                    if (rawBody.includes(">Bot: ") || rawBody.startsWith("Bot: ")) {
-                        isMe = true;
-                    } else if (rawBody.includes(">Customer: ") || rawBody.startsWith("Customer: ")) {
-                        isMe = false;
-                    }
                 }
                 
                 let tmp = document.createElement("DIV");

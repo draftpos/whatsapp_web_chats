@@ -205,9 +205,13 @@ class WhatsAppAccount(models.Model):
                     if channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
                         is_me = False
                     else:
-                        is_me = True
+                        public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
+                        if public_partner and m.author_id.id == public_partner.id:
+                            is_me = False
+                        else:
+                            is_me = True
                 else:
-                    is_me = True
+                    is_me = False
             else:
                 if m.author_id and channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
                     is_me = True
