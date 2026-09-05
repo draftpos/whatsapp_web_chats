@@ -283,59 +283,64 @@ class WhatsAppAccount(models.Model):
                 wa_names[str(wa_id)] = profile_name
                 
         try:
-            # Get our own phone number(s) to filter out echo-backs
+            # Get our own phone number(s) to filter out echo-backs of our own sent messages
             own_phone = ''.join([c for c in str(self.phone_uid or '') if c.isdigit()])
             own_phone_alt = ''.join([c for c in str(self.phone_number or '') if c.isdigit()])
 
+            # Build a filtered list — remove any message sent FROM our own number
+            # (WhatsApp API echoes back messages we send as webhook events)
+            filtered_messages = []
             for message in value.get('messages', []):
-                wa_id = message.get('from')
-                if wa_id:
-                    sender_phone = ''.join([c for c in str(wa_id) if c.isdigit()])
-                    # Skip messages sent by our own business number (echo-back from WA API)
-                    if own_phone and sender_phone == own_phone:
-                        continue
-                    if own_phone_alt and sender_phone == own_phone_alt:
-                        continue
+                wa_id = message.get('from', '')
+                sender_phone = ''.join([c for c in str(wa_id) if c.isdigit()])
+                if own_phone and sender_phone == own_phone:
+                    continue  # This is an echo of our own outgoing message — skip entirely
+                if own_phone_alt and sender_phone == own_phone_alt:
+                    continue
 
-                    clean_phone = sender_phone
+                # Mark channel as unread for genuine incoming messages
+                clean_phone = sender_phone
+                if clean_phone:
                     channel = self.env['discuss.channel'].sudo().search([
                         ('channel_type', '=', 'whatsapp'),
                         ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
                         ('wa_account_id', '=', self.id)
                     ], limit=1)
-                    
                     if channel:
                         if channel.whatsapp_number != clean_phone:
                             channel.sudo().write({'whatsapp_number': clean_phone})
                         channel.wa_is_unread_global = True
                         channel.wa_is_done = False
-                        
+
+                # Convert order type messages to text
                 if message.get('type') == 'order':
                     order = message.get('order', {})
                     items = order.get('product_items', [])
-                    
                     text_lines = ["🛒 *New Order Received!*"]
                     if order.get('text'):
                         text_lines.append(f"Note: {order['text']}")
                     text_lines.append("Items:")
-                    
                     for item in items:
                         qty = item.get('quantity', 0)
                         price = item.get('item_price', '')
                         currency = item.get('currency', '')
                         product_id = item.get('product_retailer_id', 'Unknown Item')
-                        
                         product = self.env['product.product'].sudo().search([
-                            '|', ('default_code', '=', product_id), 
+                            '|', ('default_code', '=', product_id),
                             ('id', '=', int(product_id) if str(product_id).isdigit() else 0)
                         ], limit=1)
-                        
                         product_name = product.name if product else product_id
                         text_lines.append(f"- {qty}x {product_name} ({currency} {price})")
-                    
                     message['type'] = 'text'
                     message['text'] = {'body': '\n'.join(text_lines)}
-                    
+
+                filtered_messages.append(message)
+
+            # Replace the messages list with the filtered one before calling super
+            # This prevents base Odoo from processing or re-sending our own echo-back messages
+            value = dict(value)
+            value['messages'] = filtered_messages
+
             res = super()._process_messages(value)
         finally:
             if not self.wa_bot_active and original_chatbot:
