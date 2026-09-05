@@ -671,7 +671,11 @@ export class WhatsAppChatsAction extends Component {
                 if (msg.date) {
                     try {
                         const dt = new Date(msg.date);
-                        timeText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                        if (isNaN(dt)) {
+                            timeText = msg.date;
+                        } else {
+                            timeText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                        }
                     } catch (e) {
                         timeText = msg.date;
                     }
@@ -744,21 +748,22 @@ export class WhatsAppChatsAction extends Component {
         }
     }
     
-    formatChatTime(isoStr) {
-        if (!isoStr) return '';
-        try {
-            const dt = new Date(isoStr);
-            const now = new Date();
-            const isToday = dt.toDateString() === now.toDateString();
-            if (isToday) {
-                return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-            } else {
-                return dt.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
+        formatChatTime(isoStr) {
+            if (!isoStr) return '';
+            try {
+                const dt = new Date(isoStr);
+                if (isNaN(dt)) return '';
+                const now = new Date();
+                const isToday = dt.toDateString() === now.toDateString();
+                if (isToday) {
+                    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                } else {
+                    return dt.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
+                }
+            } catch (e) {
+                return '';
             }
-        } catch (e) {
-            return '';
         }
-    }
     
     openMedia(attId, ev, type='image', filename='') {
         if (ev) ev.stopPropagation();
