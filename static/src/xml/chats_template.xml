@@ -191,14 +191,7 @@
                             </div>
                         </div>
                         <div style="display: flex; align-items: center;">
-                            <!-- Dropdown to select Business Account in the Chat Header -->
-                            <t t-if="state.accounts and state.accounts?.length > 0">
-                                <select class="whatsapp-account-select" t-model="state.selectedChannel.wa_account_id" t-on-change="changeChatAccount" style="margin-right: 15px; font-size: 12px; padding: 2px;">
-                                    <t t-foreach="state.accounts || []" t-as="acc" t-key="acc.id">
-                                        <option t-att-value="acc.id"><t t-esc="acc.name"/></option>
-                                    </t>
-                                </select>
-                            </t>
+
                             <t t-if="state.selectedMessages?.length > 0">
                                 <span style="margin-right: 10px; font-size: 13px; color: #f24a4a;"><t t-esc="state.selectedMessages?.length"/> selected</span>
                                 <button class="whatsapp-header-btn" title="Delete Selected Messages" t-on-click="deleteSelectedMessages" style="background: transparent; border: none; cursor: pointer; color: #f24a4a; font-size: 20px; padding: 10px; margin-right: 15px;">
