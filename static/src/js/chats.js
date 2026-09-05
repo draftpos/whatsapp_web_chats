@@ -624,6 +624,7 @@ export class WhatsAppChatsAction extends Component {
                         } else if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system") {
                             isMe = true;
                         }
+                    }
                 }
                 
                 let tmp = document.createElement("DIV");
