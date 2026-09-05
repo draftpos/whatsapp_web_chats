@@ -195,15 +195,24 @@ class WhatsAppAccount(models.Model):
                 continue
             
             wa_state = wa_state_map.get(m.id, False)
-            if wa_state == 'received':
-                is_me = False
-            elif m.author_id:
-                if channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
+            
+            if m.author_id and m.author_id.id == self.env.user.partner_id.id:
+                is_me = True
+            elif self.env.user.has_group('base.group_user'):
+                if wa_state == 'received':
                     is_me = False
+                elif m.author_id:
+                    if channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
+                        is_me = False
+                    else:
+                        is_me = True
                 else:
                     is_me = True
             else:
-                is_me = True
+                if m.author_id and channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
+                    is_me = True
+                else:
+                    is_me = False
                 
             # Format date as UTC ISO string so JS can parse it correctly
             date_str = m.date.strftime('%Y-%m-%dT%H:%M:%SZ') if m.date else False
@@ -216,6 +225,7 @@ class WhatsAppAccount(models.Model):
                 'message_type': m.message_type,
                 'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype} for a in m.attachment_ids],
                 'is_me': is_me,
+                'isMe': is_me,
                 'wa_state': wa_state_map.get(m.id, False),
 
             }
