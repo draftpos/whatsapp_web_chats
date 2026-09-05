@@ -884,7 +884,7 @@ class WhatsAppAccount(models.Model):
             return {
                 'name': account.name,
                 'phone_uid': account.phone_uid if hasattr(account, 'phone_uid') else '',
-                'phone': account.phone_number if hasattr(account, 'phone_number') and account.phone_number else (account.name if not account.phone_uid else account.phone_uid),
+                'phone': account.phone_number if hasattr(account, 'phone_number') and account.phone_number and account.phone_number.lower() != 'api' else (account.name if account.name and any(c.isdigit() for c in account.name) else (account.phone_uid if hasattr(account, 'phone_uid') else '')),
                 'image_1920': account.image_1920 if hasattr(account, 'image_1920') else False,
             }
         return {}
