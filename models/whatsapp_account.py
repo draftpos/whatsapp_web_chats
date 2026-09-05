@@ -273,14 +273,16 @@ class WhatsAppAccount(models.Model):
             for message in value.get('messages', []):
                 wa_id = message.get('from')
                 if wa_id:
-                    clean_phone = ''.join([c for c in str(wa_id) if c.isdigit() or c == '+'])
+                    clean_phone = ''.join([c for c in str(wa_id) if c.isdigit()])
                     channel = self.env['discuss.channel'].sudo().search([
                         ('channel_type', '=', 'whatsapp'),
-                        ('whatsapp_number', '=', clean_phone),
+                        ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
                         ('wa_account_id', '=', self.id)
                     ], limit=1)
                     
                     if channel:
+                        if channel.whatsapp_number != clean_phone:
+                            channel.sudo().write({'whatsapp_number': clean_phone})
                         channel.wa_is_unread_global = True
                         channel.wa_is_done = False
                         
@@ -687,7 +689,7 @@ class WhatsAppAccount(models.Model):
             return {'success': True, 'channel_id': channel.id}
             
         phone = partner.phone
-        clean_phone = ''.join([c for c in str(phone) if c.isdigit() or c == '+']) if phone else ''
+        clean_phone = ''.join([c for c in str(phone) if c.isdigit()]) if phone else ''
         
         # Create new channel
         members = [(0, 0, {'partner_id': self.env.user.partner_id.id})]
@@ -712,7 +714,7 @@ class WhatsAppAccount(models.Model):
         if not account.exists():
             return {'success': False, 'error': 'Account not found'}
             
-        clean_phone = ''.join([c for c in str(number) if c.isdigit() or c == '+'])
+        clean_phone = ''.join([c for c in str(number) if c.isdigit()])
         number = clean_phone
             
         if not clean_phone:
