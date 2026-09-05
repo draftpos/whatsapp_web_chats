@@ -181,17 +181,45 @@ export class WhatsAppChatsAction extends Component {
 
     async loadProducts() {
         try {
-            // Load all saleable products from product.template
             const results = await this.orm.searchRead(
-                "product.template",
-                [["sale_ok", "=", true]],
+                "whatsapp.product",
+                [["show_in_catalogue", "=", true]],
                 ["id", "name", "list_price", "image_128"],
-                { limit: 80, order: "name asc" }
+                { order: "name asc" }
             );
             this.state.products = results;
         } catch (e) {
             console.error("Error loading products", e);
             this.state.products = [];
+        }
+    }
+
+    async addCatalogueProduct() {
+        const name = prompt("Product name:");
+        if (!name || !name.trim()) return;
+        const priceStr = prompt("Price (e.g. 99.99):");
+        const price = parseFloat(priceStr) || 0;
+        try {
+            await this.orm.create("whatsapp.product", [{
+                name: name.trim(),
+                list_price: price,
+                show_in_catalogue: true,
+            }]);
+            await this.loadProducts();
+        } catch (e) {
+            console.error("Failed to add catalogue product", e);
+            alert("Failed to add product: " + e.message);
+        }
+    }
+
+    async removeCatalogueProduct(productId, ev) {
+        if (ev) ev.stopPropagation();
+        if (!confirm("Remove this product from the catalogue?")) return;
+        try {
+            await this.orm.unlink("whatsapp.product", [productId]);
+            await this.loadProducts();
+        } catch (e) {
+            console.error("Failed to remove catalogue product", e);
         }
     }
 

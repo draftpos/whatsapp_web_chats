@@ -283,10 +283,21 @@ class WhatsAppAccount(models.Model):
                 wa_names[str(wa_id)] = profile_name
                 
         try:
+            # Get our own phone number(s) to filter out echo-backs
+            own_phone = ''.join([c for c in str(self.phone_uid or '') if c.isdigit()])
+            own_phone_alt = ''.join([c for c in str(self.phone_number or '') if c.isdigit()])
+
             for message in value.get('messages', []):
                 wa_id = message.get('from')
                 if wa_id:
-                    clean_phone = ''.join([c for c in str(wa_id) if c.isdigit()])
+                    sender_phone = ''.join([c for c in str(wa_id) if c.isdigit()])
+                    # Skip messages sent by our own business number (echo-back from WA API)
+                    if own_phone and sender_phone == own_phone:
+                        continue
+                    if own_phone_alt and sender_phone == own_phone_alt:
+                        continue
+
+                    clean_phone = sender_phone
                     channel = self.env['discuss.channel'].sudo().search([
                         ('channel_type', '=', 'whatsapp'),
                         ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
