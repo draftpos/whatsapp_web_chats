@@ -108,8 +108,25 @@ class DiscussChannel(models.Model):
         
         # Send automated message to the customer via WhatsApp API
         customer_msg = f"Your chat has been successfully transferred to the {dept.name} department under {agent.name if agent else 'any available agent'}. Your issue will be solved soon, and we will get back to you when done."
-        if channel.wa_account_id:
-            channel.wa_account_id._send_bot_reply(channel, customer_msg)
-        else:
+        
+        # Don't create a whatsapp.message manually; the native hook will handle it if we post a comment
+        if channel.whatsapp_partner_id:
             channel.message_post(body=customer_msg, message_type='comment', subtype_xmlid='mail.mt_comment')
+            
+        return True
+
+    def _notify_thread(self, message, msg_vals=False, **kwargs):
+        # Prevent Odoo native Discuss from popping up or showing notifications for whatsapp channels
+        if getattr(self, 'channel_type', False) == 'whatsapp':
+            return True
+        if hasattr(super(), '_notify_thread'):
+            return super()._notify_thread(message, msg_vals=msg_vals, **kwargs)
+        return True
+
+    def _broadcast(self, partner_ids):
+        # Prevent Odoo native Discuss from popping up or showing notifications for whatsapp channels
+        whatsapp_channels = self.filtered(lambda c: getattr(c, 'channel_type', False) == 'whatsapp')
+        other_channels = self - whatsapp_channels
+        if other_channels and hasattr(super(DiscussChannel, other_channels), '_broadcast'):
+            return super(DiscussChannel, other_channels)._broadcast(partner_ids)
         return True

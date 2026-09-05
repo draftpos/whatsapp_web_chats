@@ -235,6 +235,26 @@ export class WhatsAppChatsAction extends Component {
         this.state.isNewChatModalOpen = false;
     }
 
+    async openProfileSettings() {
+        this.state.isProfileModalOpen = true;
+        this.state.profileData = null;
+        if (this.state.selectedAccount) {
+            try {
+                this.state.profileData = await this.orm.call(
+                    "whatsapp.account",
+                    "get_profile_settings",
+                    [parseInt(this.state.selectedAccount)]
+                );
+            } catch (e) {
+                console.error("Failed to fetch profile settings", e);
+            }
+        }
+    }
+
+    closeProfileSettings() {
+        this.state.isProfileModalOpen = false;
+    }
+
     onContactSearch(ev) {
         const query = ev.target.value.toLowerCase();
         if (!query) {
@@ -387,6 +407,7 @@ export class WhatsAppChatsAction extends Component {
         
         // Filter out ghost/empty channels that have no partner and no phone number
         const validChannels = channels.filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
+        validChannels.sort((a, b) => (b.write_date || '').localeCompare(a.write_date || ''));
         this.state.channels = validChannels;
         if (channels.length > 0) {
             if (!this.state.selectedChannel) {
@@ -485,6 +506,7 @@ export class WhatsAppChatsAction extends Component {
         }
         // Mark as read locally immediately for responsiveness
         channel.unread_count = 0;
+        channel.wa_is_unread_global = false;
         
         await this.loadMessages(channel.id);
     }
@@ -687,6 +709,33 @@ export class WhatsAppChatsAction extends Component {
                     }
                 }
             }
+            if (this.state.selectedChannel && this.state.messages.length > 0) {
+                const lastMsg = this.state.messages[this.state.messages.length - 1];
+                let previewText = lastMsg.bodyText || "";
+                if (!previewText.trim() && lastMsg.attachment_ids && lastMsg.attachment_ids.length > 0) {
+                    previewText = "Attachment";
+                }
+                const timeStr = lastMsg.date ? lastMsg.date.replace(' ', 'T') + 'Z' : '';
+                
+                this.state.selectedChannel.last_message_preview = previewText;
+                this.state.selectedChannel.last_message_body = previewText;
+                this.state.selectedChannel.last_message_time = timeStr;
+                
+                const chanInList = this.state.channels.find(c => c.id === this.state.selectedChannel.id);
+                if (chanInList) {
+                    chanInList.last_message_preview = previewText;
+                    chanInList.last_message_body = previewText;
+                    chanInList.last_message_time = timeStr;
+                }
+            } else if (this.state.selectedChannel) {
+                this.state.selectedChannel.last_message_preview = "";
+                this.state.selectedChannel.last_message_body = "";
+                const chanInList = this.state.channels.find(c => c.id === this.state.selectedChannel.id);
+                if (chanInList) {
+                    chanInList.last_message_preview = "";
+                    chanInList.last_message_body = "";
+                }
+            }
             
             this.scrollToBottom();
         } catch(e) {
@@ -873,17 +922,13 @@ export class WhatsAppChatsAction extends Component {
         const file = ev.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.state.pendingFile = {
-                name: file.name,
-                type: file.type,
-                size: file.size,
-                dataUrl: e.target.result,
-                data: e.target.result.split(',')[1]
-            };
+        this.state.pendingFile = {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            file: file,
+            dataUrl: URL.createObjectURL(file)
         };
-        reader.readAsDataURL(file);
         ev.target.value = ""; // reset input
     }
     
@@ -964,23 +1009,33 @@ export class WhatsAppChatsAction extends Component {
         const ext = blob.type.includes('ogg') ? 'ogg' : 'webm';
         const filename = `voice_${Date.now()}.${ext}`;
 
-        const arrayBuffer = await blob.arrayBuffer();
-        const uint8 = new Uint8Array(arrayBuffer);
-        let binary = '';
-        for (let i = 0; i < uint8.length; i++) {
-            binary += String.fromCharCode(uint8[i]);
-        }
-        const base64data = btoa(binary);
-
         try {
-            const attachmentId = await this.orm.call('ir.attachment', 'create', [{
-                name: filename,
-                type: 'binary',
-                datas: base64data,
-                mimetype: blob.type || 'audio/webm',
-                res_model: 'discuss.channel',
-                res_id: this.state.selectedChannel.id,
-            }]);
+            const formData = new window.FormData();
+            formData.append('csrf_token', window.odoo?.csrf_token || '');
+            formData.append('name', filename);
+            formData.append('ufile', blob, filename);
+            formData.append('model', 'discuss.channel');
+            formData.append('id', this.state.selectedChannel.id);
+
+            const response = await window.fetch('/web/binary/upload_attachment', {
+                method: 'POST',
+                body: formData,
+            });
+            const responseText = await response.text();
+            let attachmentId = null;
+            const match = responseText.match(/\[.*?\]|\{.*?\}/);
+            if (match) {
+                const result = JSON.parse(match[0]);
+                if (Array.isArray(result) && result.length > 0) {
+                    attachmentId = result[0].id;
+                } else if (result.id) {
+                    attachmentId = result.id;
+                }
+            }
+
+            if (!attachmentId) {
+                throw new Error("Failed to parse attachment ID");
+            }
 
             await this.orm.call(
                 'discuss.channel',
@@ -1000,6 +1055,7 @@ export class WhatsAppChatsAction extends Component {
             await new Promise(resolve => setTimeout(resolve, 400));
             await this.loadMessages();
             this.scrollToBottom();
+            await this.pollMessages();
         } catch (e) {
             console.error('Failed to send audio message:', e);
             alert('Failed to send voice message.');
@@ -1014,20 +1070,37 @@ export class WhatsAppChatsAction extends Component {
     async sendMessage() {
         if ((!this.state.newMessage.trim() && !this.state.pendingFile) || !this.state.selectedChannel) return;
         
+        const messageBody = this.state.newMessage;
+        const pendingFile = this.state.pendingFile;
+        this.state.newMessage = "";
+        this.state.pendingFile = null;
+
         let attachment_ids = [];
-        if (this.state.pendingFile) {
-            const attachment = await this.orm.call("ir.attachment", "create", [{
-                name: this.state.pendingFile.name,
-                type: 'binary',
-                datas: this.state.pendingFile.data,
-                res_model: "discuss.channel",
-                res_id: this.state.selectedChannel.id,
-            }]);
-            
-            if (Array.isArray(attachment)) {
-                attachment_ids = attachment;
-            } else {
-                attachment_ids = [attachment];
+        if (pendingFile) {
+            try {
+                const formData = new window.FormData();
+                formData.append('csrf_token', window.odoo?.csrf_token || '');
+                formData.append('name', pendingFile.name);
+                formData.append('ufile', pendingFile.file);
+                formData.append('model', 'discuss.channel');
+                formData.append('id', this.state.selectedChannel.id);
+
+                const response = await window.fetch('/web/binary/upload_attachment', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const responseText = await response.text();
+                const match = responseText.match(/\[.*?\]|\{.*?\}/);
+                if (match) {
+                    const result = JSON.parse(match[0]);
+                    if (Array.isArray(result)) {
+                        attachment_ids = result.map(a => a.id);
+                    } else if (result.id) {
+                        attachment_ids = [result.id];
+                    }
+                }
+            } catch (e) {
+                console.error("Attachment upload failed", e);
             }
         }
         
@@ -1036,19 +1109,18 @@ export class WhatsAppChatsAction extends Component {
             "message_post",
             [this.state.selectedChannel.id],
             {
-                body: this.state.newMessage,
+                body: messageBody,
                 message_type: "whatsapp_message",
                 subtype_xmlid: "mail.mt_comment",
                 attachment_ids: attachment_ids
             }
         );
         
-        this.state.newMessage = "";
-        this.state.pendingFile = null;
         // Small delay to allow Odoo to commit the message before fetching
         await new Promise(resolve => setTimeout(resolve, 400));
         await this.loadMessages();
         this.scrollToBottom();
+        await this.pollMessages();
     }
     
     onKeydown(ev) {
@@ -1122,6 +1194,63 @@ export class WhatsAppChatsAction extends Component {
     closeTemplatesModal() {
         this.state.showTemplatesModal = false;
     }
+
+    openCatalogueModal() {
+        this.state.showCatalogueModal = true;
+    }
+
+    closeCatalogueModal() {
+        this.state.showCatalogueModal = false;
+    }
+
+    async sendProduct(product) {
+        if (!this.state.selectedChannel) return;
+        
+        try {
+            let attachment_ids = [];
+            // If the product has an image, create an attachment for it
+            if (product.image_128) {
+                const attachmentId = await this.orm.create("ir.attachment", [{
+                    name: product.name + ".jpg",
+                    datas: product.image_128,
+                    res_model: "discuss.channel",
+                    res_id: this.state.selectedChannel.id,
+                    type: "binary"
+                }]);
+                if (attachmentId && attachmentId.length > 0) {
+                    attachment_ids.push(attachmentId[0]);
+                }
+            }
+            
+            const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+            // Fallback to simple price format if formatting fails, though this should work
+            const price = product.list_price ? currencyFormatter.format(product.list_price) : '$0.00';
+            const body = `📦 *${product.name}*\nPrice: ${price}`;
+            
+            await this.orm.call(
+                "discuss.channel",
+                "message_post",
+                [this.state.selectedChannel.id],
+                {
+                    body: body,
+                    message_type: "whatsapp_message",
+                    subtype_xmlid: "mail.mt_comment",
+                    attachment_ids: attachment_ids
+                }
+            );
+            
+            this.closeCatalogueModal();
+            // Small delay to allow Odoo to commit the message before fetching
+            await new Promise(resolve => setTimeout(resolve, 400));
+            await this.loadMessages();
+            this.scrollToBottom();
+            await this.pollMessages();
+        } catch (e) {
+            console.error("Failed to send product message", e);
+            alert("Failed to send the product catalogue message.");
+        }
+    }
+
     
     async toggleContactInfo() {
         this.state.showContactInfo = !this.state.showContactInfo;
@@ -1183,6 +1312,7 @@ export class WhatsAppChatsAction extends Component {
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 await this.loadMessages(this.state.selectedChannel.id);
                 this.scrollToBottom();
+                await this.pollMessages();
             } else {
                 console.error("Failed to send template:", result.error);
                 alert("Failed to send template: " + (result.error || "Unknown error"));

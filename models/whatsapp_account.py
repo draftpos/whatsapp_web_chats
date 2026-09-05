@@ -82,7 +82,8 @@ class WhatsAppAccount(models.Model):
                 ('res_id', '=', c.id)
             ], order='date desc', limit=1)
             
-            sort_date = last_message.date if last_message else c.write_date
+            sort_date_obj = last_message.date if last_message else c.write_date
+            sort_date = sort_date_obj.strftime('%Y-%m-%dT%H:%M:%SZ') if sort_date_obj else ''
             
             import re
             last_msg_body = ''
@@ -181,6 +182,11 @@ class WhatsAppAccount(models.Model):
             if last_wa and last_wa.state == 'error':
                 wa_error = last_wa.failure_reason or last_wa.failure_type or 'Delivery failed'
         
+        wa_msgs = self.env['whatsapp.message'].sudo().search([
+            ('mail_message_id', 'in', messages.ids)
+        ])
+        wa_state_map = {wa.mail_message_id.id: wa.state for wa in wa_msgs if wa.mail_message_id}
+        
         res = []
         for m in messages:
             # Skip messages with no body and no attachments
@@ -208,6 +214,8 @@ class WhatsAppAccount(models.Model):
                 'message_type': m.message_type,
                 'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype} for a in m.attachment_ids],
                 'is_me': is_me,
+                'wa_state': wa_state_map.get(m.id, False),
+
             }
             res.append(msg_dict)
             
@@ -529,6 +537,8 @@ class WhatsAppAccount(models.Model):
     @api.model
     def delete_whatsapp_chat(self, channel_id):
         """ Completely deletes a whatsapp chat (discuss.channel) """
+        if not self.env.is_admin():
+            return {'success': False, 'error': 'Only administrators can delete chats.'}
         try:
             channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
             if channel.exists():
@@ -548,6 +558,8 @@ class WhatsAppAccount(models.Model):
     @api.model
     def delete_whatsapp_message(self, message_id):
         """ Deletes a specific mail.message """
+        if not self.env.is_admin():
+            return {'success': False, 'error': 'Only administrators can delete messages.'}
         try:
             message = self.env['mail.message'].sudo().browse(int(message_id))
             if message.exists():
@@ -559,6 +571,10 @@ class WhatsAppAccount(models.Model):
 
     @api.model
     def mark_whatsapp_web_messages_read(self, channel_id):
+        channel = self.env['discuss.channel'].browse(int(channel_id))
+        if channel.exists() and channel.wa_is_unread_global:
+            channel.sudo().write({'wa_is_unread_global': False})
+
         # Find the user's member record for this channel
         member = self.env['discuss.channel.member'].search([
             ('channel_id', '=', int(channel_id)),
@@ -848,3 +864,15 @@ class WhatsAppAccount(models.Model):
         except Exception as e:
             _logger.exception("Error in send_whatsapp_template")
             return {'success': False, 'error': str(e)}
+
+    @api.model
+    def get_profile_settings(self, account_id):
+        account = self.sudo().browse(int(account_id))
+        if account.exists():
+            return {
+                'name': account.name,
+                'phone_uid': account.phone_uid if hasattr(account, 'phone_uid') else '',
+                'phone': account.phone if hasattr(account, 'phone') else (account.phone_uid if hasattr(account, 'phone_uid') else account.name),
+                'image_1920': account.image_1920 if hasattr(account, 'image_1920') else False,
+            }
+        return {}

@@ -311,13 +311,16 @@ export class ChatsAction extends Component {
     async sendMessage() {
         if (!this.state.newMessage.trim() || !this.state.selectedChannel || !this.state.selectedAccount) return;
         
+        const messageBody = this.state.newMessage;
+        this.state.newMessage = "";
+
         // 1. Post internally to discuss.channel
         await this.orm.call(
             "discuss.channel",
             "message_post",
             [this.state.selectedChannel.id],
             {
-                body: this.state.newMessage,
+                body: messageBody,
                 message_type: "comment",
                 subtype_xmlid: "mail.mt_comment",
             }
@@ -328,7 +331,7 @@ export class ChatsAction extends Component {
             account_id: parseInt(this.state.selectedAccount),
             phone_number: this.state.selectedChannel.whatsapp_number,
             message_type: 'outbound',
-            body: this.state.newMessage
+            body: messageBody
         }]);
         
         const records = await this.orm.searchRead("wasphere.message", [["account_id", "=", parseInt(this.state.selectedAccount)], ["phone_number", "=", this.state.selectedChannel.whatsapp_number]], ["id"], { order: 'id desc', limit: 1 });
@@ -336,7 +339,6 @@ export class ChatsAction extends Component {
             await this.orm.call("wasphere.message", "send_via_wasphere", [records[0].id]);
         }
         
-        this.state.newMessage = "";
         await this.loadMessages();
     }
 
