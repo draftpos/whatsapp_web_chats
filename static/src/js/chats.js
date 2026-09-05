@@ -53,6 +53,8 @@ export class WhatsAppChatsAction extends Component {
         });
         
         this.myPartnerId = null;
+        this.isSending = false;
+        this.isAdmin = session.is_admin || session.is_superuser || false;
 
         onWillStart(async () => {
             await this.loadChannels();
@@ -1065,59 +1067,66 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async sendMessage() {
+        if (this.isSending) return; // prevent double sends
         if ((!this.state.newMessage.trim() && !this.state.pendingFile) || !this.state.selectedChannel) return;
         
+        this.isSending = true;
         const messageBody = this.state.newMessage;
         const pendingFile = this.state.pendingFile;
         this.state.newMessage = "";
         this.state.pendingFile = null;
 
-        let attachment_ids = [];
-        if (pendingFile) {
-            try {
-                const formData = new window.FormData();
-                formData.append('csrf_token', window.odoo?.csrf_token || '');
-                formData.append('name', pendingFile.name);
-                formData.append('ufile', pendingFile.file);
-                formData.append('model', 'discuss.channel');
-                formData.append('id', this.state.selectedChannel.id);
+        try {
+            let attachment_ids = [];
+            if (pendingFile) {
+                try {
+                    const formData = new window.FormData();
+                    formData.append('csrf_token', window.odoo?.csrf_token || '');
+                    formData.append('name', pendingFile.name);
+                    formData.append('ufile', pendingFile.file);
+                    formData.append('model', 'discuss.channel');
+                    formData.append('id', this.state.selectedChannel.id);
 
-                const response = await window.fetch('/web/binary/upload_attachment', {
-                    method: 'POST',
-                    body: formData,
-                });
-                const responseText = await response.text();
-                const match = responseText.match(/\[.*?\]|\{.*?\}/);
-                if (match) {
-                    const result = JSON.parse(match[0]);
-                    if (Array.isArray(result)) {
-                        attachment_ids = result.map(a => a.id);
-                    } else if (result.id) {
-                        attachment_ids = [result.id];
+                    const response = await window.fetch('/web/binary/upload_attachment', {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    const responseText = await response.text();
+                    const match = responseText.match(/\[.*?\]|\{.*?\}/);
+                    if (match) {
+                        const result = JSON.parse(match[0]);
+                        if (Array.isArray(result)) {
+                            attachment_ids = result.map(a => a.id);
+                        } else if (result.id) {
+                            attachment_ids = [result.id];
+                        }
                     }
+                } catch (e) {
+                    console.error("Attachment upload failed", e);
                 }
-            } catch (e) {
-                console.error("Attachment upload failed", e);
             }
+            
+            await this.orm.call(
+                "discuss.channel",
+                "message_post",
+                [this.state.selectedChannel.id],
+                {
+                    body: messageBody,
+                    message_type: "whatsapp_message",
+                    subtype_xmlid: "mail.mt_comment",
+                    attachment_ids: attachment_ids
+                }
+            );
+            
+            // Small delay to allow Odoo to commit the message before fetching
+            await new Promise(resolve => setTimeout(resolve, 400));
+            await this.loadMessages();
+            this.scrollToBottom();
+            // Refresh channel list so this chat bubbles to the top
+            await this.loadChannels();
+        } finally {
+            this.isSending = false;
         }
-        
-        await this.orm.call(
-            "discuss.channel",
-            "message_post",
-            [this.state.selectedChannel.id],
-            {
-                body: messageBody,
-                message_type: "whatsapp_message",
-                subtype_xmlid: "mail.mt_comment",
-                attachment_ids: attachment_ids
-            }
-        );
-        
-        // Small delay to allow Odoo to commit the message before fetching
-        await new Promise(resolve => setTimeout(resolve, 400));
-        await this.loadMessages();
-        this.scrollToBottom();
-        await this.pollMessages();
     }
     
     onKeydown(ev) {
@@ -1339,16 +1348,19 @@ export class WhatsAppChatsAction extends Component {
         }
     }
     
-    async deleteMessage(messageId) {
-        if (!confirm("Delete this message?")) {
+    async deleteMessageForEveryone(messageId) {
+        if (!this.isAdmin) {
+            alert("Only administrators can delete messages.");
+            return;
+        }
+        if (!confirm("Delete this message for everyone? This cannot be undone.")) {
             return;
         }
         
-        const result = await this.orm.call("whatsapp.account", "delete_whatsapp_message", [parseInt(messageId)]);
+        const result = await this.orm.call("whatsapp.account", "delete_message_for_everyone", [parseInt(messageId)]);
         if (result && result.success) {
             // Remove from state
             this.state.messages = this.state.messages.filter(m => m.id !== messageId);
-            // Optionally, update the chat preview if it was the last message
             if (this.state.selectedChannel && this.state.messages.length > 0) {
                 this.state.selectedChannel.last_message_preview = this.state.messages[this.state.messages.length - 1].body;
             } else if (this.state.selectedChannel) {
@@ -1356,7 +1368,7 @@ export class WhatsAppChatsAction extends Component {
             }
         } else {
             console.error("Failed to delete message", result);
-            alert("Failed to delete message: " + (result.error || "Unknown error"));
+            alert("Failed to delete message: " + (result?.error || "Unknown error"));
         }
     }
 

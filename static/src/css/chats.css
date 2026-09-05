@@ -39,7 +39,7 @@
 
 .whatsapp-header {
     height: 65px;
-    background-color: #1976d2;
+    background-color: #128C7E;
     color: #ffffff;
     display: flex;
     align-items: center;
@@ -150,7 +150,7 @@
 }
 
 .chat-unread-badge {
-    background-color: #1976d2;
+    background-color: #25D366;
     color: white;
     border-radius: 20px;
     padding: 2px 8px;
@@ -162,7 +162,7 @@
     align-items: center;
     justify-content: center;
     margin-left: 10px;
-    box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
+    box-shadow: 0 2px 4px rgba(37, 211, 102, 0.3);
 }
 
 .whatsapp-messages {
@@ -325,7 +325,7 @@
 }
 
 .whatsapp-send-btn:hover, .whatsapp-attach-btn:hover {
-    color: #1976d2;
+    color: #25D366;
     background-color: #f0f2f5;
 }
 
@@ -481,8 +481,8 @@
 }
 
 .template-card:hover {
-    border-color: #1976d2;
-    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.1);
+    border-color: #25D366;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.1);
     transform: translateY(-2px);
 }
 
@@ -555,8 +555,8 @@
     background-color: #e9ecef;
 }
 .chat-filter-pill.active {
-    background-color: #e3f2fd;
-    color: #1976d2;
+    background-color: #e8f8ef;
+    color: #128C7E;
 }
 
 /* =====================================================

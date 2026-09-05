@@ -597,6 +597,38 @@ class WhatsAppAccount(models.Model):
             return {'success': False, 'error': str(e)}
 
     @api.model
+    def delete_message_for_everyone(self, message_id):
+        """ Deletes a message in Odoo AND attempts to retract it via WhatsApp Cloud API """
+        if not self.env.is_admin():
+            return {'success': False, 'error': 'Only administrators can delete messages.'}
+        try:
+            message = self.env['mail.message'].sudo().browse(int(message_id))
+            if not message.exists():
+                return {'success': False, 'error': 'Message not found'}
+
+            # Try to retract via WhatsApp API if we have a wa_message_id
+            wa_msg = self.env['whatsapp.message'].sudo().search([
+                ('mail_message_id', '=', message.id)
+            ], limit=1)
+
+            if wa_msg and wa_msg.msg_uid:
+                try:
+                    channel = self.env['discuss.channel'].sudo().browse(message.res_id)
+                    account = channel.wa_account_id
+                    if account and account.token:
+                        import requests as req
+                        url = f"https://graph.facebook.com/v18.0/{account.phone_uid}/messages/{wa_msg.msg_uid}"
+                        req.delete(url, headers={'Authorization': f'Bearer {account.token}'}, timeout=10)
+                except Exception as api_err:
+                    import logging
+                    logging.getLogger(__name__).warning("WhatsApp retract API call failed: %s", api_err)
+
+            message.unlink()
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @api.model
     def mark_whatsapp_web_messages_read(self, channel_id):
         channel = self.env['discuss.channel'].browse(int(channel_id))
         if channel.exists() and channel.wa_is_unread_global:

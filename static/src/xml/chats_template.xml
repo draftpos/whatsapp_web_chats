@@ -293,9 +293,11 @@
                                             </t>
                                         </t>
                                     </div>
-                                    <div class="message-delete-btn" t-on-click="() => this.deleteMessage(msg.id)" title="Delete Message">
-                                        <i class="fa fa-trash"/>
-                                    </div>
+                                    <t t-if="this.isAdmin">
+                                        <div class="message-delete-btn" t-on-click="() => this.deleteMessageForEveryone(msg.id)" title="Delete for Everyone">
+                                            <i class="fa fa-trash"/>
+                                        </div>
+                                    </t>
                                 </div>
                             </div>
                         </t>
