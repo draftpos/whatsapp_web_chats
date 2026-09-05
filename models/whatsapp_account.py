@@ -359,7 +359,7 @@ class WhatsAppAccount(models.Model):
                 if clean_name.endswith(clean_wa) or clean_name.startswith(clean_wa):
                     partner.sudo().write({'name': profile_name})
                     
-        # Apply custom routing bot logic
+        # Apply custom routing bot logic — use filtered value so echo-backs never trigger bot replies
         self._process_routing_bot(value)
                     
         return res
