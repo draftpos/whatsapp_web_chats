@@ -194,8 +194,10 @@ class WhatsAppAccount(models.Model):
             if not body_text and not m.attachment_ids:
                 continue
             
-            is_me = False
-            if m.author_id:
+            wa_state = wa_state_map.get(m.id, False)
+            if wa_state == 'received':
+                is_me = False
+            elif m.author_id:
                 if channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
                     is_me = False
                 else:
@@ -872,7 +874,7 @@ class WhatsAppAccount(models.Model):
             return {
                 'name': account.name,
                 'phone_uid': account.phone_uid if hasattr(account, 'phone_uid') else '',
-                'phone': account.phone if hasattr(account, 'phone') else (account.phone_uid if hasattr(account, 'phone_uid') else account.name),
+                'phone': account.phone_number if hasattr(account, 'phone_number') and account.phone_number else (account.name if not account.phone_uid else account.phone_uid),
                 'image_1920': account.image_1920 if hasattr(account, 'image_1920') else False,
             }
         return {}

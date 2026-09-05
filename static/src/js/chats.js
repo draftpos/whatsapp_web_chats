@@ -676,14 +676,15 @@ export class WhatsAppChatsAction extends Component {
                         timeText = msg.date;
                     }
                 }
-                
-                let authorName = "";
-                if (msg.author_id && Array.isArray(msg.author_id) && msg.author_id.length > 1) {
+                                let authorName = "";
+                if (msg.author_id) {
                     authorName = msg.author_id[1];
                     let authorLower = authorName.toLowerCase();
-                    if (authorLower.includes("bot") || authorLower === "system") {
+                    if (authorLower.includes("bot") || authorLower === "odoobot" || authorLower === "system") {
                         authorName = "Bot";
                     }
+                } else if (!isMe && this.state.selectedChannel) {
+                    authorName = this.state.selectedChannel.name || "Customer";
                 }
                 
                 return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem };
