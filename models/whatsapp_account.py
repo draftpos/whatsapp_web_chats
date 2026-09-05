@@ -221,17 +221,26 @@ class WhatsAppAccount(models.Model):
             # Format date as UTC ISO string so JS can parse it correctly
             date_str = m.date.strftime('%Y-%m-%dT%H:%M:%SZ') if m.date else False
             
+            public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
+            author_data = False
+            if m.author_id:
+                author_name = clean_name(m.author_id.name)
+                # Replace "Public user" with the actual customer name
+                if public_partner and m.author_id.id == public_partner.id:
+                    customer = channel.whatsapp_partner_id
+                    author_name = clean_name(customer.name) if customer else clean_name(channel.name)
+                author_data = [m.author_id.id, author_name]
+            
             msg_dict = {
                 'id': m.id,
                 'body': m.body,
-                'author_id': [m.author_id.id, clean_name(m.author_id.name)] if m.author_id else False,
+                'author_id': author_data,
                 'date': date_str,
                 'message_type': m.message_type,
                 'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype} for a in m.attachment_ids],
                 'is_me': is_me,
                 'isMe': is_me,
                 'wa_state': wa_state_map.get(m.id, False),
-
             }
             res.append(msg_dict)
             
