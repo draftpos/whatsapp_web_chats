@@ -358,7 +358,7 @@
                         </t>
                         <t t-if="this.isWithin24hWindow">
                             <!-- Audio recording preview bar (shown after recording stops) -->
-                            <t t-if="state.recordingBlobUrl && !state.isRecording">
+                            <t t-if="state.recordingBlobUrl and !state.isRecording">
                                 <div class="wa-audio-preview" style="display:flex; align-items:center; gap:10px; background:#e8f5e9; border-radius:12px; padding:10px 14px; margin:6px 10px; border:1px solid #a5d6a7;">
                                     <i class="fa fa-microphone" style="color:#00a884; font-size:18px;"/>
                                     <audio controls="controls" t-att-src="state.recordingBlobUrl" style="flex:1; height:32px;"/>
@@ -394,7 +394,7 @@
                                     <i class="fa fa-shopping-bag"/>
                                 </button>
                                 <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onInputResize" style="overflow-y: hidden; resize: none;"/>
-                                <t t-if="!state.newMessage && !state.pendingFile && !state.isRecording && !state.recordingBlobUrl">
+                                <t t-if="!state.newMessage and !state.pendingFile and !state.isRecording and !state.recordingBlobUrl">
                                     <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="background:#00a884;">
                                         <i class="fa fa-microphone"/>
                                     </button>
@@ -628,12 +628,12 @@
                     <div class="modal-search" style="padding: 10px 15px; border-bottom: 1px solid #ddd; background: #f6f6f6; display: flex; align-items: center; justify-content: space-between;">
                         <input type="text" class="form-control" placeholder="Search contacts or enter number..." t-on-keyup="onContactSearch" style="border-radius: 20px; border: none; padding: 8px 15px; outline: none; flex-grow: 1; margin-right: 10px;"/>
                         <button class="btn btn-sm" t-on-click="selectAllContacts" style="background: #e8f5e9; color: #008069; border: 1px solid #008069; border-radius: 20px; white-space: nowrap; padding: 4px 12px; font-weight: 500;">
-                            <t t-if="state.selectedContacts?.length === state.filteredContacts?.length && state.filteredContacts?.length > 0">Deselect All</t>
+                            <t t-if="state.selectedContacts?.length === state.filteredContacts?.length and state.filteredContacts?.length > 0">Deselect All</t>
                             <t t-else="">Select All</t>
                         </button>
                     </div>
                     <div class="modal-body" style="max-height: 400px; overflow-y: auto; background: white;">
-                        <t t-if="state.filteredContacts?.length === 0 && !state.newNumberQuery">
+                        <t t-if="state.filteredContacts?.length === 0 and !state.newNumberQuery">
                             <div style="padding: 20px; text-align: center; color: #999;">No contacts found.</div>
                         </t>
                         <t t-if="state.newNumberQuery">
