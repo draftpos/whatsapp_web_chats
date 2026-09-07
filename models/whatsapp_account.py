@@ -640,6 +640,24 @@ class WhatsAppAccount(models.Model):
             logging.getLogger(__name__).error("Failed to send bot reply: %s", e)
 
     @api.model
+    def clear_whatsapp_chat(self, channel_id):
+        """ Clears all messages from a whatsapp chat but keeps the chat itself. """
+        if not self.env.is_admin():
+            return {'success': False, 'error': 'Only administrators can clear chats.'}
+        try:
+            channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
+            if channel.exists():
+                messages = self.env['mail.message'].sudo().search([
+                    ('model', '=', 'discuss.channel'),
+                    ('res_id', '=', channel.id)
+                ])
+                messages.unlink()
+                return {'success': True}
+            return {'success': False, 'error': 'Channel not found'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @api.model
     def delete_whatsapp_chat(self, channel_id):
         """ Deletes a whatsapp chat (discuss.channel) but preserves the contact (res.partner). """
         if not self.env.is_admin():

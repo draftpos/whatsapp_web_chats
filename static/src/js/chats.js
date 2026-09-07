@@ -56,6 +56,7 @@ export class WhatsAppChatsAction extends Component {
             isSending: false,
             chatSearch: "",
             deleteChatConfirmId: null,
+            dropdownUpwards: false,
         });
         
         this.myPartnerId = null;
@@ -546,6 +547,30 @@ export class WhatsAppChatsAction extends Component {
         }
         
         return filtered;
+    }
+
+    async clearChat(channelId) {
+        if (!confirm("Are you sure you want to clear this chat? All messages will be deleted, but the contact will remain.")) {
+            return;
+        }
+        this.state.showChatDropdownId = null;
+        this.state.showHeaderDropdown = false;
+        try {
+            const res = await this.orm.call("whatsapp.account", "clear_whatsapp_chat", [channelId]);
+            if (res.success) {
+                if (this.state.selectedChannel && this.state.selectedChannel.id === channelId) {
+                    this.state.messages = [];
+                    this.state.selectedChannel.last_message_preview = "";
+                }
+                const chan = this.state.channels.find(c => c.id === channelId);
+                if (chan) chan.last_message_preview = "";
+                this.messageCache[channelId] = [];
+            } else {
+                alert(res.error || "Failed to clear chat");
+            }
+        } catch(e) {
+            console.error("Failed to clear chat:", e);
+        }
     }
 
     openDeleteChatModal(channelId, ev) {
@@ -1766,12 +1791,16 @@ export class WhatsAppChatsAction extends Component {
             this.state.showChatDropdownId = null;
         } else {
             this.state.showChatDropdownId = channelId;
+            this.state.dropdownUpwards = (ev && ev.clientY > window.innerHeight * 0.6);
         }
     }
 
     toggleHeaderDropdown(ev) {
         if (ev) ev.stopPropagation();
         this.state.showHeaderDropdown = !this.state.showHeaderDropdown;
+        if (this.state.showHeaderDropdown) {
+            this.state.dropdownUpwards = (ev && ev.clientY > window.innerHeight * 0.6);
+        }
     }
 
     toggleMessageDropdown(msgId, ev) {
@@ -1780,6 +1809,7 @@ export class WhatsAppChatsAction extends Component {
             this.state.showMessageDropdownId = null;
         } else {
             this.state.showMessageDropdownId = msgId;
+            this.state.dropdownUpwards = (ev && ev.clientY > window.innerHeight * 0.6);
         }
     }
 

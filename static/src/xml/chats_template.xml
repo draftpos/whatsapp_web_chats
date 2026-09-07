@@ -172,29 +172,14 @@
                                 <i class="fa fa-chevron-down"></i>
                             </div>
                             <t t-if="state.showChatDropdownId === channel.id">
-                                <div class="chat-dropdown-menu" t-on-click.stop="() => {}">
-                                    <div class="chat-dropdown-item" t-on-click="notImplemented">
-                                        Archive chat
-                                    </div>
-                                    <div class="chat-dropdown-item" t-on-click="notImplemented">
-                                        Lock chat
-                                    </div>
-                                    <div class="chat-dropdown-item" t-on-click="notImplemented">
-                                        Mute notifications
-                                    </div>
-                                    <div class="chat-dropdown-item" t-on-click="notImplemented">
-                                        Pin chat
-                                    </div>
+                                <div class="chat-dropdown-menu" t-att-style="state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : ''" t-on-click.stop="() => {}">
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_unread_global', !channel.wa_is_unread_global, ev)">
                                         <t t-esc="channel.wa_is_unread_global ? 'Mark as Read' : 'Mark as Unread'"/>
                                     </div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_favourite', !channel.wa_is_favourite, ev)">
                                         <t t-esc="channel.wa_is_favourite ? 'Remove Favourite' : 'Add to Favourites'"/>
                                     </div>
-                                    <div class="chat-dropdown-item" t-on-click="notImplemented">
-                                        Add to list
-                                    </div>
-                                    <div class="chat-dropdown-item" t-on-click="notImplemented">
+                                    <div class="chat-dropdown-item" t-on-click="() => this.clearChat(channel.id)">
                                         Clear chat
                                     </div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.openDeleteChatModal(channel.id, ev)" style="color: #d93025; font-weight: 500;">
@@ -277,12 +262,8 @@
                                     <i class="fa fa-ellipsis-v"/>
                                 </button>
                                 <t t-if="state.showHeaderDropdown">
-                                    <div class="header-dropdown-menu" style="position: absolute; right: 0; top: 40px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(0,0,0,0.26); z-index: 1000; min-width: 200px; padding: 10px 0; max-height: 300px; overflow-y: auto;">
+                                    <div class="header-dropdown-menu" t-att-style="'position: absolute; right: 0; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26),0 2px 10px 0 rgba(11,20,26,.16); width: 220px; padding: 9px 0; z-index: 1000;' + (state.dropdownUpwards ? ' bottom: 100%; top: auto; margin-bottom: 5px;' : ' top: 100%; margin-top: 10px;')" t-on-click.stop="() => {}">
                                         <div class="chat-dropdown-item" t-on-click="toggleContactInfo">Contact info</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Select messages</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Mute notifications</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Disappearing messages</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Lock chat</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_favourite', !state.selectedChannel.wa_is_favourite, ev); this.toggleHeaderDropdown(ev); }">
                                             <t t-esc="state.selectedChannel.wa_is_favourite ? 'Remove Favourite' : 'Add to favourites'"/>
                                         </div>
@@ -295,14 +276,8 @@
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_done', !state.selectedChannel.wa_is_done, ev); this.toggleHeaderDropdown(ev); }">
                                             <t t-esc="state.selectedChannel.wa_is_done ? 'Mark as Undone' : 'Mark as Done'"/>
                                         </div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Add to list</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Export chat</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.closeChat(ev); this.toggleHeaderDropdown(ev); }">Close chat</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Send call link</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Schedule call</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">New group call</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Report</div>
-                                        <div class="chat-dropdown-item" t-on-click="notImplemented">Block</div>
+                                        <div class="chat-dropdown-item" t-on-click="() => this.clearChat(state.selectedChannel.id)">Clear chat</div>
                                         <div class="chat-dropdown-item" t-on-click="() => this.openDeleteChatModal(state.selectedChannel.id)" style="color: #d93025; font-weight: 500;">
                                             <i class="fa fa-trash" style="margin-right: 6px;"/> Delete this chat
                                         </div>
@@ -416,14 +391,8 @@
                                         <i class="fa fa-chevron-down"/>
                                     </div>
                                     <t t-if="state.showMessageDropdownId === msg.id">
-                                        <div class="msg-dropdown-menu" t-on-click.stop="() => {}">
-                                            <div class="chat-dropdown-item" t-on-click="notImplemented">Message info</div>
-                                            <div class="chat-dropdown-item" t-on-click="notImplemented">Reply</div>
+                                        <div class="msg-dropdown-menu" t-att-style="'position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 200px; overflow-y: auto;' + (state.dropdownUpwards ? ' bottom: 100%; top: auto; margin-bottom: 5px;' : ' top: 100%; margin-top: 5px;')" t-on-click.stop="() => {}">
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
-                                            <div class="chat-dropdown-item" t-on-click="notImplemented">Forward</div>
-                                            <div class="chat-dropdown-item" t-on-click="notImplemented">Pin</div>
-                                            <div class="chat-dropdown-item" t-on-click="notImplemented">Ask Meta AI</div>
-                                            <div class="chat-dropdown-item" t-on-click="notImplemented">Star</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
                                         </div>
