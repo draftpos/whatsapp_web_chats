@@ -172,7 +172,7 @@
                                 <i class="fa fa-chevron-down"></i>
                             </div>
                             <t t-if="state.showChatDropdownId === channel.id">
-                                <div class="chat-dropdown-menu" t-att-style="state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : ''" t-on-click.stop="() => {}">
+                                <div class="chat-dropdown-menu" t-attf-style="{{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : '' }}" t-on-click.stop="() => {}">
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_unread_global', !channel.wa_is_unread_global, ev)">
                                         <t t-esc="channel.wa_is_unread_global ? 'Mark as Read' : 'Mark as Unread'"/>
                                     </div>
@@ -262,7 +262,7 @@
                                     <i class="fa fa-ellipsis-v"/>
                                 </button>
                                 <t t-if="state.showHeaderDropdown">
-                                    <div class="header-dropdown-menu" t-att-style="'position: absolute; right: 0; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26),0 2px 10px 0 rgba(11,20,26,.16); width: 220px; padding: 9px 0; z-index: 1000;' + (state.dropdownUpwards ? ' bottom: 100%; top: auto; margin-bottom: 5px;' : ' top: 100%; margin-top: 10px;')" t-on-click.stop="() => {}">
+                                    <div class="header-dropdown-menu" t-attf-style="position: absolute; right: 0; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26),0 2px 10px 0 rgba(11,20,26,.16); width: 220px; padding: 9px 0; z-index: 1000; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 10px;' }}" t-on-click.stop="() => {}">
                                         <div class="chat-dropdown-item" t-on-click="toggleContactInfo">Contact info</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_favourite', !state.selectedChannel.wa_is_favourite, ev); this.toggleHeaderDropdown(ev); }">
                                             <t t-esc="state.selectedChannel.wa_is_favourite ? 'Remove Favourite' : 'Add to favourites'"/>
@@ -391,7 +391,7 @@
                                         <i class="fa fa-chevron-down"/>
                                     </div>
                                     <t t-if="state.showMessageDropdownId === msg.id">
-                                        <div class="msg-dropdown-menu" t-att-style="'position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 200px; overflow-y: auto;' + (state.dropdownUpwards ? ' bottom: 100%; top: auto; margin-bottom: 5px;' : ' top: 100%; margin-top: 5px;')" t-on-click.stop="() => {}">
+                                        <div class="msg-dropdown-menu" t-attf-style="position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 200px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 5px;' }}" t-on-click.stop="() => {}">
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
