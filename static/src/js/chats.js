@@ -10,6 +10,7 @@ export class WhatsAppChatsAction extends Component {
         this.orm = useService("orm");
         this.messagesContainer = useRef("messagesContainer");
         this.chatList = useRef("chatList");
+        this.messageCache = {};
         
         this.state = useState({
             channels: [],
@@ -545,7 +546,7 @@ export class WhatsAppChatsAction extends Component {
 
         this.state.selectedChannel = channel;
         this.state.selectedMessages = [];
-        this.state.messages = [];
+        this.state.messages = this.messageCache[channel.id] || [];
         
         // Fetch media for the channel if the panel is open
         if (this.state.showContactInfo) {
@@ -741,6 +742,8 @@ export class WhatsAppChatsAction extends Component {
                 
                 return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem };
             });
+            
+            this.messageCache[id] = this.state.messages;
             
             // Check for newly failed messages and alert the user
             window.seenWaErrors = window.seenWaErrors || new Set();
