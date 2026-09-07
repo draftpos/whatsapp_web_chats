@@ -576,6 +576,9 @@ export class WhatsAppChatsAction extends Component {
         this.state.selectedChannel = channel;
         this.state.selectedMessages = [];
         this.state.messages = this.messageCache[channel.id] || [];
+
+        const loadId = Symbol();
+        this.currentLoadId = loadId;
         
         // Fetch media for the channel if the panel is open
         if (this.state.showContactInfo) {
@@ -593,7 +596,7 @@ export class WhatsAppChatsAction extends Component {
         }
         
         // Load messages asynchronously without blocking the UI
-        this.loadMessages(channel.id).catch(e => console.warn("Failed to load messages:", e));
+        this.loadMessages(channel.id, loadId).catch(e => console.warn("Failed to load messages:", e));
     }
 
     toggleChannelSelection(channelId, event) {
@@ -689,9 +692,20 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
-    async loadMessages(channelId = null) {
+    async loadMessages(channelId = null, loadId = null) {
         const id = channelId || (this.state.selectedChannel ? this.state.selectedChannel.id : null);
         if (!id) return;
+
+        // Capture scroll state before loading new messages
+        let wasAtBottom = true; // default to true so initial loads snap to bottom
+        if (this.messagesContainer && this.messagesContainer.el) {
+            const el = this.messagesContainer.el;
+            wasAtBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 100;
+        }
+        if (loadId) {
+            wasAtBottom = true;
+        }
+
         try {
             const messages = await this.orm.call(
                 "whatsapp.account",
@@ -700,6 +714,14 @@ export class WhatsAppChatsAction extends Component {
                 {},
                 { silent: true }
             );
+
+            // Race condition check: if a new channel was selected while we were loading, abort.
+            if (loadId && this.currentLoadId !== loadId) {
+                return;
+            }
+            if (this.state.selectedChannel && this.state.selectedChannel.id !== id) {
+                return;
+            }
             
             this.state.messages = messages.map(msg => {
                 let isMe = msg.is_me !== undefined ? msg.is_me : false;
@@ -824,7 +846,9 @@ export class WhatsAppChatsAction extends Component {
                 }
             }
             
-            this.scrollToBottom();
+            if (wasAtBottom) {
+                this.scrollToBottom();
+            }
         } catch(e) {
             console.error("Failed to load messages:", e);
         }
