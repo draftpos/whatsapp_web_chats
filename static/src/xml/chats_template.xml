@@ -320,7 +320,7 @@
                                                 </t>
                                                 <t t-else="">
                                                     <a t-attf-href="/web/content/{{att.id}}?download=true" target="_blank" class="document-attachment" style="display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; text-decoration: none; color: inherit; max-width: 250px; margin-top: 5px;">
-                                                        <i class="fa fa-file-text-o" style="font-size: 24px; color: #54656f; margin-right: 10px;"></i>
+                                                        <i t-attf-class="fa {{ this.getAttachmentIcon(att.mimetype) }}" style="font-size: 24px; color: #54656f; margin-right: 10px;"></i>
                                                         <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500;">
                                                             <t t-esc="att.name || 'Document'"/>
                                                         </div>

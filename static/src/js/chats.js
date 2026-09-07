@@ -558,7 +558,7 @@ export class WhatsAppChatsAction extends Component {
         channel.wa_is_unread_global = false;
 
         try {
-            this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id]).catch(e => console.warn(e));
+            this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id], {}, { silent: true }).catch(e => console.warn(e));
         } catch (e) {
             console.warn("Failed to mark messages as read", e);
         }
@@ -667,7 +667,9 @@ export class WhatsAppChatsAction extends Component {
             const messages = await this.orm.call(
                 "whatsapp.account",
                 "get_whatsapp_web_messages",
-                [id]
+                [id],
+                {},
+                { silent: true }
             );
             
             this.state.messages = messages.map(msg => {
@@ -928,7 +930,8 @@ export class WhatsAppChatsAction extends Component {
                 "whatsapp.account",
                 "get_whatsapp_web_channels",
                 [],
-                { wa_account_id: this.state.selectedAccount }
+                { wa_account_id: this.state.selectedAccount },
+                { silent: true }
             );
 
             if (freshChannels && this.myPartnerId) {
@@ -1428,6 +1431,20 @@ export class WhatsAppChatsAction extends Component {
         if (this.state.showContactInfo && this.state.selectedChannel) {
             await this.fetchContactMedia(this.state.selectedChannel.id);
         }
+    }
+    
+    getAttachmentIcon(mimetype) {
+        if (!mimetype) return 'fa-file-o';
+        if (mimetype.includes('pdf')) return 'fa-file-pdf-o';
+        if (mimetype.includes('word') || mimetype.includes('document')) return 'fa-file-word-o';
+        if (mimetype.includes('excel') || mimetype.includes('spreadsheet')) return 'fa-file-excel-o';
+        if (mimetype.includes('powerpoint') || mimetype.includes('presentation')) return 'fa-file-powerpoint-o';
+        if (mimetype.includes('zip') || mimetype.includes('compressed')) return 'fa-file-archive-o';
+        if (mimetype.includes('text')) return 'fa-file-text-o';
+        if (mimetype.includes('image')) return 'fa-file-image-o';
+        if (mimetype.includes('video')) return 'fa-file-video-o';
+        if (mimetype.includes('audio')) return 'fa-file-audio-o';
+        return 'fa-file-o';
     }
     
     async fetchContactMedia(channelId) {
