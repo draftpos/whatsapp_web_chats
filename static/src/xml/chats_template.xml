@@ -16,8 +16,11 @@
                             <span>Chats</span>
                         </div>
                         <t t-if="state.selectedChannels?.length > 0">
-                            <i class="fa fa-trash" t-on-click="deleteSelectedChannels" style="margin-left: 10px; font-size: 16px; cursor: pointer; color: #f24a4a;" title="Delete Selected Chats"></i>
-                            <span style="margin-left: 5px; font-size: 12px; color: #f24a4a;"><t t-esc="state.selectedChannels?.length"/> selected</span>
+                            <button t-on-click="deleteSelectedChannels"
+                                    style="margin-left: 10px; background: #f24a4a; border: none; border-radius: 6px; color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                <i class="fa fa-trash"/>
+                                Delete <t t-esc="state.selectedChannels.length"/> Chat<t t-if="state.selectedChannels.length > 1">s</t>
+                            </button>
                         </t>
                         <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="New Chat"></i>
                     </div>
@@ -194,8 +197,8 @@
                                     <div class="chat-dropdown-item" t-on-click="notImplemented">
                                         Clear chat
                                     </div>
-                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.deleteChat(channel.id)">
-                                        Delete chat
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.openDeleteChatModal(channel.id, ev)" style="color: #d93025; font-weight: 500;">
+                                        <i class="fa fa-trash" style="margin-right: 6px;"/> Delete this chat
                                     </div>
                                     <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                     <!-- Odoo specific options below -->
@@ -251,8 +254,10 @@
 
                             <t t-if="state.selectedMessages?.length > 0">
                                 <span style="margin-right: 10px; font-size: 13px; color: #f24a4a;"><t t-esc="state.selectedMessages?.length"/> selected</span>
-                                <button class="whatsapp-header-btn" title="Delete Selected Messages" t-on-click="deleteSelectedMessages" style="background: transparent; border: none; cursor: pointer; color: #f24a4a; font-size: 20px; padding: 10px; margin-right: 15px;">
+                                <button class="whatsapp-header-btn" t-on-click="deleteSelectedMessages"
+                                        style="background: #f24a4a; border: none; border-radius: 6px; cursor: pointer; color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; margin-right: 10px; display: flex; align-items: center; gap: 5px;">
                                     <i class="fa fa-trash"/>
+                                    Delete <t t-esc="state.selectedMessages.length"/> Message<t t-if="state.selectedMessages.length > 1">s</t>
                                 </button>
                             </t>
                             <button class="whatsapp-header-btn" title="Catalogue" t-on-click="openCatalogueModal" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
@@ -298,7 +303,9 @@
                                         <div class="chat-dropdown-item" t-on-click="notImplemented">New group call</div>
                                         <div class="chat-dropdown-item" t-on-click="notImplemented">Report</div>
                                         <div class="chat-dropdown-item" t-on-click="notImplemented">Block</div>
-                                        <div class="chat-dropdown-item" t-on-click="() => this.deleteChat(state.selectedChannel.id)">Delete chat</div>
+                                        <div class="chat-dropdown-item" t-on-click="() => this.openDeleteChatModal(state.selectedChannel.id)" style="color: #d93025; font-weight: 500;">
+                                            <i class="fa fa-trash" style="margin-right: 6px;"/> Delete this chat
+                                        </div>
                                     </div>
                                 </t>
                             </div>
@@ -849,6 +856,40 @@
                         </t>
                         <button class="btn btn-primary" t-on-click="submitTransfer" style="margin-top: 10px; background: #008069; border: none; padding: 10px; border-radius: 4px; color: white; font-weight: bold; cursor: pointer;">
                             Transfer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </t>
+        <!-- Delete Chat Confirmation Modal -->
+        <t t-if="state.deleteChatConfirmId">
+            <div class="whatsapp-modal-overlay" t-on-click="closeDeleteChatModal"
+                 style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+                <div t-on-click.stop="() => {}" style="background: white; border-radius: 8px; box-shadow: 0 17px 50px 0 rgba(11,20,26,.3); width: 420px; padding: 24px;">
+                    <!-- Header -->
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: #fdecea; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fa fa-trash" style="color: #d93025; font-size: 18px;"/>
+                        </div>
+                        <div>
+                            <div style="font-size: 17px; font-weight: 600; color: #111b21;">Delete this chat?</div>
+                            <div style="font-size: 12px; color: #667781; margin-top: 2px;">This will permanently delete the chat conversation.</div>
+                        </div>
+                    </div>
+                    <!-- Warning box -->
+                    <div style="background: #fff8e1; border-left: 3px solid #f59e0b; border-radius: 4px; padding: 10px 14px; margin-bottom: 20px; font-size: 13px; color: #78350f; line-height: 1.5;">
+                        ⚠️ <strong>Warning:</strong> All messages in this chat will be permanently deleted from Odoo.
+                        The contact record and phone number will <strong>not</strong> be deleted — only the conversation history.
+                    </div>
+                    <!-- Actions -->
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button t-on-click="closeDeleteChatModal"
+                                style="background: white; border: 1px solid #d1d7db; border-radius: 6px; padding: 8px 20px; font-size: 14px; color: #111b21; cursor: pointer; font-weight: 500;">
+                            Cancel
+                        </button>
+                        <button t-on-click="confirmDeleteChat"
+                                style="background: #d93025; border: none; border-radius: 6px; padding: 8px 20px; font-size: 14px; color: white; cursor: pointer; font-weight: 600;">
+                            <i class="fa fa-trash" style="margin-right: 6px;"/> Delete Chat
                         </button>
                     </div>
                 </div>

@@ -641,19 +641,23 @@ class WhatsAppAccount(models.Model):
 
     @api.model
     def delete_whatsapp_chat(self, channel_id):
-        """ Completely deletes a whatsapp chat (discuss.channel) """
+        """ Deletes a whatsapp chat (discuss.channel) but preserves the contact (res.partner). """
         if not self.env.is_admin():
             return {'success': False, 'error': 'Only administrators can delete chats.'}
         try:
             channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
             if channel.exists():
-                # We first unlink all mail.messages related to this channel just in case
+                # Detach the partner reference BEFORE unlinking to prevent cascade deletion of res.partner
+                channel.sudo().write({'whatsapp_partner_id': False})
+
+                # Unlink all mail.messages in this channel
                 messages = self.env['mail.message'].sudo().search([
                     ('model', '=', 'discuss.channel'),
                     ('res_id', '=', channel.id)
                 ])
                 messages.unlink()
-                # Then unlink the channel
+
+                # Unlink the channel itself (partner is already detached — safe)
                 channel.unlink()
                 return {'success': True}
             return {'success': False, 'error': 'Channel not found'}

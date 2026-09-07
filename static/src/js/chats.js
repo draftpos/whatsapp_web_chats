@@ -55,6 +55,7 @@ export class WhatsAppChatsAction extends Component {
             recordingBlobUrl: null,
             isSending: false,
             chatSearch: "",
+            deleteChatConfirmId: null,
         });
         
         this.myPartnerId = null;
@@ -545,6 +546,25 @@ export class WhatsAppChatsAction extends Component {
         }
         
         return filtered;
+    }
+
+    openDeleteChatModal(channelId, ev) {
+        if (ev) ev.stopPropagation();
+        // Close any open dropdown first
+        this.state.showChatDropdownId = null;
+        this.state.showHeaderDropdown = false;
+        this.state.deleteChatConfirmId = channelId;
+    }
+
+    closeDeleteChatModal() {
+        this.state.deleteChatConfirmId = null;
+    }
+
+    async confirmDeleteChat() {
+        const channelId = this.state.deleteChatConfirmId;
+        if (!channelId) return;
+        this.state.deleteChatConfirmId = null;
+        await this.deleteChat(channelId);
     }
 
     selectChannel(channel, event) {
