@@ -42,6 +42,8 @@ export class WhatsAppChatsAction extends Component {
             selectedTransferDeptId: null,
             selectedTransferAgentId: "any",
             showChatDropdownId: null,
+            showHeaderDropdown: false,
+            showMessageDropdownId: null,
             chatFilter: "all",
             showLabels: true,
             availableTags: [],
@@ -68,15 +70,31 @@ export class WhatsAppChatsAction extends Component {
                 this.pollMessages();
             }, 5000);
 
-            // Close chat dropdown when clicking anywhere outside it
+            // Close dropdowns when clicking anywhere outside
             this._onDocumentClick = (ev) => {
+                let changed = false;
                 if (this.state.showChatDropdownId !== null) {
                     const menu = document.querySelector('.chat-dropdown-menu');
                     const btn = document.querySelector('.chat-dropdown-btn');
-                    if (menu && !menu.contains(ev.target) && btn && !btn.contains(ev.target)) {
+                    if ((menu && !menu.contains(ev.target) && btn && !btn.contains(ev.target)) || !menu) {
                         this.state.showChatDropdownId = null;
-                    } else if (!menu) {
-                        this.state.showChatDropdownId = null;
+                        changed = true;
+                    }
+                }
+                if (this.state.showHeaderDropdown) {
+                    const headerMenu = document.querySelector('.header-dropdown-menu');
+                    const headerBtn = document.querySelector('.header-dropdown-btn');
+                    if ((headerMenu && !headerMenu.contains(ev.target) && headerBtn && !headerBtn.contains(ev.target)) || !headerMenu) {
+                        this.state.showHeaderDropdown = false;
+                        changed = true;
+                    }
+                }
+                if (this.state.showMessageDropdownId !== null) {
+                    const msgMenu = document.querySelector('.msg-dropdown-menu');
+                    const msgBtn = document.querySelector('.msg-dropdown-btn');
+                    if ((msgMenu && !msgMenu.contains(ev.target) && msgBtn && !msgBtn.contains(ev.target)) || !msgMenu) {
+                        this.state.showMessageDropdownId = null;
+                        changed = true;
                     }
                 }
             };
@@ -86,6 +104,12 @@ export class WhatsAppChatsAction extends Component {
             this._onChatListScroll = () => {
                 if (this.state.showChatDropdownId !== null) {
                     this.state.showChatDropdownId = null;
+                }
+                if (this.state.showMessageDropdownId !== null) {
+                    this.state.showMessageDropdownId = null;
+                }
+                if (this.state.showHeaderDropdown) {
+                    this.state.showHeaderDropdown = false;
                 }
             };
             if (this.chatList.el) {
@@ -528,7 +552,7 @@ export class WhatsAppChatsAction extends Component {
         }
         
         try {
-            await this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id]);
+            this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id]).catch(e => console.warn(e));
         } catch (e) {
             console.warn("Failed to mark messages as read", e);
         }
@@ -1103,6 +1127,18 @@ export class WhatsAppChatsAction extends Component {
         else if (blob.type.includes('mpeg')) ext = 'mp3';
         const filename = `voice_${Date.now()}.${ext}`;
 
+        const tempMsg = {
+            id: 'temp_' + Date.now(),
+            bodyText: '🎵 Voice Message',
+            isMe: true,
+            isSystem: false,
+            timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            wa_state: 'pending',
+            attachment_ids: []
+        };
+        this.state.messages.push(tempMsg);
+        this.scrollToBottom();
+
         try {
             const formData = new window.FormData();
             formData.append('csrf_token', window.odoo?.csrf_token || '');
@@ -1136,7 +1172,7 @@ export class WhatsAppChatsAction extends Component {
                 'message_post',
                 [this.state.selectedChannel.id],
                 {
-                    body: '',
+                    body: ' ',
                     message_type: 'whatsapp_message',
                     subtype_xmlid: 'mail.mt_comment',
                     attachment_ids: Array.isArray(attachmentId) ? attachmentId : [attachmentId],
@@ -1171,6 +1207,29 @@ export class WhatsAppChatsAction extends Component {
         this.state.newMessage = "";
         this.state.pendingFile = null;
 
+        const tempMsgId = 'temp_' + Date.now();
+        const tempMsg = {
+            id: tempMsgId,
+            bodyText: messageBody,
+            isMe: true,
+            isSystem: false,
+            timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            wa_state: 'pending',
+            attachment_ids: []
+        };
+        
+        if (pendingFile) {
+            tempMsg.attachment_ids.push({
+                id: 'temp_att',
+                name: pendingFile.name,
+                mimetype: pendingFile.type,
+                dataUrl: pendingFile.dataUrl || null
+            });
+        }
+        
+        this.state.messages.push(tempMsg);
+        this.scrollToBottom();
+
         try {
             let attachment_ids = [];
             if (pendingFile) {
@@ -1201,12 +1260,17 @@ export class WhatsAppChatsAction extends Component {
                 }
             }
             
+            let safeBody = messageBody;
+            if (!safeBody && attachment_ids.length > 0) {
+                safeBody = ' ';
+            }
+
             await this.orm.call(
                 "discuss.channel",
                 "message_post",
                 [this.state.selectedChannel.id],
                 {
-                    body: messageBody,
+                    body: safeBody,
                     message_type: "whatsapp_message",
                     subtype_xmlid: "mail.mt_comment",
                     attachment_ids: attachment_ids
@@ -1443,14 +1507,47 @@ export class WhatsAppChatsAction extends Component {
         }
     }
     
-    async deleteMessageForEveryone(messageId) {
+    openDeleteModal(messageId) {
+        this.state.deleteMessageId = messageId;
+        this.state.showMessageDropdownId = null;
+    }
+
+    closeDeleteModal() {
+        this.state.deleteMessageId = null;
+    }
+
+    async copyMessageText(text) {
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            this.state.showMessageDropdownId = null;
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            alert("Failed to copy text to clipboard.");
+        }
+    }
+
+    deleteMessageForMe() {
+        const messageId = this.state.deleteMessageId;
+        if (!messageId) return;
+        
+        // Optimistic delete for me (hides it in frontend)
+        this.state.messages = this.state.messages.filter(m => m.id !== messageId);
+        
+        this.closeDeleteModal();
+    }
+
+    async confirmDeleteForEveryone() {
+        const messageId = this.state.deleteMessageId;
+        if (!messageId) return;
+        
         if (!this.isAdmin) {
             alert("Only administrators can delete messages.");
+            this.closeDeleteModal();
             return;
         }
-        if (!confirm("Delete this message for everyone? This cannot be undone.")) {
-            return;
-        }
+        
+        this.closeDeleteModal();
         
         const result = await this.orm.call("whatsapp.account", "delete_message_for_everyone", [parseInt(messageId)]);
         if (result && result.success) {
@@ -1461,9 +1558,9 @@ export class WhatsAppChatsAction extends Component {
             } else if (this.state.selectedChannel) {
                 this.state.selectedChannel.last_message_preview = "";
             }
+            await this.loadChannels();
         } else {
-            console.error("Failed to delete message", result);
-            alert("Failed to delete message: " + (result?.error || "Unknown error"));
+            alert("Could not delete message. " + (result?.error || ""));
         }
     }
 
@@ -1585,6 +1682,28 @@ export class WhatsAppChatsAction extends Component {
         } else {
             this.state.showChatDropdownId = channelId;
         }
+    }
+
+    toggleHeaderDropdown(ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showHeaderDropdown = !this.state.showHeaderDropdown;
+    }
+
+    toggleMessageDropdown(msgId, ev) {
+        if (ev) ev.stopPropagation();
+        if (this.state.showMessageDropdownId === msgId) {
+            this.state.showMessageDropdownId = null;
+        } else {
+            this.state.showMessageDropdownId = msgId;
+        }
+    }
+
+    notImplemented(ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showHeaderDropdown = false;
+        this.state.showMessageDropdownId = null;
+        this.state.showChatDropdownId = null;
+        alert("This feature is not yet supported in Odoo.");
     }
 
     scrollToBottom() {
