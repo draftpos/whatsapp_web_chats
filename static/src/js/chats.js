@@ -537,7 +537,7 @@ export class WhatsAppChatsAction extends Component {
         return filtered;
     }
 
-    async selectChannel(channel, event) {
+    selectChannel(channel, event) {
         if (event && this.state.selectedChannels.length > 0) {
             this.toggleChannelSelection(channel.id, event);
             return;
@@ -545,22 +545,25 @@ export class WhatsAppChatsAction extends Component {
 
         this.state.selectedChannel = channel;
         this.state.selectedMessages = [];
+        this.state.messages = [];
         
         // Fetch media for the channel if the panel is open
         if (this.state.showContactInfo) {
             this.fetchContactMedia(channel.id);
         }
         
+        // Mark as read locally immediately for responsiveness
+        channel.unread_count = 0;
+        channel.wa_is_unread_global = false;
+
         try {
             this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id]).catch(e => console.warn(e));
         } catch (e) {
             console.warn("Failed to mark messages as read", e);
         }
-        // Mark as read locally immediately for responsiveness
-        channel.unread_count = 0;
-        channel.wa_is_unread_global = false;
         
-        await this.loadMessages(channel.id);
+        // Load messages asynchronously without blocking the UI
+        this.loadMessages(channel.id).catch(e => console.warn("Failed to load messages:", e));
     }
 
     toggleChannelSelection(channelId, event) {
