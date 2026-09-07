@@ -63,7 +63,11 @@ class WhatsAppAccount(models.Model):
     def mark_whatsapp_web_messages_read(self, channel_id):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         if channel.exists():
+            # Reset Odoo's internal unread counter
             channel.channel_seen()
+            # Also clear our custom flag so the badge disappears
+            if channel.wa_is_unread_global:
+                channel.sudo().write({'wa_is_unread_global': False})
             return True
         return False
 
@@ -128,19 +132,32 @@ class WhatsAppAccount(models.Model):
             ], limit=1)
             
             unread_count = 0
-            if member and member.message_unread_counter > 0:
+            seen_id = 0
+            if member:
                 seen_id = member.seen_message_id.id if member.seen_message_id else 0
-                domain_unread = [
-                    ('model', '=', 'discuss.channel'),
-                    ('res_id', '=', c.id),
-                    ('id', '>', seen_id)
-                ]
-                if c.whatsapp_partner_id:
-                    domain_unread.append(('author_id', '=', c.whatsapp_partner_id.id))
-                else:
-                    domain_unread.append(('author_id', '!=', self.env.user.partner_id.id))
-                
-                unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
+
+            # Always compute real inbound unread count (not just when Odoo says >0)
+            domain_unread = [
+                ('model', '=', 'discuss.channel'),
+                ('res_id', '=', c.id),
+                ('id', '>', seen_id),
+                ('message_type', 'not in', ['notification', 'user_notification']),
+            ]
+            if c.whatsapp_partner_id:
+                domain_unread.append(('author_id', '=', c.whatsapp_partner_id.id))
+            else:
+                # Exclude current user and bots/system
+                excluded = [self.env.user.partner_id.id]
+                public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
+                if public_partner:
+                    excluded.append(public_partner.id)
+                domain_unread.append(('author_id', 'not in', excluded))
+
+            unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
+
+            # Auto-clear wa_is_unread_global if there are actually no unread inbound messages
+            if c.wa_is_unread_global and unread_count == 0:
+                c.sudo().write({'wa_is_unread_global': False})
             
             import re
             def clean_name(n):
