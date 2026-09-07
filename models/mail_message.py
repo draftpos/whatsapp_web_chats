@@ -57,7 +57,7 @@ class MailMessage(models.Model):
                             rec.sudo().copy({
                                 'model': 'discuss.channel',
                                 'res_id': channel.id,
-                                'message_type': 'comment',
+                                'message_type': 'whatsapp_message',
                                 'author_id': new_author_id,
                                 'body': body_html,
                             })

@@ -288,7 +288,8 @@
     z-index: 10;
     padding: 5px;
 }
-.whatsapp-chat-item:hover .chat-dropdown-btn { opacity: 1; }
+.whatsapp-chat-item:hover .chat-dropdown-btn,
+.chat-item.active .chat-dropdown-btn { opacity: 1; }
 .chat-dropdown-btn:hover { color: #54656f; }
 
 .chat-dropdown-menu { 

@@ -265,6 +265,15 @@
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_favourite', !state.selectedChannel.wa_is_favourite, ev); this.toggleHeaderDropdown(ev); }">
                                             <t t-esc="state.selectedChannel.wa_is_favourite ? 'Remove Favourite' : 'Add to favourites'"/>
                                         </div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_unread_global', !state.selectedChannel.wa_is_unread_global, ev); this.toggleHeaderDropdown(ev); }">
+                                            <t t-esc="state.selectedChannel.wa_is_unread_global ? 'Mark as Read' : 'Mark as Unread'"/>
+                                        </div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_urgent', !state.selectedChannel.wa_is_urgent, ev); this.toggleHeaderDropdown(ev); }">
+                                            <t t-esc="state.selectedChannel.wa_is_urgent ? 'Remove Urgent' : 'Mark as Urgent'"/>
+                                        </div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_done', !state.selectedChannel.wa_is_done, ev); this.toggleHeaderDropdown(ev); }">
+                                            <t t-esc="state.selectedChannel.wa_is_done ? 'Mark as Undone' : 'Mark as Done'"/>
+                                        </div>
                                         <div class="chat-dropdown-item" t-on-click="notImplemented">Add to list</div>
                                         <div class="chat-dropdown-item" t-on-click="notImplemented">Export chat</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.closeChat(ev); this.toggleHeaderDropdown(ev); }">Close chat</div>
@@ -293,18 +302,18 @@
                                 <div t-attf-class="message-bubble {{ msg.isMenu ? 'is-menu' : '' }}" t-on-click="(ev) => state.selectedMessages?.length > 0 ? this.toggleMessageSelection(msg.id, ev) : null">
                                     <t t-if="msg.attachment_ids and msg.attachment_ids?.length &gt; 0">
                                         <div class="message-attachments">
-                                    <t t-foreach="msg.attachment_ids || []" t-as="att" t-key="att.id">
+                                            <t t-foreach="msg.attachment_ids || []" t-as="att" t-key="att.id">
                                                 <t t-if="att.mimetype and att.mimetype.startsWith('audio/')">
                                                     <div class="wa-audio-player" style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.05); border-radius:24px; padding:8px 12px; min-width:200px; max-width:280px;">
                                                         <i class="fa fa-microphone" style="font-size:18px; color:#00a884;"/>
                                                         <audio controls="controls" style="flex:1; height:32px;">
-                                                            <source t-attf-src="/web/content/{{att.id}}" t-att-type="att.mimetype"/>
+                                                            <source t-attf-src="/web/content/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" t-att-type="att.mimetype"/>
                                                         </audio>
                                                     </div>
                                                 </t>
                                                 <t t-elif="att.mimetype and att.mimetype.includes('video')">
                                                     <div class="video-preview" style="position:relative; cursor:pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, 'video', att.name)">
-                                                        <video class="message-video" t-attf-src="/web/content/{{att.id}}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"/>
+                                                        <video class="message-video" t-attf-src="/web/content/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"/>
                                                         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.5); border-radius:50%; padding:10px; color:white;">
                                                             <i class="fa fa-play fa-2x"/>
                                                         </div>
@@ -315,12 +324,12 @@
                                                         <img class="message-img" t-attf-src="{{att.dataUrl}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name)" style="cursor: zoom-in; opacity: 0.7;"/>
                                                     </t>
                                                     <t t-else="">
-                                                        <img class="message-img" t-attf-src="/web/image/{{att.id}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name)" style="cursor: zoom-in;"/>
+                                                        <img class="message-img" t-attf-src="/web/image/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token)" style="cursor: zoom-in;"/>
                                                     </t>
                                                 </t>
                                                 <t t-else="">
-                                                    <a t-attf-href="/web/content/{{att.id}}?download=true" target="_blank" class="document-attachment" style="display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; text-decoration: none; color: inherit; max-width: 250px; margin-top: 5px;">
-                                                        <i t-attf-class="fa {{ this.getAttachmentIcon(att.mimetype) }}" style="font-size: 24px; color: #54656f; margin-right: 10px;"></i>
+                                                    <a t-attf-href="/web/content/{{att.id}}?download=true{{ att.access_token ? '&amp;access_token=' + att.access_token : '' }}" target="_blank" class="document-attachment" style="display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; text-decoration: none; color: inherit; max-width: 250px; margin-top: 5px;">
+                                                        <i t-attf-class="fa {{ this.getAttachmentIcon(att.mimetype) }}" t-attf-style="font-size: 24px; color: {{ this.getAttachmentColor(att.mimetype) }}; margin-right: 10px;"></i>
                                                         <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500;">
                                                             <t t-esc="att.name || 'Document'"/>
                                                         </div>
@@ -894,7 +903,7 @@
                 <div class="media-lightbox-content" t-on-click.stop="() => {}">
                     <t t-if="state.fullscreenMedia.type === 'image'">
                         <img t-attf-class="media-lb-image {{ state.fullscreenMedia.scale > 1 ? 'zoomed' : '' }}"
-                             t-attf-src="/web/image/{{state.fullscreenMedia.id}}"
+                             t-attf-src="/web/image/{{state.fullscreenMedia.id}}?{{ state.fullscreenMedia.accessToken ? 'access_token=' + state.fullscreenMedia.accessToken : '' }}"
                              t-attf-style="transform: scale({{state.fullscreenMedia.scale}}) translate({{state.fullscreenMedia.translateX / state.fullscreenMedia.scale}}px, {{state.fullscreenMedia.translateY / state.fullscreenMedia.scale}}px);"
                              t-on-mousedown="startMediaDrag"
                              t-on-dblclick="resetZoom"
@@ -902,7 +911,7 @@
                     </t>
                     <t t-if="state.fullscreenMedia.type === 'video'">
                         <video class="media-lb-video"
-                               t-attf-src="/web/content/{{state.fullscreenMedia.id}}"
+                               t-attf-src="/web/content/{{state.fullscreenMedia.id}}?{{ state.fullscreenMedia.accessToken ? 'access_token=' + state.fullscreenMedia.accessToken : '' }}"
                                controls="controls"
                                autoplay="autoplay"
                                t-on-click.stop="() => {}"/>

@@ -412,26 +412,14 @@ export class WhatsAppChatsAction extends Component {
             "whatsapp.account",
             "get_whatsapp_web_channels",
             [],
-            { wa_account_id: this.state.selectedAccount }
+            { wa_account_id: this.state.selectedAccount },
+            { silent: true }
         );
         const channels = response.channels || [];
         this.state.showLabels = response.show_labels;
         
         if (channels.length > 0 && this.myPartnerId) {
-            const members = await this.orm.searchRead(
-                "discuss.channel.member",
-                [["partner_id", "=", this.myPartnerId], ["channel_id", "in", channels.map(c => c.id)]],
-                ["channel_id", "message_unread_counter"]
-            );
-            const unreadMap = {};
-            for (const m of members) {
-                if (m.channel_id && m.channel_id[0]) {
-                    unreadMap[m.channel_id[0]] = m.message_unread_counter;
-                }
-            }
-            for (const c of channels) {
-                c.unread_count = unreadMap[c.id] || 0;
-            }
+            // Unread count is now calculated accurately by get_whatsapp_web_channels
         }
         
         // Do NOT fallback to all channels — this causes ghost chats to appear.
@@ -818,12 +806,13 @@ export class WhatsAppChatsAction extends Component {
             }
         }
     
-    openMedia(attId, ev, type='image', filename='') {
+    openMedia(attId, ev, type='image', filename='', accessToken='') {
         if (ev) ev.stopPropagation();
         this.state.fullscreenMedia = {
             id: attId,
             type: type,
             filename: filename || '',
+            accessToken: accessToken || '',
             scale: 1,
             translateX: 0,
             translateY: 0,
@@ -910,10 +899,16 @@ export class WhatsAppChatsAction extends Component {
 
     getMediaDownloadUrl() {
         if (!this.state.fullscreenMedia) return '#';
+        let url = '';
         if (this.state.fullscreenMedia.type === 'video') {
-            return `/web/content/${this.state.fullscreenMedia.id}?download=true`;
+            url = `/web/content/${this.state.fullscreenMedia.id}?download=true`;
+        } else {
+            url = `/web/image/${this.state.fullscreenMedia.id}?download=true`;
         }
-        return `/web/image/${this.state.fullscreenMedia.id}?download=true`;
+        if (this.state.fullscreenMedia.accessToken) {
+            url += `&access_token=${this.state.fullscreenMedia.accessToken}`;
+        }
+        return url;
     }
 
     getZoomPercent() {
@@ -926,29 +921,17 @@ export class WhatsAppChatsAction extends Component {
         // but do NOT call loadChannels() as it overwrites locally-cleared unread counts.
         // Instead, fetch fresh channel data and merge carefully.
         try {
-            const freshChannels = await this.orm.call(
+            const response = await this.orm.call(
                 "whatsapp.account",
                 "get_whatsapp_web_channels",
                 [],
                 { wa_account_id: this.state.selectedAccount },
                 { silent: true }
             );
+            const freshChannels = response.channels || [];
 
             if (freshChannels && this.myPartnerId) {
-                const members = await this.orm.searchRead(
-                    "discuss.channel.member",
-                    [["partner_id", "=", this.myPartnerId], ["channel_id", "in", freshChannels.map(c => c.id)]],
-                    ["channel_id", "message_unread_counter"]
-                );
-                const unreadMap = {};
-                for (const m of members) {
-                    if (m.channel_id && m.channel_id[0]) {
-                        unreadMap[m.channel_id[0]] = m.message_unread_counter;
-                    }
-                }
-                for (const c of freshChannels) {
-                    c.unread_count = unreadMap[c.id] || 0;
-                }
+                // unread_count is already populated by get_whatsapp_web_channels
             }
 
             // Filter ghost channels
@@ -1445,6 +1428,20 @@ export class WhatsAppChatsAction extends Component {
         if (mimetype.includes('video')) return 'fa-file-video-o';
         if (mimetype.includes('audio')) return 'fa-file-audio-o';
         return 'fa-file-o';
+    }
+
+    getAttachmentColor(mimetype) {
+        if (!mimetype) return '#54656f';
+        if (mimetype.includes('pdf')) return '#F40F02'; // Red
+        if (mimetype.includes('word') || mimetype.includes('document')) return '#2B579A'; // Blue
+        if (mimetype.includes('excel') || mimetype.includes('spreadsheet')) return '#217346'; // Green
+        if (mimetype.includes('powerpoint') || mimetype.includes('presentation')) return '#D24726'; // Orange/Red
+        if (mimetype.includes('zip') || mimetype.includes('compressed')) return '#ECA31E'; // Yellow
+        if (mimetype.includes('text')) return '#666666'; // Grey
+        if (mimetype.includes('image')) return '#00A5F4'; // Light Blue
+        if (mimetype.includes('video')) return '#9E30FF'; // Purple
+        if (mimetype.includes('audio')) return '#FF8C00'; // Orange
+        return '#54656f'; // Default WhatsApp grey
     }
     
     async fetchContactMedia(channelId) {

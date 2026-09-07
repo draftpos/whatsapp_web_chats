@@ -126,7 +126,21 @@ class WhatsAppAccount(models.Model):
                 ('channel_id', '=', c.id),
                 ('partner_id', '=', self.env.user.partner_id.id)
             ], limit=1)
-            unread_count = member.message_unread_counter if member else 0
+            
+            unread_count = 0
+            if member and member.message_unread_counter > 0:
+                seen_id = member.seen_message_id.id if member.seen_message_id else 0
+                domain_unread = [
+                    ('model', '=', 'discuss.channel'),
+                    ('res_id', '=', c.id),
+                    ('id', '>', seen_id)
+                ]
+                if c.whatsapp_partner_id:
+                    domain_unread.append(('author_id', '=', c.whatsapp_partner_id.id))
+                else:
+                    domain_unread.append(('author_id', '!=', self.env.user.partner_id.id))
+                
+                unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
             
             import re
             def clean_name(n):
@@ -268,7 +282,7 @@ class WhatsAppAccount(models.Model):
                 'author_id': author_data,
                 'date': date_str,
                 'message_type': m.message_type,
-                'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype, 'name': a.name} for a in m.attachment_ids],
+                'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype, 'name': a.name, 'access_token': a.access_token if 'access_token' in a else getattr(a, 'access_token', '')} for a in m.attachment_ids],
                 'is_me': is_me,
                 'isMe': is_me,
                 'wa_state': wa_state_map.get(m.id, False),
