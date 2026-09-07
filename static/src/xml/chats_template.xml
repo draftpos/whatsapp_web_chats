@@ -187,9 +187,7 @@
                                     </div>
                                     <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                     <!-- Odoo specific options below -->
-                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_urgent', !channel.wa_is_urgent, ev)">
-                                        <t t-esc="channel.wa_is_urgent ? 'Remove Urgent' : 'Mark as Urgent'"/>
-                                    </div>
+
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_done', !channel.wa_is_done, ev)">
                                         <t t-esc="channel.wa_is_done ? 'Mark as Not Done' : 'Mark as Done'"/>
                                     </div>
@@ -270,9 +268,7 @@
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_unread_global', !state.selectedChannel.wa_is_unread_global, ev); this.toggleHeaderDropdown(ev); }">
                                             <t t-esc="state.selectedChannel.wa_is_unread_global ? 'Mark as Read' : 'Mark as Unread'"/>
                                         </div>
-                                        <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_urgent', !state.selectedChannel.wa_is_urgent, ev); this.toggleHeaderDropdown(ev); }">
-                                            <t t-esc="state.selectedChannel.wa_is_urgent ? 'Remove Urgent' : 'Mark as Urgent'"/>
-                                        </div>
+
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_done', !state.selectedChannel.wa_is_done, ev); this.toggleHeaderDropdown(ev); }">
                                             <t t-esc="state.selectedChannel.wa_is_done ? 'Mark as Undone' : 'Mark as Done'"/>
                                         </div>
