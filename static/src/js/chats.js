@@ -1037,12 +1037,17 @@ export class WhatsAppChatsAction extends Component {
                 }
             };
             this._mediaRecorder.onstop = () => {
-                const blobMimeType = this._mediaRecorder.mimeType || options.mimeType || 'audio/webm';
-                const blob = new Blob(this._audioChunks, { type: blobMimeType });
+                // Force audio/ogg instead of video/webm to prevent WhatsApp API rejection
+                const blob = new Blob(this._audioChunks, { type: 'audio/ogg; codecs=opus' });
                 const url = URL.createObjectURL(blob);
                 this.state.recordingBlob = blob;
                 this.state.recordingBlobUrl = url;
                 this.state.isRecording = false;
+                
+                if (this._sendAfterRecording) {
+                    this._sendAfterRecording = false;
+                    this.sendAudioMessage();
+                }
                 clearInterval(this._recordingTimer);
             };
 
@@ -1058,6 +1063,11 @@ export class WhatsAppChatsAction extends Component {
             console.error('Microphone access denied or error:', e);
             alert('Could not access microphone. Please allow microphone access and try again.');
         }
+    }
+
+    stopAndSendRecording() {
+        this._sendAfterRecording = true;
+        this.stopRecording();
     }
 
     stopRecording() {
@@ -1088,9 +1098,8 @@ export class WhatsAppChatsAction extends Component {
     async sendAudioMessage() {
         if (!this.state.recordingBlob || !this.state.selectedChannel) return;
         const blob = this.state.recordingBlob;
-        let ext = 'webm';
-        if (blob.type.includes('ogg')) ext = 'ogg';
-        else if (blob.type.includes('mp4') || blob.type.includes('m4a')) ext = 'm4a';
+        let ext = 'ogg'; // Default to ogg for WhatsApp compatibility
+        if (blob.type.includes('mp4') || blob.type.includes('m4a')) ext = 'm4a';
         else if (blob.type.includes('mpeg')) ext = 'mp3';
         const filename = `voice_${Date.now()}.${ext}`;
 

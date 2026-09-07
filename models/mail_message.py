@@ -44,16 +44,14 @@ class MailMessage(models.Model):
                             _logger.error("DEBUG: Created/Found channel: %s", channel.id if channel else False)
                             
                         if channel:
-                            direction = self.env.context.get('wa_direction')
                             body_html = rec.body or ''
-                            
-                            if direction == 'inbound':
-                                new_author_id = channel.whatsapp_partner_id.id if channel.whatsapp_partner_id else (partner.id if partner else False)
-                            elif direction == 'outbound':
-                                new_author_id = self.env.ref('base.partner_root').id
-                            else:
-                                # Fallback if context is missing
+                            # If the original author is an internal user, it's an outbound message from an agent.
+                            # Otherwise (e.g. public user or no user), it's an inbound message from the customer.
+                            is_internal_user = rec.author_id and any(u.has_group('base.group_user') for u in rec.author_id.user_ids)
+                            if is_internal_user:
                                 new_author_id = rec.author_id.id
+                            else:
+                                new_author_id = channel.whatsapp_partner_id.id if channel.whatsapp_partner_id else (partner.id if partner else False)
 
                             # Duplicate the message into the discuss.channel so operators can see it
                             rec.sudo().copy({
