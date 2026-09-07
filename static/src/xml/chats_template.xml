@@ -256,7 +256,7 @@
                                     <i class="fa fa-ellipsis-v"/>
                                 </button>
                                 <t t-if="state.showHeaderDropdown">
-                                    <div class="header-dropdown-menu" style="position: absolute; right: 0; top: 40px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(0,0,0,0.26); z-index: 1000; min-width: 200px; padding: 10px 0;">
+                                    <div class="header-dropdown-menu" style="position: absolute; right: 0; top: 40px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(0,0,0,0.26); z-index: 1000; min-width: 200px; padding: 10px 0; max-height: 300px; overflow-y: auto;">
                                         <div class="chat-dropdown-item" t-on-click="toggleContactInfo">Contact info</div>
                                         <div class="chat-dropdown-item" t-on-click="notImplemented">Select messages</div>
                                         <div class="chat-dropdown-item" t-on-click="notImplemented">Mute notifications</div>
