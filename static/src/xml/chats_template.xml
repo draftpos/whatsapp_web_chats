@@ -439,6 +439,8 @@
                             z-index: 1000;
                             min-width: 150px;
                             padding: 10px 0;
+                            max-height: 200px;
+                            overflow-y: auto;
                         }
                     </style>
                     <div class="whatsapp-footer">
