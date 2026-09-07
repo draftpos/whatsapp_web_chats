@@ -54,6 +54,7 @@ export class WhatsAppChatsAction extends Component {
             recordingBlob: null,
             recordingBlobUrl: null,
             isSending: false,
+            chatSearch: "",
         });
         
         this.myPartnerId = null;
@@ -133,7 +134,7 @@ export class WhatsAppChatsAction extends Component {
 
     async loadTags() {
         try {
-            this.state.availableTags = await this.orm.call("whatsapp.account", "get_all_chat_tags", []);
+            this.state.availableTags = await this.orm.call("whatsapp.account", "get_all_chat_tags", [], {}, { silent: true });
         } catch (e) {
             console.error("Failed to load tags", e);
         }
@@ -485,7 +486,9 @@ export class WhatsAppChatsAction extends Component {
             await this.orm.call(
                 "whatsapp.account",
                 "set_whatsapp_chat_state",
-                [channelId, field, value]
+                [channelId, field, value],
+                {},
+                { silent: true }
             );
             // Update local state
             const channel = this.state.channels.find(c => c.id === channelId);
@@ -502,6 +505,14 @@ export class WhatsAppChatsAction extends Component {
 
     setChatFilter(filterType) {
         this.state.chatFilter = filterType;
+    }
+
+    get totalUnreadChannels() {
+        return (this.state.channels || []).filter(c => c.unread_count > 0 || c.wa_is_unread_global).length;
+    }
+
+    get searchQuery() {
+        return (this.state.chatSearch || "").toLowerCase().trim();
     }
 
     get filteredChannels() {
@@ -521,6 +532,16 @@ export class WhatsAppChatsAction extends Component {
             case 'all':
             default:
                 break;
+        }
+
+        // Apply search query
+        if (this.searchQuery) {
+            filtered = filtered.filter(c => {
+                const name = (c.name || "").toLowerCase();
+                const phone = (c.whatsapp_number || c.customer_phone || "").toLowerCase();
+                const preview = (c.last_message_preview || "").toLowerCase();
+                return name.includes(this.searchQuery) || phone.includes(this.searchQuery) || preview.includes(this.searchQuery);
+            });
         }
         
         return filtered;

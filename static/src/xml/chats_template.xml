@@ -53,9 +53,25 @@
 
                     </t>
                 </div>
+                <!-- Search bar -->
+                <div style="padding: 6px 12px 4px 12px; background: #f0f2f5;">
+                    <div style="display: flex; align-items: center; background: white; border-radius: 8px; padding: 6px 12px; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+                        <i class="fa fa-search" style="color: #8696a0; font-size: 15px;"/>
+                        <input type="text"
+                               t-model="state.chatSearch"
+                               placeholder="Search or start new chat"
+                               style="border: none; outline: none; flex: 1; font-size: 14px; color: #111b21; background: transparent; min-width: 0;"/>
+                        <i t-if="state.chatSearch" class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 13px;" t-on-click="() => this.state.chatSearch = ''"/>
+                    </div>
+                </div>
                 <div class="whatsapp-chat-filters" style="display: flex; gap: 8px; padding: 10px 20px; background: #ffffff; border-bottom: 1px solid #f0f2f5;">
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'all' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('all')">All</div>
-                    <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'unread' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('unread')">Unread</div>
+                    <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'unread' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('unread')">
+                        Unread
+                        <span t-if="this.totalUnreadChannels > 0" class="badge rounded-pill" style="background: #25d366; color: white; margin-left: 4px; padding: 2px 6px; font-size: 11px;">
+                            <t t-esc="this.totalUnreadChannels"/>
+                        </span>
+                    </div>
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'favourites' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('favourites')">Favourites</div>
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'done' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('done')">Done</div>
                 </div>
