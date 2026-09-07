@@ -88,10 +88,39 @@ class WhatsAppAccount(models.Model):
             import re
             last_msg_body = ''
             last_msg_time = ''
+            last_msg_is_me = False
+            last_msg_wa_state = False
             if last_message:
                 raw = re.sub(r'<[^>]+>', '', last_message.body or '').strip()
                 last_msg_body = raw[:60] + ('...' if len(raw) > 60 else '')
                 last_msg_time = last_message.date.strftime('%Y-%m-%dT%H:%M:%SZ') if last_message.date else ''
+                
+                # Fetch whatsapp.message state
+                wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', last_message.id)], limit=1)
+                last_msg_wa_state = wa_msg.state if wa_msg else False
+                
+                # Determine is_me
+                if last_message.author_id and last_message.author_id.id == self.env.user.partner_id.id:
+                    last_msg_is_me = True
+                elif self.env.user.has_group('base.group_user'):
+                    if last_msg_wa_state == 'received':
+                        last_msg_is_me = False
+                    elif last_message.author_id:
+                        if c.whatsapp_partner_id and last_message.author_id.id == c.whatsapp_partner_id.id:
+                            last_msg_is_me = False
+                        else:
+                            public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
+                            if public_partner and last_message.author_id.id == public_partner.id:
+                                last_msg_is_me = False
+                            else:
+                                last_msg_is_me = True
+                    else:
+                        last_msg_is_me = False
+                else:
+                    if last_message.author_id and c.whatsapp_partner_id and last_message.author_id.id == c.whatsapp_partner_id.id:
+                        last_msg_is_me = True
+                    else:
+                        last_msg_is_me = False
             
             member = self.env['discuss.channel.member'].sudo().search([
                 ('channel_id', '=', c.id),
@@ -116,6 +145,8 @@ class WhatsAppAccount(models.Model):
                 'whatsapp_number': c.whatsapp_number,
                 'last_message_preview': last_msg_body,
                 'last_message_time': last_msg_time,
+                'last_message_is_me': last_msg_is_me,
+                'last_message_wa_state': last_msg_wa_state,
                 'wa_bot_state': c.wa_bot_state,
                 'wa_department': c.wa_department,
                 'wa_agent_id': [c.wa_agent_id.id, c.wa_agent_id.name] if c.wa_agent_id else False,
@@ -237,7 +268,7 @@ class WhatsAppAccount(models.Model):
                 'author_id': author_data,
                 'date': date_str,
                 'message_type': m.message_type,
-                'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype} for a in m.attachment_ids],
+                'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype, 'name': a.name} for a in m.attachment_ids],
                 'is_me': is_me,
                 'isMe': is_me,
                 'wa_state': wa_state_map.get(m.id, False),

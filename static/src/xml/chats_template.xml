@@ -116,8 +116,26 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="chat-preview" style="font-size:12px; color:#8696a0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
-                                    <t t-esc="channel.last_message_preview || ''"/>
+                                <div class="chat-preview" style="font-size:12px; color:#8696a0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; display:flex; align-items:center;">
+                                    <t t-if="channel.last_message_is_me">
+                                        <div style="display:inline-flex; align-items:center; margin-right:4px;">
+                                            <t t-if="channel.last_message_wa_state === 'read'">
+                                                <i class="fa fa-check" style="color: #53bdeb; font-size:10px;"/>
+                                                <i class="fa fa-check" style="margin-left: -6px; color: #53bdeb; font-size:10px;"/>
+                                            </t>
+                                            <t t-elif="channel.last_message_wa_state === 'delivered'">
+                                                <i class="fa fa-check" style="color: #8c8c8c; font-size:10px;"/>
+                                                <i class="fa fa-check" style="margin-left: -6px; color: #8c8c8c; font-size:10px;"/>
+                                            </t>
+                                            <t t-elif="channel.last_message_wa_state === 'error'">
+                                                <i class="fa fa-exclamation-circle" style="color: #f24a4a; font-size:10px;" title="Delivery Failed"/>
+                                            </t>
+                                            <t t-else="">
+                                                <i class="fa fa-check" style="color: #8c8c8c; font-size:10px;"/>
+                                            </t>
+                                        </div>
+                                    </t>
+                                    <span style="overflow:hidden; text-overflow:ellipsis;"><t t-esc="channel.last_message_preview || ''"/></span>
                                 </div>
                             </div>
                             <t t-if="channel.wa_is_unread_global or (channel.unread_count and channel.unread_count > 0)">
@@ -198,6 +216,9 @@
                                     <i class="fa fa-trash"/>
                                 </button>
                             </t>
+                            <button class="whatsapp-header-btn" title="Catalogue" t-on-click="openCatalogueModal" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
+                                <i class="fa fa-shopping-bag"/>
+                            </button>
                             <button class="whatsapp-header-btn" title="Video Call" t-on-click="callCustomer" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
                                 <i class="fa fa-video-camera"/>
                             </button>
@@ -240,8 +261,17 @@
                                                         </div>
                                                     </div>
                                                 </t>
-                                                <t t-else="">
+                                                <t t-elif="att.mimetype and att.mimetype.startsWith('image/')">
                                                     <img class="message-img" t-attf-src="/web/image/{{att.id}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name)" style="cursor: zoom-in;"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <a t-attf-href="/web/content/{{att.id}}?download=true" target="_blank" class="document-attachment" style="display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; text-decoration: none; color: inherit; max-width: 250px; margin-top: 5px;">
+                                                        <i class="fa fa-file-text-o" style="font-size: 24px; color: #54656f; margin-right: 10px;"></i>
+                                                        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500;">
+                                                            <t t-esc="att.name || 'Document'"/>
+                                                        </div>
+                                                        <i class="fa fa-download" style="margin-left: 10px; color: #00a884; font-size: 16px;"></i>
+                                                    </a>
                                                 </t>
                                             </t>
                                         </div>
@@ -390,13 +420,18 @@
                                 </button>
                                 <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onInputResize" style="overflow-y: hidden; resize: none;"/>
                                 <t t-if="!state.newMessage and !state.pendingFile and !state.isRecording and !state.recordingBlobUrl">
-                                    <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="background:#00a884;">
+                            <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="background:#00a884;">
                                         <i class="fa fa-microphone"/>
                                     </button>
                                 </t>
                                 <t t-else="">
                                     <button class="whatsapp-send-btn" t-on-click="sendMessage">
-                                        <i class="fa fa-paper-plane"/>
+                                        <t t-if="state.isSending">
+                                            <i class="fa fa-circle-o-notch fa-spin"/>
+                                        </t>
+                                        <t t-else="">
+                                            <i class="fa fa-paper-plane"/>
+                                        </t>
                                     </button>
                                 </t>
                             </div>

@@ -48,7 +48,7 @@ class MailMessage(models.Model):
                             body_html = rec.body or ''
                             
                             if direction == 'inbound':
-                                new_author_id = partner.id if partner else False
+                                new_author_id = channel.whatsapp_partner_id.id if channel.whatsapp_partner_id else (partner.id if partner else False)
                             elif direction == 'outbound':
                                 new_author_id = self.env.ref('base.partner_root').id
                             else:

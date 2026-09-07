@@ -50,10 +50,10 @@ export class WhatsAppChatsAction extends Component {
             recordingSeconds: 0,
             recordingBlob: null,
             recordingBlobUrl: null,
+            isSending: false,
         });
         
         this.myPartnerId = null;
-        this.isSending = false;
         this.isAdmin = session.is_admin || session.is_superuser || false;
 
         onWillStart(async () => {
@@ -945,9 +945,58 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
-    onFileSelect(ev) {
-        const file = ev.target.files[0];
+    async compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 0.7) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = event => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round(height * maxWidth / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = Math.round(width * maxHeight / height);
+                            height = maxHeight;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(blob => {
+                        const compressedFile = new File([blob], file.name, {
+                            type: file.type,
+                            lastModified: Date.now()
+                        });
+                        resolve(compressedFile);
+                    }, file.type, quality);
+                };
+            };
+        });
+    }
+
+    async onFileSelect(ev) {
+        let file = ev.target.files[0];
         if (!file) return;
+
+        if (file.type.startsWith('image/') && !file.type.includes('gif')) {
+            try {
+                file = await this.compressImage(file);
+            } catch (e) {
+                console.warn('Image compression failed', e);
+            }
+        }
 
         this.state.pendingFile = {
             name: file.name,
@@ -970,20 +1019,26 @@ export class WhatsAppChatsAction extends Component {
             this._mediaStream = stream;
             this._audioChunks = [];
 
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                ? 'audio/webm;codecs=opus'
-                : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-                    ? 'audio/ogg;codecs=opus'
-                    : 'audio/webm';
-
-            this._mediaRecorder = new MediaRecorder(stream, { mimeType });
+            let options = {};
+            if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                options = { mimeType: 'audio/webm;codecs=opus' };
+            } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                options = { mimeType: 'audio/ogg;codecs=opus' };
+            } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                options = { mimeType: 'audio/webm' };
+            } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                options = { mimeType: 'audio/mp4' };
+            }
+            
+            this._mediaRecorder = new MediaRecorder(stream, options);
             this._mediaRecorder.ondataavailable = (ev) => {
                 if (ev.data && ev.data.size > 0) {
                     this._audioChunks.push(ev.data);
                 }
             };
             this._mediaRecorder.onstop = () => {
-                const blob = new Blob(this._audioChunks, { type: mimeType });
+                const blobMimeType = this._mediaRecorder.mimeType || options.mimeType || 'audio/webm';
+                const blob = new Blob(this._audioChunks, { type: blobMimeType });
                 const url = URL.createObjectURL(blob);
                 this.state.recordingBlob = blob;
                 this.state.recordingBlobUrl = url;
@@ -1033,7 +1088,10 @@ export class WhatsAppChatsAction extends Component {
     async sendAudioMessage() {
         if (!this.state.recordingBlob || !this.state.selectedChannel) return;
         const blob = this.state.recordingBlob;
-        const ext = blob.type.includes('ogg') ? 'ogg' : 'webm';
+        let ext = 'webm';
+        if (blob.type.includes('ogg')) ext = 'ogg';
+        else if (blob.type.includes('mp4') || blob.type.includes('m4a')) ext = 'm4a';
+        else if (blob.type.includes('mpeg')) ext = 'mp3';
         const filename = `voice_${Date.now()}.${ext}`;
 
         try {
@@ -1095,10 +1153,10 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async sendMessage() {
-        if (this.isSending) return; // prevent double sends
+        if (this.state.isSending) return; // prevent double sends
         if ((!this.state.newMessage.trim() && !this.state.pendingFile) || !this.state.selectedChannel) return;
         
-        this.isSending = true;
+        this.state.isSending = true;
         const messageBody = this.state.newMessage;
         const pendingFile = this.state.pendingFile;
         this.state.newMessage = "";
@@ -1153,7 +1211,7 @@ export class WhatsAppChatsAction extends Component {
             // Refresh channel list so this chat bubbles to the top
             await this.loadChannels();
         } finally {
-            this.isSending = false;
+            this.state.isSending = false;
         }
     }
     
