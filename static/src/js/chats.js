@@ -919,7 +919,7 @@ export class WhatsAppChatsAction extends Component {
                 }
                                 let authorName = "";
                 if (msg.author_id) {
-                    authorName = msg.author_id[1];
+                    authorName = msg.author_id[1] || "";
                     let authorLower = authorName.toLowerCase();
                     if (authorLower.includes("bot") || authorLower === "odoobot" || authorLower === "system") {
                         authorName = "Bot";
