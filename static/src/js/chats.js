@@ -138,6 +138,22 @@ export class WhatsAppChatsAction extends Component {
                         changed = true;
                     }
                 }
+                if (this.state.showPlusMenu) {
+                    const plusMenu = document.querySelector('.attach-dropdown-menu');
+                    const plusBtn = document.querySelector('.whatsapp-attach-btn');
+                    if (!plusMenu || (plusMenu && !plusMenu.contains(ev.target) && plusBtn && !plusBtn.contains(ev.target))) {
+                        this.state.showPlusMenu = false;
+                        changed = true;
+                    }
+                }
+                if (this.state.showFilterDropdown) {
+                    const filterMenu = document.querySelector('.filter-dropdown-menu');
+                    const filterPill = document.querySelector('.chat-filter-dropdown-container');
+                    if (!filterMenu || (filterMenu && !filterMenu.contains(ev.target) && filterPill && !filterPill.contains(ev.target))) {
+                        this.state.showFilterDropdown = false;
+                        changed = true;
+                    }
+                }
             };
             document.addEventListener('click', this._onDocumentClick, true);
 
@@ -152,8 +168,14 @@ export class WhatsAppChatsAction extends Component {
                 if (this.state.showAttachMenu) {
                     this.state.showAttachMenu = false;
                 }
+                if (this.state.showPlusMenu) {
+                    this.state.showPlusMenu = false;
+                }
                 if (this.state.showHeaderDropdown) {
                     this.state.showHeaderDropdown = false;
+                }
+                if (this.state.showFilterDropdown) {
+                    this.state.showFilterDropdown = false;
                 }
             };
             if (this.chatList.el) {
