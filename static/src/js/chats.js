@@ -857,6 +857,8 @@ export class WhatsAppChatsAction extends Component {
                 return;
             }
             
+            const oldMessages = [...this.state.messages];
+            
             if (messages.length > 0) {
             this.state.messages = messages.map(msg => {
                 let isMe = msg.is_me !== undefined ? msg.is_me : false;
@@ -931,6 +933,50 @@ export class WhatsAppChatsAction extends Component {
                 return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem };
             });
             } // end if messages.length > 0
+            
+            // --- Merge pending/recently sent messages ---
+            const now = Date.now();
+            const recentTempMsgs = oldMessages.filter(m => {
+                if (m.id && m.id.toString().startsWith('temp_')) {
+                    const tempTime = parseInt(m.id.toString().split('_')[1] || 0);
+                    // Keep if it was created less than 15 seconds ago
+                    if (now - tempTime < 15000) {
+                        // Check if the server already returned a message with the same body sent by me
+                        const alreadyReceived = this.state.messages.some(serverMsg => 
+                            serverMsg.isMe === true && 
+                            serverMsg.bodyText === m.bodyText
+                        );
+                        return !alreadyReceived;
+                    }
+                }
+                return false;
+            });
+            
+            // Also add ANY offline queue items that haven't even been attempted yet
+            const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
+            const pendingQueueMsgs = offlineQueue.filter(q => q.channelId === id).map(q => {
+                return {
+                    id: q.tempId,
+                    bodyText: q.body,
+                    isMe: true,
+                    isSystem: false,
+                    timeText: new Date(q.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+                    wa_state: 'pending',
+                    attachment_ids: q.file ? [{
+                        id: 'temp_att',
+                        name: q.file.name,
+                        mimetype: q.file.type,
+                        dataUrl: q.file.dataUrl
+                    }] : []
+                };
+            });
+            
+            // Filter pendingQueueMsgs to avoid duplicating what we already have in recentTempMsgs
+            const queueToAdd = pendingQueueMsgs.filter(q => !recentTempMsgs.find(r => r.id === q.id));
+            
+            if (recentTempMsgs.length > 0 || queueToAdd.length > 0) {
+                this.state.messages = [...this.state.messages, ...recentTempMsgs, ...queueToAdd];
+            }
             
             this.messageCache[id] = this.state.messages;
             
