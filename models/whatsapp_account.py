@@ -235,10 +235,23 @@ class WhatsAppAccount(models.Model):
     def get_whatsapp_web_messages(self, channel_id):
         import re
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
-        messages = self.env['mail.message'].sudo().search([
-            ('res_id', '=', int(channel_id)),
-            ('model', '=', 'discuss.channel'),
-        ], order='id asc')
+        
+        domain = ['|', '&', ('res_id', '=', int(channel_id)), ('model', '=', 'discuss.channel')]
+        if channel.whatsapp_number:
+            wa_msgs = self.env['whatsapp.message'].sudo().search([
+                ('mobile_number', '=', channel.whatsapp_number),
+                ('wa_account_id', '=', channel.wa_account_id.id),
+                ('mail_message_id', '!=', False)
+            ])
+            wa_mail_ids = wa_msgs.mapped('mail_message_id').ids
+            if wa_mail_ids:
+                domain.append(('id', 'in', wa_mail_ids))
+            else:
+                domain = domain[1:]
+        else:
+            domain = domain[1:]
+            
+        messages = self.env['mail.message'].sudo().search(domain, order='id asc')
         import logging
         _logger = logging.getLogger(__name__)
         _logger.info("get_whatsapp_web_messages called for channel %s. Found %s messages. Last ID: %s", channel_id, len(messages), messages[-1].id if messages else None)
