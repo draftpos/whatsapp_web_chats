@@ -77,7 +77,7 @@
                                         <div class="chat-name">
                                         <t t-esc="channel.name || 'Unknown'"/>
                                         <t t-if="channel.wa_is_favourite">
-                                            <i class="fa fa-star" style="color: #FFD700; margin-left: 5px; font-size: 12px;"></i>
+                                            <i class="fa fa-thumb-tack" style="color: #8696a0; margin-left: 5px; font-size: 12px; transform: rotate(45deg);"></i>
                                         </t>
                                     </div>
                                     </div>
@@ -143,7 +143,9 @@
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_done', true, ev)">Archive chat</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Mute notifications</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.openDeleteChatModal(channel.id, ev)">Delete chat</div>
-                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_favourite', !channel.wa_is_favourite, ev)">Pin to top</div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_favourite', !channel.wa_is_favourite, ev)">
+                                        <t t-esc="channel.wa_is_favourite ? 'Unpin from top' : 'Pin to top'"/>
+                                    </div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleChannelSelection(channel.id, ev); this.toggleChatDropdown(channel.id, ev); }">Select chat</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_unread_global', !channel.wa_is_unread_global, ev)">
                                         <t t-esc="channel.wa_is_unread_global ? 'Mark as read' : 'Mark as unread'"/>

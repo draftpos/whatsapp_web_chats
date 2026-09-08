@@ -500,7 +500,11 @@ export class WhatsAppChatsAction extends Component {
             }
             
             const validChannels = channels.filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
-            validChannels.sort((a, b) => (b.write_date || '').localeCompare(a.write_date || ''));
+            validChannels.sort((a, b) => {
+                if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
+                if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
+                return (b.write_date || '').localeCompare(a.write_date || '');
+            });
             this.state.channels = validChannels;
             
             try {
@@ -1193,7 +1197,11 @@ export class WhatsAppChatsAction extends Component {
 
             // Filter ghost channels
             const validFresh = (freshChannels || []).filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
-            validFresh.sort((a, b) => (b.write_date || '').localeCompare(a.write_date || ''));
+            validFresh.sort((a, b) => {
+                if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
+                if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
+                return (b.write_date || '').localeCompare(a.write_date || '');
+            });
             this.state.channels = validFresh;
 
             // Keep selected channel in sync
