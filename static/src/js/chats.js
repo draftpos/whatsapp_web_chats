@@ -679,7 +679,16 @@ export class WhatsAppChatsAction extends Component {
         channel.wa_is_unread_global = false;
 
         try {
-            this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id], {}, { silent: true }).catch(e => console.warn(e));
+            this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id], {}, { silent: true }).catch(e => {
+                console.warn("Failed to mark messages as read silently, queuing for offline retry");
+                try {
+                    const readQueue = JSON.parse(localStorage.getItem('wa_offline_read_queue') || '[]');
+                    if (!readQueue.includes(channel.id)) {
+                        readQueue.push(channel.id);
+                        localStorage.setItem('wa_offline_read_queue', JSON.stringify(readQueue));
+                    }
+                } catch(err) {}
+            });
         } catch (e) {
             console.warn("Failed to mark messages as read", e);
         }
@@ -1469,6 +1478,19 @@ export class WhatsAppChatsAction extends Component {
         if (!this.state.selectedChannel || this.isFlushing) return;
         this.isFlushing = true;
         try {
+            // Flush read queue first
+            try {
+                const readQueue = JSON.parse(localStorage.getItem('wa_offline_read_queue') || '[]');
+                if (readQueue.length > 0) {
+                    for (const cid of readQueue) {
+                        await this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [cid], {}, { silent: true });
+                    }
+                    localStorage.setItem('wa_offline_read_queue', '[]');
+                }
+            } catch(e) {
+                console.warn("Failed to flush read queue", e);
+            }
+
             while (true) {
                 const queue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
                 if (queue.length === 0) break;
