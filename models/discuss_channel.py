@@ -167,21 +167,22 @@ class DiscussChannel(models.Model):
         now = fields.Datetime.now()
         
         mode_hours = {
-            \'24h\': 24,
-            \'7d\': 7 * 24,
-            \'90d\': 90 * 24
+            '24h': 24,
+            '7d': 7 * 24,
+            '90d': 90 * 24
         }
         
         for mode, hours in mode_hours.items():
             threshold_date = now - timedelta(hours=hours)
             
-            channels = self.search([(\'wa_disappearing_mode\', \'=\', mode)])
+            channels = self.search([('wa_disappearing_mode', '=', mode)])
             if not channels:
                 continue
                 
-            messages_to_delete = self.env[\'whatsapp.message\'].search([
-                (\'channel_id\', \'in\', channels.ids),
-                (\'create_date\', \'<\', threshold_date)
+            messages_to_delete = self.env['whatsapp.message'].search([
+                ('mail_message_id.res_id', 'in', channels.ids),
+                ('mail_message_id.model', '=', 'discuss.channel'),
+                ('create_date', '<', threshold_date)
             ])
             
             if messages_to_delete:
