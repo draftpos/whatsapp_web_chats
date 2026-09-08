@@ -929,13 +929,17 @@
 
                     <!-- Quick Replies Tab -->
                     <t t-if="state.quickReplyTab === 'quick'">
-                        <div style="padding: 10px 14px; background: #f8faf9; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="padding: 10px 14px 6px 14px; background: #f8faf9; display: flex; align-items: center; justify-content: space-between;">
                             <input type="text" placeholder="Filter quick replies..." t-model="state.quickReplySearch"
                                    style="border: 1px solid #e0e0e0; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; flex: 1; margin-right: 10px; background: white;"/>
                             <button t-on-click="openAddQuickReply"
                                     style="background: #128C7E; color: white; border: none; border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 5px;">
                                 <i class="fa fa-plus"/> Add
                             </button>
+                        </div>
+                        <div style="padding: 0px 14px 10px 14px; display: flex; gap: 8px; background: #f8faf9; border-bottom: 1px solid #e9ecef;">
+                            <div t-attf-class="chat-filter-pill {{ state.quickReplyFilter === 'all' ? 'active' : '' }}" t-on-click="() => Object.assign(this.state, {quickReplyFilter: 'all'})">All</div>
+                            <div t-attf-class="chat-filter-pill {{ state.quickReplyFilter === 'favorites' ? 'active' : '' }}" t-on-click="() => Object.assign(this.state, {quickReplyFilter: 'favorites'})">Favorites</div>
                         </div>
                         <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto;">
                             <t t-if="(state.wa_quick_replies || []).length === 0">
@@ -945,12 +949,16 @@
                                     <div style="font-size:12px; color:#aaa;">Click "Add" to create your first quick reply.</div>
                                 </div>
                             </t>
-                            <t t-foreach="(state.wa_quick_replies || []).filter(r => !state.quickReplySearch || r.shortcut?.toLowerCase().includes(state.quickReplySearch.toLowerCase()) || r.body?.toLowerCase().includes(state.quickReplySearch.toLowerCase()))" t-as="qr" t-key="qr.id">
+                            <t t-foreach="(state.wa_quick_replies || []).filter(r => (state.quickReplyFilter === 'all' || r.is_favorite) &amp;&amp; (!state.quickReplySearch || r.shortcut?.toLowerCase().includes(state.quickReplySearch.toLowerCase()) || r.body?.toLowerCase().includes(state.quickReplySearch.toLowerCase())))" t-as="qr" t-key="qr.id">
                                 <div class="template-card" t-on-click="() => this.selectQuickReply(qr)"
                                      style="background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:12px 14px; cursor:pointer; transition:box-shadow 0.2s; display:flex; flex-direction:column; gap:4px;">
                                     <div style="display:flex; align-items:center; justify-content:space-between;">
                                         <span t-if="qr.shortcut" style="font-size:11px; background:#e8f5e9; color:#128C7E; padding:2px 8px; border-radius:10px; font-weight:600;">/<t t-esc="qr.shortcut"/></span>
                                         <span t-else="" style="font-size:11px; color:#aaa;">no shortcut</span>
+                                        <div style="display:flex; gap: 10px;">
+                                            <i t-attf-class="fa fa-thumb-tack" t-attf-style="font-size:14px; color:{{ qr.is_pinned ? '#00A884' : '#d1d7db' }}; transition:color 0.2s;" t-on-click="(ev) => this.toggleQuickReplyPin(qr, ev)" title="Pin to top"/>
+                                            <i t-attf-class="fa {{ qr.is_favorite ? 'fa-star' : 'fa-star-o' }}" t-attf-style="font-size:14px; color:{{ qr.is_favorite ? '#FFD700' : '#d1d7db' }}; transition:color 0.2s;" t-on-click="(ev) => this.toggleQuickReplyFavorite(qr, ev)" title="Favorite"/>
+                                        </div>
                                     </div>
                                     <div style="font-size:13px; color:#333; white-space:pre-wrap; line-height:1.5;"><t t-esc="qr.body"/></div>
                                 </div>

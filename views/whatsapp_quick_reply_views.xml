@@ -6,6 +6,8 @@
         <field name="arch" type="xml">
             <list string="Quick Replies">
                 <field name="shortcut"/>
+                <field name="is_pinned"/>
+                <field name="is_favorite"/>
                 <field name="body"/>
                 <field name="account_id"/>
             </list>
@@ -20,6 +22,8 @@
                 <sheet>
                     <group>
                         <field name="shortcut"/>
+                        <field name="is_pinned" widget="boolean_toggle"/>
+                        <field name="is_favorite" widget="boolean_toggle"/>
                         <field name="account_id"/>
                     </group>
                     <group>

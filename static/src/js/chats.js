@@ -71,6 +71,7 @@ export class WhatsAppChatsAction extends Component {
             wa_quick_replies: [],
             quickReplyTab: 'quick',
             quickReplySearch: '',
+            quickReplyFilter: 'all',
             showAddQuickReplyModal: false,
             newQuickReply: { shortcut: '', body: '' },
             // Emoji Picker
@@ -1849,6 +1850,30 @@ export class WhatsAppChatsAction extends Component {
         } catch (e) {
             console.warn('[WA] Could not load quick replies:', e);
             this.state.wa_quick_replies = [];
+        }
+    }
+
+    async toggleQuickReplyPin(qr, ev) {
+        if (ev) ev.stopPropagation();
+        qr.is_pinned = !qr.is_pinned;
+        try {
+            await this.orm.call("whatsapp.quick.reply", "toggle_pin", [[qr.id]]);
+            await this.loadQuickReplies();
+        } catch (e) {
+            console.error("Failed to toggle pin", e);
+            qr.is_pinned = !qr.is_pinned; // revert
+        }
+    }
+
+    async toggleQuickReplyFavorite(qr, ev) {
+        if (ev) ev.stopPropagation();
+        qr.is_favorite = !qr.is_favorite;
+        try {
+            await this.orm.call("whatsapp.quick.reply", "toggle_favorite", [[qr.id]]);
+            await this.loadQuickReplies();
+        } catch (e) {
+            console.error("Failed to toggle favorite", e);
+            qr.is_favorite = !qr.is_favorite; // revert
         }
     }
 
