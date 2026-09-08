@@ -34,13 +34,31 @@ class DiscussChannel(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if vals.get('channel_type') == 'whatsapp' and not vals.get('whatsapp_partner_id'):
-                number = vals.get('whatsapp_number')
-                if number:
-                    partner = self.env['res.partner'].search([('phone', 'ilike', number)], limit=1)
-                    if not partner:
-                        partner = self.env['res.partner'].create({'name': number, 'phone': number})
-                    vals['whatsapp_partner_id'] = partner.id
+            if vals.get('channel_type') == 'whatsapp':
+                # Auto-stamp tenant_id from the WhatsApp account (inject into whatsapp + discuss modules)
+                if not vals.get('tenant_id') or not vals.get('company_id'):
+                    wa_account_id = vals.get('wa_account_id')
+                    if wa_account_id:
+                        wa_account = self.env['whatsapp.account'].sudo().browse(int(wa_account_id))
+                        if wa_account.exists():
+                            if not vals.get('tenant_id') and wa_account.tenant_id:
+                                vals['tenant_id'] = wa_account.tenant_id.id
+                            if not vals.get('company_id') and wa_account.company_id:
+                                vals['company_id'] = wa_account.company_id.id
+                    # Fallback to current company if still not set
+                    if not vals.get('tenant_id'):
+                        vals['tenant_id'] = self.env.company.id
+                    if not vals.get('company_id'):
+                        vals['company_id'] = self.env.company.id
+
+                # Auto-create partner if missing
+                if not vals.get('whatsapp_partner_id'):
+                    number = vals.get('whatsapp_number')
+                    if number:
+                        partner = self.env['res.partner'].search([('phone', 'ilike', number)], limit=1)
+                        if not partner:
+                            partner = self.env['res.partner'].create({'name': number, 'phone': number})
+                        vals['whatsapp_partner_id'] = partner.id
         return super().create(vals_list)
 
     def _wa_bot_route_chat(self):

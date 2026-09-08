@@ -15,9 +15,11 @@ class WhatsAppQuickReply(models.Model):
     
     @api.model
     def get_quick_replies(self, account_id=None):
-        domain = [('account_id', '=', False)]
+        current_company = self.env.company
+        domain = [('account_id', '=', False), ('tenant_id', '=', current_company.id)]
         if account_id:
             domain = ['|', ('account_id', '=', account_id), ('account_id', '=', False)]
+            domain.append(('tenant_id', '=', current_company.id))
         
         replies = self.search(domain)
         return [{'id': r.id, 'shortcut': r.shortcut or '', 'body': r.body, 'is_pinned': r.is_pinned, 'is_favorite': r.is_favorite} for r in replies]

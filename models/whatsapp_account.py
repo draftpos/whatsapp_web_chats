@@ -73,9 +73,12 @@ class WhatsAppAccount(models.Model):
 
     @api.model
     def get_whatsapp_web_channels(self, wa_account_id=None):
+        current_company = self.env.company
         domain = [('channel_type', '=', 'whatsapp'), '|', ('whatsapp_partner_id', '!=', False), ('whatsapp_number', '!=', False)]
-        #if wa_account_id:
-        #    domain.append(('wa_account_id', '=', int(wa_account_id)))
+        # Filter by tenant (company) to isolate each tenant's data
+        domain.append(('tenant_id', '=', current_company.id))
+        if wa_account_id:
+            domain.append(('wa_account_id', '=', int(wa_account_id)))
         
         channels = self.env['discuss.channel'].sudo().search(domain)
         
@@ -208,7 +211,8 @@ class WhatsAppAccount(models.Model):
 
     @api.model
     def get_all_chat_tags(self):
-        tags = self.env['wa.chat.tag'].sudo().search([])
+        current_company = self.env.company
+        tags = self.env['wa.chat.tag'].sudo().search([('tenant_id', '=', current_company.id)])
         return [{'id': t.id, 'name': t.name, 'color': t.color} for t in tags]
 
     @api.model
