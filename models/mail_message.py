@@ -45,13 +45,9 @@ class MailMessage(models.Model):
                             
                         if channel:
                             body_html = rec.body or ''
-                            # If the original author is an internal user, it's an outbound message from an agent.
-                            # Otherwise (e.g. public user or no user), it's an inbound message from the customer.
-                            is_internal_user = rec.author_id and any(u.has_group('base.group_user') for u in rec.author_id.user_ids)
-                            if is_internal_user:
-                                new_author_id = rec.author_id.id
-                            else:
-                                new_author_id = channel.whatsapp_partner_id.id if channel.whatsapp_partner_id else (partner.id if partner else False)
+                            # All messages received via webhook and routed to wa.chatbot.session are incoming messages from the customer.
+                            # Even if OdooBot or Administrator is the author of the webhook creation, we must assign the customer as the author.
+                            new_author_id = channel.whatsapp_partner_id.id if channel.whatsapp_partner_id else (partner.id if partner else False)
 
                             # Duplicate the message into the discuss.channel so operators can see it
                             rec.sudo().copy({
