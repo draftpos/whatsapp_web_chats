@@ -144,12 +144,16 @@ class WhatsAppAccount(models.Model):
                 ('message_type', 'not in', ['notification', 'user_notification']),
             ]
             # Exclude all internal users (agents) and system/public users
-            excluded_users = self.env['res.users'].sudo().search([('groups_id', 'in', self.env.ref('base.group_user').id)])
-            excluded = excluded_users.mapped('partner_id').ids
+            try:
+                excluded = self.env.ref('base.group_user').sudo().users.mapped('partner_id').ids
+            except Exception:
+                excluded = [self.env.user.partner_id.id]
             public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
             if public_partner:
                 excluded.append(public_partner.id)
-            domain_unread.append(('author_id', 'not in', excluded))
+            
+            # OR condition: author is either False (unlinked customer) or NOT in excluded (not an agent)
+            domain_unread = ['|', ('author_id', '=', False), ('author_id', 'not in', excluded)] + domain_unread
 
             unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
             
