@@ -138,11 +138,11 @@
                                 <i class="fa fa-chevron-down"></i>
                             </div>
                             <t t-if="state.showChatDropdownId === channel.id">
-                                <div class="chat-dropdown-menu" t-attf-style="{{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : '' }}" t-on-click.stop="() => {}">
-                                    <div class="chat-dropdown-item disabled-item" title="Not supported">Archive chat</div>
-                                    <div class="chat-dropdown-item disabled-item" title="Not supported">Mute notifications</div>
+                                <div class="chat-dropdown-menu" t-attf-style="max-height: 250px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : '' }}" t-on-click.stop="() => {}">
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_done', true, ev)">Archive chat</div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Mute notifications</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.openDeleteChatModal(channel.id, ev)">Delete chat</div>
-                                    <div class="chat-dropdown-item disabled-item" title="Not supported">Pin to top</div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_favourite', !channel.wa_is_favourite, ev)">Pin to top</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleChannelSelection(channel.id, ev); this.toggleChatDropdown(channel.id, ev); }">Select chat</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_unread_global', !channel.wa_is_unread_global, ev)">
                                         <t t-esc="channel.wa_is_unread_global ? 'Mark as read' : 'Mark as unread'"/>
@@ -162,8 +162,8 @@
                                         </t>
                                         <div class="chat-dropdown-divider" style="height:1px; background:#f0f2f5; margin:4px 0;"></div>
                                     </t>
-                                    <div class="chat-dropdown-item disabled-item" title="Not supported">Block</div>
-                                    <div class="chat-dropdown-item disabled-item" title="Not supported">View contact</div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Block</div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">View contact</div>
                                     
                                     <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                     <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Odoo Actions</div>
@@ -201,13 +201,19 @@
                         </div>
                         <div style="display: flex; align-items: center;">
 
-                            <t t-if="state.selectedMessages?.length > 0">
-                                <span style="margin-right: 10px; font-size: 13px; color: #f24a4a;"><t t-esc="state.selectedMessages?.length"/> selected</span>
-                                <button class="whatsapp-header-btn" t-on-click="deleteSelectedMessages"
-                                        style="background: #f24a4a; border: none; border-radius: 6px; cursor: pointer; color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; margin-right: 10px; display: flex; align-items: center; gap: 5px;">
-                                    <i class="fa fa-trash"/>
-                                    Delete <t t-esc="state.selectedMessages.length"/> Message<t t-if="state.selectedMessages.length > 1">s</t>
+                            <t t-if="state.isSelectingMessages">
+                                <button class="whatsapp-header-btn" t-on-click="cancelSelection"
+                                        style="background: #f0f2f5; border: none; border-radius: 6px; cursor: pointer; color: #54656f; font-size: 11px; font-weight: 600; padding: 4px 10px; margin-right: 10px;">
+                                    Cancel
                                 </button>
+                                <t t-if="state.selectedMessages?.length > 0">
+                                    <span style="margin-right: 10px; font-size: 13px; color: #f24a4a;"><t t-esc="state.selectedMessages?.length"/> selected</span>
+                                    <button class="whatsapp-header-btn" t-on-click="(ev) => { this.deleteSelectedMessages(ev); this.cancelSelection(ev); }"
+                                            style="background: #f24a4a; border: none; border-radius: 6px; cursor: pointer; color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; margin-right: 10px; display: flex; align-items: center; gap: 5px;">
+                                        <i class="fa fa-trash"/>
+                                        Delete <t t-esc="state.selectedMessages.length"/> Message<t t-if="state.selectedMessages.length > 1">s</t>
+                                    </button>
+                                </t>
                             </t>
                             <button class="whatsapp-header-btn" title="Catalogue" t-on-click="openCatalogueModal" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
                                 <i class="fa fa-shopping-bag"/>
@@ -226,16 +232,16 @@
                                     <i class="fa fa-ellipsis-v"/>
                                 </button>
                                 <t t-if="state.showHeaderDropdown">
-                                    <div class="header-dropdown-menu" t-attf-style="position: absolute; right: 0; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26),0 2px 10px 0 rgba(11,20,26,.16); width: 220px; padding: 9px 0; z-index: 1000; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 10px;' }}" t-on-click.stop="() => {}">
+                                    <div class="header-dropdown-menu" t-attf-style="position: absolute; right: 0; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26),0 2px 10px 0 rgba(11,20,26,.16); width: 220px; padding: 9px 0; max-height: 250px; overflow-y: auto; z-index: 1000; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 10px;' }}" t-on-click.stop="() => {}">
                                         <div class="chat-dropdown-item" t-on-click="toggleContactInfo">Contact info</div>
-                                        <div class="chat-dropdown-item disabled-item" title="Not supported">Select messages</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.startSelectingMessages(ev)">Select messages</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.closeChat(ev); this.toggleHeaderDropdown(ev); }">Close chat</div>
-                                        <div class="chat-dropdown-item disabled-item" title="Not supported">Mute notifications</div>
-                                        <div class="chat-dropdown-item disabled-item" title="Not supported">Disappearing messages</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Mute notifications</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Disappearing messages</div>
                                         <div class="chat-dropdown-item" t-on-click="() => { this.clearChat(state.selectedChannel.id); this.toggleHeaderDropdown(); }">Clear chat</div>
                                         <div class="chat-dropdown-item" t-on-click="() => { this.openDeleteChatModal(state.selectedChannel.id); this.toggleHeaderDropdown(); }">Delete chat</div>
-                                        <div class="chat-dropdown-item disabled-item" title="Not supported">Report</div>
-                                        <div class="chat-dropdown-item disabled-item" title="Not supported">Block</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Report</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Block</div>
                                         
                                         <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                         <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Odoo Actions</div>
@@ -255,7 +261,7 @@
                     </div>
                     <div class="whatsapp-messages" t-ref="messagesContainer">
                         <t t-foreach="state.messages || []" t-as="msg" t-key="msg.id">
-                            <div t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ state.selectedMessages?.length > 0 ? 'selection-mode' : '' }}">
+                            <div t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }}">
                                 <div class="message-selection" t-on-click="(ev) => this.toggleMessageSelection(msg.id, ev)" t-if="!msg.isSystem">
                                     <t t-if="state.selectedMessages.includes(msg.id)">
                                         <i class="fa fa-check-circle" style="color: #1976D2; font-size: 18px;"></i>
@@ -365,14 +371,14 @@
                                     <t t-if="state.showMessageDropdownId === msg.id">
                                         <div class="msg-dropdown-menu" t-attf-style="position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 250px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 5px;' }}" t-on-click.stop="() => {}">
                                             <div class="chat-dropdown-item" t-on-click="() => this.openReply(msg)">Reply</div>
-                                            <div class="chat-dropdown-item disabled-item" title="Not supported">React</div>
-                                            <div class="chat-dropdown-item disabled-item" title="Not supported">Forward</div>
-                                            <div class="chat-dropdown-item disabled-item" title="Not supported">Star</div>
-                                            <div class="chat-dropdown-item disabled-item" title="Not supported">Report</div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">React</div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Forward</div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Star</div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Report</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
-                                            <div class="chat-dropdown-item disabled-item" title="Not supported">Message info</div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Message info</div>
                                         </div>
                                     </t>
                                 </div>

@@ -1474,6 +1474,28 @@ export class WhatsAppChatsAction extends Component {
         return new window.Blob([u8arr], {type:mime});
     }
 
+    comingSoon(ev) {
+        if (ev) ev.stopPropagation();
+        if (this.env && this.env.services && this.env.services.notification) {
+            this.env.services.notification.add("Feature coming soon", { type: "info" });
+        } else {
+            alert("Feature coming soon");
+        }
+    }
+
+    startSelectingMessages(ev) {
+        if (ev) ev.stopPropagation();
+        this.state.isSelectingMessages = true;
+        this.state.selectedMessages = [];
+        this.toggleHeaderDropdown();
+    }
+
+    cancelSelection(ev) {
+        if (ev) ev.stopPropagation();
+        this.state.isSelectingMessages = false;
+        this.state.selectedMessages = [];
+    }
+
     async flushOfflineQueue() {
         if (!this.state.selectedChannel || this.isFlushing) return;
         this.isFlushing = true;
