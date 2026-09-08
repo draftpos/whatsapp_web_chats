@@ -1635,7 +1635,8 @@ export class WhatsAppChatsAction extends Component {
                         "discuss.channel",
                         "message_post",
                         [task.channelId],
-                        kwargs
+                        kwargs,
+                        { silent: true }
                     );
 
                     // Successfully sent. Remove from queue.
@@ -2030,7 +2031,9 @@ export class WhatsAppChatsAction extends Component {
             const result = await this.orm.call(
                 "whatsapp.account",
                 "send_whatsapp_template",
-                [this.state.selectedChannel.id, tmpl.id]
+                [this.state.selectedChannel.id, tmpl.id],
+                {},
+                { silent: true }
             );
             
             if (result && result.success) {
