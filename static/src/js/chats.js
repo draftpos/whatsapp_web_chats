@@ -2071,6 +2071,12 @@ export class WhatsAppChatsAction extends Component {
         const messageId = this.state.deleteMessageId;
         if (!messageId) return;
         
+        if (!this.isAdmin) {
+            alert("Only administrators can delete messages.");
+            this.closeDeleteModal();
+            return;
+        }
+        
         this.closeDeleteModal();
         
         const result = await this.orm.call("whatsapp.account", "delete_message_for_everyone", [parseInt(messageId)]);

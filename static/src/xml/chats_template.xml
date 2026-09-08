@@ -1096,8 +1096,10 @@
                     <div class="modal-title" style="font-size: 20px; color: #3b4a54; margin-bottom: 20px;">Delete message?</div>
                     <div class="modal-actions" style="display: flex; flex-direction: column; gap: 0;">
                         <button class="btn-delete-option" t-on-click="deleteMessageForMe" style="background: white; border: none; padding: 15px 24px; color: #111b21; cursor: pointer; text-align: right; font-size: 14px; transition: background 0.2s;">Delete for me</button>
-                        <button class="btn-delete-option" t-on-click="confirmDeleteForEveryone" style="background: white; border: none; border-top: 1px solid #f0f2f5; padding: 15px 24px; color: #111b21; cursor: pointer; text-align: right; font-size: 14px; transition: background 0.2s;">Delete for everyone</button>
                         <button class="btn-delete-option" t-on-click="closeDeleteModal" style="background: white; border: none; border-top: 1px solid #f0f2f5; padding: 15px 24px; color: #111b21; cursor: pointer; text-align: right; font-size: 14px; transition: background 0.2s;">Cancel</button>
+                        <t t-if="this.isAdmin">
+                            <button class="btn-delete-option" t-on-click="confirmDeleteForEveryone" style="background: white; border: none; border-top: 1px solid #f0f2f5; padding: 15px 24px; color: #111b21; cursor: pointer; text-align: right; font-size: 14px; transition: background 0.2s;">Delete for everyone</button>
+                        </t>
                     </div>
                 </div>
             </div>
