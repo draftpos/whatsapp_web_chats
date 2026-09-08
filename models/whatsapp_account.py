@@ -183,12 +183,15 @@ class WhatsAppAccount(models.Model):
                 'last_message_is_me': last_msg_is_me,
                 'last_message_wa_state': last_msg_wa_state,
                 'wa_bot_state': c.wa_bot_state,
-                'wa_department': c.wa_department,
+                'wa_department': [c.wa_department.id, c.wa_department.name] if c.wa_department else False,
                 'wa_agent_id': [c.wa_agent_id.id, c.wa_agent_id.name] if c.wa_agent_id else False,
                 'wa_is_done': c.wa_is_done,
                 'wa_is_unread_global': c.wa_is_unread_global,
                 'wa_is_favourite': c.wa_is_favourite,
                 'wa_is_urgent': c.wa_is_urgent,
+                'wa_is_muted': c.wa_is_muted,
+                'wa_is_blocked': c.wa_is_blocked,
+                'wa_disappearing_mode': c.wa_disappearing_mode,
                 'wa_tags': [{'id': t.id, 'name': t.name, 'color': t.color} for t in c.wa_tag_ids],
             })
             
