@@ -234,7 +234,6 @@ class WhatsAppAccount(models.Model):
         messages = self.env['mail.message'].sudo().search([
             ('res_id', '=', int(channel_id)),
             ('model', '=', 'discuss.channel'),
-            ('message_type', 'in', ('comment', 'notification', 'whatsapp_message')),
         ], order='date asc')
         
         import re
