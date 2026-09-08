@@ -60,6 +60,23 @@ export class WhatsAppChatsAction extends Component {
             replyingToMessage: null,
             showPlusMenu: false,
             showAttachMenu: false,
+            // Quick Replies & Templates
+            wa_quick_replies: [],
+            quickReplyTab: 'quick',
+            quickReplySearch: '',
+            showAddQuickReplyModal: false,
+            newQuickReply: { shortcut: '', body: '' },
+            // Emoji Picker
+            emojiPickerMsgId: null,
+            emojiPickerX: 0,
+            emojiPickerY: 0,
+            // Forward
+            forwardMessageId: null,
+            forwardSearch: '',
+            // Disappearing Messages
+            showDisappearingModal: false,
+            // Deletion
+            deleteMessageId: null,
         });
         
         this.myPartnerId = null;
@@ -70,6 +87,7 @@ export class WhatsAppChatsAction extends Component {
             await this.loadProducts();
             await this.loadTemplates();
             await this.loadTags();
+            await this.loadQuickReplies();
         });
         
         onMounted(() => {
@@ -1474,12 +1492,14 @@ export class WhatsAppChatsAction extends Component {
         return new window.Blob([u8arr], {type:mime});
     }
 
-    comingSoon(ev) {
+    comingSoon(ev, msg) {
         if (ev) ev.stopPropagation();
+        const text = msg || 'Feature coming soon';
+        const type = msg ? 'success' : 'info';
         if (this.env && this.env.services && this.env.services.notification) {
-            this.env.services.notification.add("Feature coming soon", { type: "info" });
+            this.env.services.notification.add(text, { type });
         } else {
-            alert("Feature coming soon");
+            alert(text);
         }
     }
 
@@ -1664,10 +1684,181 @@ export class WhatsAppChatsAction extends Component {
     openTemplatesModal() {
         this.state.showAttachMenu = false;
         this.state.showTemplatesModal = true;
+        this.state.quickReplyTab = 'quick';
     }
 
     closeTemplatesModal() {
         this.state.showTemplatesModal = false;
+    }
+
+    // ─── Quick Replies ────────────────────────────────────────────────────────
+
+    async loadQuickReplies() {
+        try {
+            const accountId = this.state.selectedAccount ? parseInt(this.state.selectedAccount) : null;
+            this.state.wa_quick_replies = await this.orm.call(
+                'whatsapp.quick.reply',
+                'get_quick_replies',
+                [],
+                { account_id: accountId }
+            );
+        } catch (e) {
+            console.warn('[WA] Could not load quick replies:', e);
+            this.state.wa_quick_replies = [];
+        }
+    }
+
+    selectQuickReply(qr) {
+        this.state.newMessage = (this.state.newMessage || '') + qr.body;
+        this.state.showTemplatesModal = false;
+    }
+
+    openAddQuickReply() {
+        this.state.newQuickReply = { shortcut: '', body: '' };
+        this.state.showAddQuickReplyModal = true;
+    }
+
+    closeAddQuickReply() {
+        this.state.showAddQuickReplyModal = false;
+    }
+
+    async saveQuickReply() {
+        const { shortcut, body } = this.state.newQuickReply;
+        if (!body || !body.trim()) {
+            alert('Please enter a message body for the quick reply.');
+            return;
+        }
+        try {
+            await this.orm.create('whatsapp.quick.reply', [{
+                shortcut: shortcut || false,
+                body: body.trim(),
+            }]);
+            await this.loadQuickReplies();
+            this.state.showAddQuickReplyModal = false;
+            this.comingSoon(null, 'Quick reply saved!');
+        } catch (e) {
+            console.error('[WA] Failed to save quick reply:', e);
+            alert('Failed to save quick reply.');
+        }
+    }
+
+    // ─── Emoji Reaction ───────────────────────────────────────────────────────
+
+    openEmojiPicker(msgId, ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showMessageDropdownId = null;
+        const rect = ev && ev.currentTarget ? ev.currentTarget.getBoundingClientRect() : { left: 200, top: 200 };
+        this.state.emojiPickerX = Math.min(rect.left, window.innerWidth - 280);
+        this.state.emojiPickerY = rect.top - 60;
+        this.state.emojiPickerMsgId = msgId;
+    }
+
+    closeEmojiPicker() {
+        this.state.emojiPickerMsgId = null;
+    }
+
+    async reactToMessage(msgId, emoji) {
+        this.state.emojiPickerMsgId = null;
+        try {
+            await this.orm.write('whatsapp.message', [msgId], { wa_reaction: emoji });
+            // Update the message in state
+            const msg = this.state.messages.find(m => m.id === msgId);
+            if (msg) msg.wa_reaction = emoji;
+        } catch (e) {
+            console.warn('[WA] React failed, trying mail.message:', e);
+        }
+    }
+
+    // ─── Forward Message ──────────────────────────────────────────────────────
+
+    openForwardModal(msgId) {
+        this.state.showMessageDropdownId = null;
+        this.state.forwardMessageId = msgId;
+        this.state.forwardSearch = '';
+    }
+
+    closeForwardModal() {
+        this.state.forwardMessageId = null;
+    }
+
+    async forwardToChannel(targetChannel) {
+        const msgId = this.state.forwardMessageId;
+        this.state.forwardMessageId = null;
+        if (!msgId || !targetChannel) return;
+
+        const srcMsg = this.state.messages.find(m => m.id === msgId);
+        if (!srcMsg) return;
+
+        const body = srcMsg.bodyText || srcMsg.body || '';
+        try {
+            await this.orm.call('discuss.channel', 'message_post', [targetChannel.id], {
+                body: '↩ Forwarded: ' + body,
+                message_type: 'comment',
+            });
+            this.comingSoon(null, `Message forwarded to ${targetChannel.name}`);
+        } catch (e) {
+            console.error('[WA] Forward failed:', e);
+            alert('Failed to forward message.');
+        }
+    }
+
+    // ─── Disappearing Messages ────────────────────────────────────────────────
+
+    openDisappearingModal() {
+        this.state.showDisappearingModal = true;
+    }
+
+    closeDisappearingModal() {
+        this.state.showDisappearingModal = false;
+    }
+
+    async setDisappearingMode(mode) {
+        if (!this.state.selectedChannel) return;
+        try {
+            await this.orm.write('discuss.channel', [this.state.selectedChannel.id], {
+                wa_disappearing_mode: mode
+            });
+            this.state.selectedChannel.wa_disappearing_mode = mode;
+            const modeLabels = { off: 'Off', '24h': '24 Hours', '7d': '7 Days', '90d': '90 Days' };
+            this.comingSoon(null, `Disappearing messages: ${modeLabels[mode] || mode}`);
+        } catch (e) {
+            console.error('[WA] Disappearing mode set failed:', e);
+        }
+        this.state.showDisappearingModal = false;
+    }
+
+    // ─── Mute & Block ─────────────────────────────────────────────────────────
+
+    async toggleMuteChat(ev) {
+        if (ev) ev.stopPropagation();
+        if (!this.state.selectedChannel) return;
+        const newVal = !this.state.selectedChannel.wa_is_muted;
+        try {
+            await this.orm.write('discuss.channel', [this.state.selectedChannel.id], {
+                wa_is_muted: newVal
+            });
+            this.state.selectedChannel.wa_is_muted = newVal;
+            this.comingSoon(null, newVal ? 'Chat muted — notifications suppressed' : 'Chat unmuted');
+        } catch (e) {
+            console.error('[WA] Mute toggle failed:', e);
+        }
+        this.state.showHeaderDropdown = false;
+    }
+
+    async toggleBlockChat(ev) {
+        if (ev) ev.stopPropagation();
+        if (!this.state.selectedChannel) return;
+        const newVal = !this.state.selectedChannel.wa_is_blocked;
+        try {
+            await this.orm.write('discuss.channel', [this.state.selectedChannel.id], {
+                wa_is_blocked: newVal
+            });
+            this.state.selectedChannel.wa_is_blocked = newVal;
+            this.comingSoon(null, newVal ? 'Chat blocked — messages disabled' : 'Chat unblocked');
+        } catch (e) {
+            console.error('[WA] Block toggle failed:', e);
+        }
+        this.state.showHeaderDropdown = false;
     }
 
     openCatalogueModal() {

@@ -12,8 +12,16 @@
     <!-- Move Messages to Configuration -->
     <menuitem id="whatsapp.whatsapp_message_menu" name="Messages" parent="whatsapp.whatsapp_configuration_menu" sequence="10"/>
     
+    <!-- Quick Replies under Configuration -->
+    <record id="whatsapp_quick_reply_config_action" model="ir.actions.act_window">
+        <field name="name">Quick Replies</field>
+        <field name="res_model">whatsapp.quick.reply</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_whatsapp_quick_reply" name="Quick Replies" parent="whatsapp.whatsapp_configuration_menu" action="whatsapp_quick_reply_config_action" sequence="20"/>
+
     <!-- Move Templates to Configuration -->
-    <menuitem id="whatsapp.whatsapp_template_menu" name="Templates" parent="whatsapp.whatsapp_configuration_menu" sequence="20"/>
+    <menuitem id="whatsapp.whatsapp_template_menu" name="Templates" parent="whatsapp.whatsapp_configuration_menu" sequence="30"/>
 
     <!-- Move Chatbot to Configuration (if dev_whatsapp_chatbot_ent exists) -->
     <menuitem id="dev_whatsapp_chatbot_ent.menu_wa_chatbot_parent" name="Chatbot" parent="whatsapp.whatsapp_configuration_menu" sequence="30"/>

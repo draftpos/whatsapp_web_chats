@@ -8,3 +8,4 @@ from . import whatsapp_template
 from . import mail_message
 from . import res_users
 from . import discuss_channel
+from . import whatsapp_quick_reply

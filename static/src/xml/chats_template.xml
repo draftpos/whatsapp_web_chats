@@ -236,12 +236,16 @@
                                         <div class="chat-dropdown-item" t-on-click="toggleContactInfo">Contact info</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => this.startSelectingMessages(ev)">Select messages</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.closeChat(ev); this.toggleHeaderDropdown(ev); }">Close chat</div>
-                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Mute notifications</div>
-                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Disappearing messages</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMuteChat(ev)">
+                                            <t t-esc="state.selectedChannel and state.selectedChannel.wa_is_muted ? 'Unmute notifications' : 'Mute notifications'"/>
+                                        </div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => { this.openDisappearingModal(); this.toggleHeaderDropdown(ev); }">Disappearing messages</div>
                                         <div class="chat-dropdown-item" t-on-click="() => { this.clearChat(state.selectedChannel.id); this.toggleHeaderDropdown(); }">Clear chat</div>
                                         <div class="chat-dropdown-item" t-on-click="() => { this.openDeleteChatModal(state.selectedChannel.id); this.toggleHeaderDropdown(); }">Delete chat</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Report</div>
-                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Block</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleBlockChat(ev)">
+                                            <t t-esc="state.selectedChannel and state.selectedChannel.wa_is_blocked ? 'Unblock' : 'Block'"/>
+                                        </div>
                                         
                                         <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                         <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Odoo Actions</div>
@@ -365,14 +369,21 @@
                                             </t>
                                         </t>
                                     </div>
+                                    <!-- Emoji Reaction Badge -->
+                                    <t t-if="msg.wa_reaction">
+                                        <div style="position: absolute; bottom: -12px; right: 8px; background: white; border-radius: 10px; padding: 1px 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-size: 14px; cursor: pointer; z-index: 5;"
+                                             t-on-click="(ev) => this.openEmojiPicker(msg.id, ev)" title="React">
+                                            <t t-esc="msg.wa_reaction"/>
+                                        </div>
+                                    </t>
                                     <div class="msg-dropdown-btn" t-on-click="(ev) => this.toggleMessageDropdown(msg.id, ev)">
                                         <i class="fa fa-chevron-down"/>
                                     </div>
                                     <t t-if="state.showMessageDropdownId === msg.id">
                                         <div class="msg-dropdown-menu" t-attf-style="position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 250px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 5px;' }}" t-on-click.stop="() => {}">
                                             <div class="chat-dropdown-item" t-on-click="() => this.openReply(msg)">Reply</div>
-                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">React</div>
-                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Forward</div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.openEmojiPicker(msg.id, ev)">React</div>
+                                            <div class="chat-dropdown-item" t-on-click="() => this.openForwardModal(msg.id)">Forward</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Star</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Report</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
@@ -732,32 +743,175 @@
             </t>
         </div>
 
+        <!-- Quick Replies / Templates Tabbed Modal -->
         <t t-if="state.showTemplatesModal">
             <div class="catalogue-modal">
-                <div class="catalogue-content">
-                    <div class="catalogue-header">
-                        <h3>WhatsApp Templates</h3>
-                        <button class="preview-close" t-on-click="closeTemplatesModal" style="position: static;"><i class="fa fa-times"></i></button>
+                <div class="catalogue-content" style="width: 540px; max-width: 95vw;">
+                    <!-- Header with tabs -->
+                    <div class="catalogue-header" style="display: flex; flex-direction: column; padding: 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px;">
+                            <span style="font-size: 16px; font-weight: 600; color: #111b21;">Quick Replies &amp; Templates</span>
+                            <button class="preview-close" t-on-click="closeTemplatesModal" style="position: static;"><i class="fa fa-times"/></button>
+                        </div>
+                        <!-- Tab Bar -->
+                        <div style="display: flex; border-bottom: 2px solid #e0e0e0;">
+                            <div t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 600; border-bottom: 3px solid {{ state.quickReplyTab === 'quick' ? '#128C7E' : 'transparent' }}; color: {{ state.quickReplyTab === 'quick' ? '#128C7E' : '#667781' }}; transition: all 0.2s; margin-bottom: -2px;"
+                                t-on-click="() => this.state.quickReplyTab = 'quick'">
+                                <i class="fa fa-bolt" style="margin-right: 6px;"/> Quick Replies
+                            </div>
+                            <div t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 600; border-bottom: 3px solid {{ state.quickReplyTab === 'templates' ? '#128C7E' : 'transparent' }}; color: {{ state.quickReplyTab === 'templates' ? '#128C7E' : '#667781' }}; transition: all 0.2s; margin-bottom: -2px;"
+                                t-on-click="() => this.state.quickReplyTab = 'templates'">
+                                <i class="fa fa-file-text-o" style="margin-right: 6px;"/> Templates
+                            </div>
+                        </div>
                     </div>
-                    <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto;">
-                        <t t-if="state.wa_templates?.length === 0">
-                            <div style="text-align:center; color:#888; padding:20px;">No templates found.</div>
-                        </t>
-                        <t t-foreach="state.wa_templates || []" t-as="tmpl" t-key="tmpl.id">
-                            <div class="template-card" t-on-click="() => this.selectTemplate(tmpl)"
-                                 style="background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:14px 16px; cursor:pointer; transition:box-shadow 0.2s;">
-                                <div style="font-weight:600; font-size:14px; color:#128C7E; margin-bottom:6px;">
-                                    <t t-esc="tmpl.template_name"/>
+
+                    <!-- Quick Replies Tab -->
+                    <t t-if="state.quickReplyTab === 'quick'">
+                        <div style="padding: 10px 14px; background: #f8faf9; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; justify-content: space-between;">
+                            <input type="text" placeholder="Filter quick replies..." t-model="state.quickReplySearch"
+                                   style="border: 1px solid #e0e0e0; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; flex: 1; margin-right: 10px; background: white;"/>
+                            <button t-on-click="openAddQuickReply"
+                                    style="background: #128C7E; color: white; border: none; border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 5px;">
+                                <i class="fa fa-plus"/> Add
+                            </button>
+                        </div>
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto;">
+                            <t t-if="(state.wa_quick_replies || []).length === 0">
+                                <div style="text-align:center; color:#888; padding:30px; display:flex; flex-direction:column; align-items:center; gap:10px;">
+                                    <i class="fa fa-bolt" style="font-size:36px; color:#ccc;"/>
+                                    <div>No quick replies yet.</div>
+                                    <div style="font-size:12px; color:#aaa;">Click "Add" to create your first quick reply.</div>
                                 </div>
-                                <div style="font-size:13px; color:#333; white-space:pre-wrap; line-height:1.5;">
-                                    <t t-esc="tmpl.body"/>
+                            </t>
+                            <t t-foreach="(state.wa_quick_replies || []).filter(r => !state.quickReplySearch || r.shortcut?.toLowerCase().includes(state.quickReplySearch.toLowerCase()) || r.body?.toLowerCase().includes(state.quickReplySearch.toLowerCase()))" t-as="qr" t-key="qr.id">
+                                <div class="template-card" t-on-click="() => this.selectQuickReply(qr)"
+                                     style="background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:12px 14px; cursor:pointer; transition:box-shadow 0.2s; display:flex; flex-direction:column; gap:4px;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                                        <span t-if="qr.shortcut" style="font-size:11px; background:#e8f5e9; color:#128C7E; padding:2px 8px; border-radius:10px; font-weight:600;">/<t t-esc="qr.shortcut"/></span>
+                                        <span t-else="" style="font-size:11px; color:#aaa;">no shortcut</span>
+                                    </div>
+                                    <div style="font-size:13px; color:#333; white-space:pre-wrap; line-height:1.5;"><t t-esc="qr.body"/></div>
                                 </div>
+                            </t>
+                        </div>
+                    </t>
+
+                    <!-- Templates Tab -->
+                    <t t-if="state.quickReplyTab === 'templates'">
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; max-height: 430px; overflow-y: auto;">
+                            <t t-if="state.wa_templates?.length === 0">
+                                <div style="text-align:center; color:#888; padding:20px;">No templates found.</div>
+                            </t>
+                            <t t-foreach="state.wa_templates || []" t-as="tmpl" t-key="tmpl.id">
+                                <div class="template-card" t-on-click="() => this.selectTemplate(tmpl)"
+                                     style="background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:14px 16px; cursor:pointer; transition:box-shadow 0.2s;">
+                                    <div style="font-weight:600; font-size:14px; color:#128C7E; margin-bottom:6px;">
+                                        <t t-esc="tmpl.template_name"/>
+                                    </div>
+                                    <div style="font-size:13px; color:#333; white-space:pre-wrap; line-height:1.5;">
+                                        <t t-esc="tmpl.body"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </t>
+
+        <!-- Emoji Reaction Picker -->
+        <t t-if="state.emojiPickerMsgId">
+            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 3000;" t-on-click="closeEmojiPicker"/>
+            <div t-attf-style="position: fixed; z-index: 3001; background: white; border-radius: 30px; padding: 8px 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); display: flex; gap: 8px; top: {{ state.emojiPickerY }}px; left: {{ state.emojiPickerX }}px;">
+                <t t-foreach="['👍','❤️','😂','😮','😢','🙏']" t-as="emoji" t-key="emoji">
+                    <span t-on-click="() => this.reactToMessage(state.emojiPickerMsgId, emoji)"
+                          style="font-size: 22px; cursor: pointer; padding: 2px 4px; border-radius: 50%; transition: transform 0.15s; line-height: 1;"
+                          class="emoji-reaction-btn"><t t-esc="emoji"/></span>
+                </t>
+            </div>
+        </t>
+
+        <!-- Forward Message Modal -->
+        <t t-if="state.forwardMessageId">
+            <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center;" t-on-click="closeForwardModal">
+                <div style="background: white; width: 380px; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.2);" t-on-click.stop="() => {}">
+                    <div style="background: #128C7E; color: white; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 16px; font-weight: 600;"><i class="fa fa-share" style="margin-right: 8px;"/>Forward Message</span>
+                        <i class="fa fa-times" style="cursor: pointer;" t-on-click="closeForwardModal"/>
+                    </div>
+                    <div style="padding: 10px 14px; background: #f0f2f5;">
+                        <input type="text" placeholder="Search chats..." t-model="state.forwardSearch"
+                               style="width: 100%; border: none; border-radius: 20px; padding: 8px 14px; outline: none; font-size: 13px;"/>
+                    </div>
+                    <div style="max-height: 350px; overflow-y: auto;">
+                        <t t-foreach="(this.filteredChannels || []).filter(c => !state.forwardSearch || c.name?.toLowerCase().includes(state.forwardSearch.toLowerCase()))" t-as="chan" t-key="chan.id">
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f0f2f5; transition: background 0.15s;"
+                                 t-on-click="() => this.forwardToChannel(chan)">
+                                <div style="width: 36px; height: 36px; border-radius: 50%; background: #128C7E; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; font-size: 15px;">
+                                    <t t-esc="chan.name ? chan.name[0].toUpperCase() : '?'"/>
+                                </div>
+                                <span style="font-size: 14px; color: #111b21;"><t t-esc="chan.name"/></span>
                             </div>
                         </t>
                     </div>
                 </div>
             </div>
         </t>
+
+        <!-- Disappearing Messages Modal -->
+        <t t-if="state.showDisappearingModal">
+            <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center;" t-on-click="closeDisappearingModal">
+                <div style="background: white; width: 340px; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.2);" t-on-click.stop="() => {}">
+                    <div style="background: #128C7E; color: white; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 16px; font-weight: 600;"><i class="fa fa-clock-o" style="margin-right: 8px;"/>Disappearing Messages</span>
+                        <i class="fa fa-times" style="cursor: pointer;" t-on-click="closeDisappearingModal"/>
+                    </div>
+                    <div style="padding: 16px;">
+                        <p style="font-size: 13px; color: #667781; margin-bottom: 16px; line-height: 1.5;">
+                            Choose how long messages last before they are automatically deleted.
+                        </p>
+                        <t t-foreach="[['off','Off (default)'],['24h','24 Hours'],['7d','7 Days'],['90d','90 Days']]" t-as="opt" t-key="opt[0]">
+                            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f0f2f5; cursor:pointer;"
+                                 t-on-click="() => this.setDisappearingMode(opt[0])">
+                                <span style="font-size: 14px; color: #111b21;"><t t-esc="opt[1]"/></span>
+                                <i t-attf-class="fa {{ (state.selectedChannel and state.selectedChannel.wa_disappearing_mode === opt[0]) ? 'fa-dot-circle-o' : 'fa-circle-o' }}"
+                                   t-attf-style="color: {{ (state.selectedChannel and state.selectedChannel.wa_disappearing_mode === opt[0]) ? '#128C7E' : '#ccc' }}; font-size: 18px;"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- Add Quick Reply Modal -->
+        <t t-if="state.showAddQuickReplyModal">
+            <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center;" t-on-click="closeAddQuickReply">
+                <div style="background: white; width: 420px; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.2);" t-on-click.stop="() => {}">
+                    <div style="background: #128C7E; color: white; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 16px; font-weight: 600;"><i class="fa fa-plus" style="margin-right: 8px;"/>New Quick Reply</span>
+                        <i class="fa fa-times" style="cursor: pointer;" t-on-click="closeAddQuickReply"/>
+                    </div>
+                    <div style="padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+                        <div>
+                            <label style="font-size: 12px; color: #667781; font-weight: 600; display: block; margin-bottom: 4px;">SHORTCUT (optional)</label>
+                            <input type="text" placeholder="e.g. greeting" t-model="state.newQuickReply.shortcut"
+                                   style="width: 100%; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 12px; font-size: 14px; outline: none;"/>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: #667781; font-weight: 600; display: block; margin-bottom: 4px;">MESSAGE *</label>
+                            <textarea t-model="state.newQuickReply.body" placeholder="Type your quick reply message..."
+                                      rows="4" style="width: 100%; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 12px; font-size: 14px; outline: none; resize: vertical;"/>
+                        </div>
+                        <button t-on-click="saveQuickReply"
+                                style="background: #128C7E; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; align-self: flex-end;">
+                            Save Quick Reply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
         
         <t t-if="state.showCatalogueModal">
             <div class="catalogue-modal">
@@ -1023,5 +1177,6 @@
                 </div>
             </div>
         </t>
+        </div>
     </t>
 </templates>

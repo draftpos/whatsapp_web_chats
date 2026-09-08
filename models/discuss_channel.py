@@ -10,6 +10,14 @@ class DiscussChannel(models.Model):
     wa_is_unread_global = fields.Boolean(string="WhatsApp Chat Unread (Global)", default=False)
     wa_is_favourite = fields.Boolean(string="WhatsApp Chat Favourite", default=False)
     wa_is_urgent = fields.Boolean(string="WhatsApp Chat Urgent", default=False)
+    wa_is_muted = fields.Boolean(string="WhatsApp Chat Muted", default=False)
+    wa_is_blocked = fields.Boolean(string="WhatsApp Chat Blocked", default=False)
+    wa_disappearing_mode = fields.Selection([
+        ('off', 'Off'),
+        ('24h', '24 Hours'),
+        ('7d', '7 Days'),
+        ('90d', '90 Days')
+    ], string="Disappearing Messages", default='off')
     wa_tag_ids = fields.Many2many('wa.chat.tag', string='WhatsApp Tags')
 
     wa_bot_state = fields.Selection([
@@ -151,3 +159,30 @@ class DiscussChannel(models.Model):
         if other_channels and hasattr(super(DiscussChannel, other_channels), '_broadcast'):
             return super(DiscussChannel, other_channels)._broadcast(partner_ids)
         return True
+
+
+    @api.model
+    def _cron_delete_disappearing_messages(self):
+        from datetime import timedelta
+        now = fields.Datetime.now()
+        
+        mode_hours = {
+            \'24h\': 24,
+            \'7d\': 7 * 24,
+            \'90d\': 90 * 24
+        }
+        
+        for mode, hours in mode_hours.items():
+            threshold_date = now - timedelta(hours=hours)
+            
+            channels = self.search([(\'wa_disappearing_mode\', \'=\', mode)])
+            if not channels:
+                continue
+                
+            messages_to_delete = self.env[\'whatsapp.message\'].search([
+                (\'channel_id\', \'in\', channels.ids),
+                (\'create_date\', \'<\', threshold_date)
+            ])
+            
+            if messages_to_delete:
+                messages_to_delete.unlink()
