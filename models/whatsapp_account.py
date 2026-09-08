@@ -84,7 +84,7 @@ class WhatsAppAccount(models.Model):
             last_message = self.env['mail.message'].sudo().search([
                 ('model', '=', 'discuss.channel'),
                 ('res_id', '=', c.id)
-            ], order='date desc', limit=1)
+            ], order='date desc, id desc', limit=1)
             
             sort_date_obj = last_message.date if last_message else c.write_date
             sort_date = sort_date_obj.strftime('%Y-%m-%dT%H:%M:%SZ') if sort_date_obj else ''
@@ -234,7 +234,7 @@ class WhatsAppAccount(models.Model):
         messages = self.env['mail.message'].sudo().search([
             ('res_id', '=', int(channel_id)),
             ('model', '=', 'discuss.channel'),
-        ], order='date asc')
+        ], order='date asc, id asc')
         
         import re
         def clean_name(n):
