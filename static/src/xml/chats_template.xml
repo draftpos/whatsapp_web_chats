@@ -681,8 +681,8 @@
             <!-- Profile Settings Modal -->
             <t t-if="state.isProfileModalOpen">
                 <div class="whatsapp-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
-                    <div class="whatsapp-modal" style="background: white; border-radius: 12px; width: 400px; max-width: 90%; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                        <div class="modal-header" style="background: #f0f2f5; padding: 16px 20px; display: flex; align-items: center; border-bottom: 1px solid #d1d7db;">
+                    <div class="whatsapp-modal" style="background: white; border-radius: 12px; width: 400px; max-width: 90%; overflow: visible; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div class="modal-header" style="background: #f0f2f5; padding: 16px 20px; display: flex; align-items: center; border-bottom: 1px solid #d1d7db; border-top-left-radius: 12px; border-top-right-radius: 12px;">
                             <h3 style="margin: 0; font-size: 16px; color: #111b21; font-weight: 500;">Profile Settings</h3>
                             <i class="fa fa-times" t-on-click="closeProfileSettings" style="margin-left: auto; cursor: pointer; color: #54656f; font-size: 20px;"></i>
                         </div>
