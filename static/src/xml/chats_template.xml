@@ -171,7 +171,7 @@
                                 <i class="fa fa-chevron-down"></i>
                             </div>
                             <t t-if="state.showChatDropdownId === channel.id">
-                                <div class="chat-dropdown-menu" t-attf-style="max-height: 250px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : '' }}" t-on-click.stop="() => {}">
+                                <div class="chat-dropdown-menu" t-attf-style="max-height: 250px; overflow-y: auto; position: fixed; z-index: 1050; {{ state.dropdownStyle || '' }}" t-on-click.stop="() => {}">
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_done', true, ev)">Archive chat</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Mute notifications</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.openDeleteChatModal(channel.id, ev)">Delete chat</div>

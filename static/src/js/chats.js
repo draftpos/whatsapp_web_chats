@@ -2332,9 +2332,25 @@ export class WhatsAppChatsAction extends Component {
         if (ev) ev.stopPropagation();
         if (this.state.showChatDropdownId === channelId) {
             this.state.showChatDropdownId = null;
+            this.state.dropdownStyle = "";
         } else {
             this.state.showChatDropdownId = channelId;
-            this.state.dropdownUpwards = (ev && ev.clientY > window.innerHeight * 0.6);
+            if (ev && ev.currentTarget) {
+                const rect = ev.currentTarget.getBoundingClientRect();
+                const dropdownHeight = 250; 
+                const dropdownWidth = 180;
+                let top;
+                // If there isn't enough space below, but there is space above, show upwards
+                if (window.innerHeight - rect.bottom < dropdownHeight && rect.top > dropdownHeight) {
+                    top = rect.top - dropdownHeight; 
+                } else {
+                    top = rect.bottom; 
+                }
+                // align to the right of the button
+                let left = rect.right - dropdownWidth;
+                if (left < 10) left = 10;
+                this.state.dropdownStyle = `top: ${top}px; left: ${left}px; width: ${dropdownWidth}px;`;
+            }
         }
     }
 
