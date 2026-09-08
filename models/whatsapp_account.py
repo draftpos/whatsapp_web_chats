@@ -239,7 +239,7 @@ class WhatsAppAccount(models.Model):
         domain = ['|', '&', ('res_id', '=', int(channel_id)), ('model', '=', 'discuss.channel')]
         if channel.whatsapp_number:
             wa_msgs = self.env['whatsapp.message'].sudo().search([
-                ('mobile_number', '=', channel.whatsapp_number),
+                ('mobile_number', 'in', [channel.whatsapp_number, '+' + channel.whatsapp_number]),
                 ('wa_account_id', '=', channel.wa_account_id.id),
                 ('mail_message_id', '!=', False)
             ])
