@@ -875,7 +875,7 @@ export class WhatsAppChatsAction extends Component {
                     });
                 }
                 // --- End Menu Detection ---
-                let isSystem = msg.message_type === 'notification';
+                let isSystem = msg.message_type === 'notification' && !msg.wa_state;
                 
                 let timeText = '';
                 if (msg.date) {
