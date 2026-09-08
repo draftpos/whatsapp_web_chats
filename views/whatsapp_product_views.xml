@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Form View -->
+        <record id="view_whatsapp_product_form" model="ir.ui.view">
+            <field name="name">whatsapp.product.form</field>
+            <field name="model">whatsapp.product</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <field name="image_1920" widget="image" class="oe_avatar"/>
+                        <div class="oe_title">
+                            <label for="name" class="oe_edit_only"/>
+                            <h1><field name="name" placeholder="Product Name"/></h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="list_price"/>
+                                <field name="item_code"/>
+                            </group>
+                            <group>
+                                <field name="url" widget="url"/>
+                                <field name="show_in_catalogue"/>
+                                <field name="tenant_id" groups="base.group_multi_company"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Description">
+                                <field name="description" placeholder="Product Description..."/>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Tree View -->
+        <record id="view_whatsapp_product_tree" model="ir.ui.view">
+            <field name="name">whatsapp.product.tree</field>
+            <field name="model">whatsapp.product</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                    <field name="list_price"/>
+                    <field name="item_code"/>
+                    <field name="show_in_catalogue"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Action -->
+        <record id="action_whatsapp_product" model="ir.actions.act_window">
+            <field name="name">Catalogue</field>
+            <field name="res_model">whatsapp.product</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <!-- Menu Item -->
+        <menuitem id="menu_whatsapp_product" 
+                  name="Catalogue" 
+                  parent="whatsapp.whatsapp_configuration_menu" 
+                  action="action_whatsapp_product" 
+                  sequence="40"/>
+    </data>
+</odoo>

@@ -8,7 +8,11 @@ class WhatsAppProduct(models.Model):
     tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
     name = fields.Char(string="Name", required=True, translate=True)
     list_price = fields.Float(string="Price", digits="Product Price")
-    image_128 = fields.Binary(string="Image", attachment=True)
+    description = fields.Text(string="Description", translate=True)
+    url = fields.Char(string="Link")
+    item_code = fields.Char(string="Item Code")
+    image_1920 = fields.Binary(string="Image", attachment=True)
+    image_128 = fields.Binary(string="Small Image", related="image_1920", store=True)
     show_in_catalogue = fields.Boolean(string="Show in catalogue", default=True)
 
     @api.model

@@ -22,6 +22,8 @@ export class WhatsAppChatsAction extends Component {
             selectedAccount: null,
             products: [],
             showCatalogue: false,
+            showAddProductModal: false,
+            newProduct: null,
             wa_templates: [],
             showTemplatesModal: false,
             isAccountDropdownOpen: false,
@@ -289,7 +291,7 @@ export class WhatsAppChatsAction extends Component {
             const results = await this.orm.searchRead(
                 "whatsapp.product",
                 [["show_in_catalogue", "=", true]],
-                ["id", "name", "list_price", "image_128"],
+                ["id", "name", "list_price", "image_128", "description", "url", "item_code", "image_1920"],
                 { order: "name asc" }
             );
             this.state.products = results;
@@ -299,18 +301,57 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
-    async addCatalogueProduct() {
-        const name = prompt("Product name:");
-        if (!name || !name.trim()) return;
-        const priceStr = prompt("Price (e.g. 99.99):");
-        const price = parseFloat(priceStr) || 0;
+    openAddProductModal() {
+        this.state.newProduct = {
+            name: "",
+            list_price: 0,
+            description: "",
+            url: "",
+            item_code: "",
+            image_1920: null,
+            imagePreview: null
+        };
+        this.state.showAddProductModal = true;
+    }
+
+    closeAddProductModal() {
+        this.state.showAddProductModal = false;
+        this.state.newProduct = null;
+    }
+
+    handleProductImageUpload(ev) {
+        const file = ev.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64 = e.target.result.split(',')[1];
+            this.state.newProduct.image_1920 = base64;
+            this.state.newProduct.imagePreview = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async saveCatalogueProduct() {
+        const prod = this.state.newProduct;
+        if (!prod.name || !prod.name.trim()) {
+            alert("Product name is required.");
+            return;
+        }
         try {
-            await this.orm.create("whatsapp.product", [{
-                name: name.trim(),
-                list_price: price,
+            const vals = {
+                name: prod.name.trim(),
+                list_price: parseFloat(prod.list_price) || 0,
+                description: prod.description || "",
+                url: prod.url || "",
+                item_code: prod.item_code || "",
                 show_in_catalogue: true,
-            }]);
+            };
+            if (prod.image_1920) {
+                vals.image_1920 = prod.image_1920;
+            }
+            await this.orm.create("whatsapp.product", [vals]);
             await this.loadProducts();
+            this.closeAddProductModal();
         } catch (e) {
             console.error("Failed to add catalogue product", e);
             alert("Failed to add product: " + e.message);
@@ -2069,10 +2110,11 @@ export class WhatsAppChatsAction extends Component {
         try {
             let attachment_ids = [];
             // If the product has an image, create an attachment for it
-            if (product.image_128) {
+            const imgData = product.image_1920 || product.image_128;
+            if (imgData) {
                 const attachmentId = await this.orm.create("ir.attachment", [{
                     name: product.name + ".jpg",
-                    datas: product.image_128,
+                    datas: imgData,
                     res_model: "discuss.channel",
                     res_id: this.state.selectedChannel.id,
                     type: "binary"
@@ -2085,7 +2127,17 @@ export class WhatsAppChatsAction extends Component {
             const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
             // Fallback to simple price format if formatting fails, though this should work
             const price = product.list_price ? currencyFormatter.format(product.list_price) : '$0.00';
-            const body = `📦 *${product.name}*\nPrice: ${price}`;
+            
+            let body = `📦 *${product.name}*\nPrice: ${price}`;
+            if (product.description) {
+                body += `\n\n${product.description}`;
+            }
+            if (product.item_code) {
+                body += `\nCode: ${product.item_code}`;
+            }
+            if (product.url) {
+                body += `\nLink: ${product.url}`;
+            }
             
             await this.orm.call(
                 "discuss.channel",

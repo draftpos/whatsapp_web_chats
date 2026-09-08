@@ -22,7 +22,8 @@
                             Delete <t t-esc="state.selectedChannels.length"/> Chat<t t-if="state.selectedChannels.length > 1">s</t>
                         </button>
                     </t>
-                    <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="New Chat"></i>
+                    <i class="fa fa-shopping-bag" t-on-click="openCatalogueModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="Catalogue"></i>
+                    <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="New Chat"></i>
                 </div>
             </div>
             <!-- Search bar -->
@@ -1086,14 +1087,58 @@
             </div>
         </t>
 
-        
+        <!-- Add Product Modal -->
+        <t t-if="state.showAddProductModal">
+            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+                <div class="modal-content" style="background: white; width: 450px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div class="modal-header" style="background: #128C7E; color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 16px; font-weight: 500;">Add Product</span>
+                        <i class="fa fa-times" style="cursor: pointer;" t-on-click="closeAddProductModal"></i>
+                    </div>
+                    <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 15px;">
+                        <div>
+                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Image</label>
+                            <input type="file" accept="image/*" t-on-change="handleProductImageUpload" style="font-size: 13px;"/>
+                            <t t-if="state.newProduct.imagePreview">
+                                <img t-att-src="state.newProduct.imagePreview" style="max-width: 100px; margin-top: 10px; border-radius: 4px;"/>
+                            </t>
+                        </div>
+                        <div>
+                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Item Name *</label>
+                            <input type="text" t-model="state.newProduct.name" class="form-control" placeholder="e.g. Vintage Leather Bag" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
+                        </div>
+                        <div>
+                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Price</label>
+                            <input type="number" t-model="state.newProduct.list_price" class="form-control" placeholder="0.00" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
+                        </div>
+                        <div>
+                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Description</label>
+                            <textarea t-model="state.newProduct.description" class="form-control" rows="3" placeholder="Describe the product..." style="width: 100%; box-sizing: border-box; resize: vertical; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Link</label>
+                            <input type="url" t-model="state.newProduct.url" class="form-control" placeholder="https://..." style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
+                        </div>
+                        <div>
+                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Item Code</label>
+                            <input type="text" t-model="state.newProduct.item_code" class="form-control" placeholder="e.g. SKU-123" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 15px 20px; border-top: 1px solid #ddd; display: flex; justify-content: flex-end; gap: 10px; background: #f6f6f6;">
+                        <button class="btn btn-secondary" t-on-click="closeAddProductModal" style="border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer;">Cancel</button>
+                        <button class="btn btn-primary" t-on-click="saveCatalogueProduct" style="background: #128C7E; color: white; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-weight: bold;">Save</button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
         <t t-if="state.showCatalogueModal">
             <div class="catalogue-modal">
                 <div class="catalogue-content" style="max-width: 620px;">
                     <div class="catalogue-header" style="background: #128C7E; color: white; display:flex; align-items:center; justify-content:space-between;">
                         <h3 style="color: white; margin:0;"><i class="fa fa-shopping-bag" style="margin-right: 8px;"/> WhatsApp Catalogue</h3>
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <button t-on-click="addCatalogueProduct" style="background:white; color:#128C7E; border:none; border-radius:20px; padding:6px 16px; font-weight:600; cursor:pointer; font-size:13px;">
+                            <button t-on-click="openAddProductModal" style="background:white; color:#128C7E; border:none; border-radius:20px; padding:6px 16px; font-weight:600; cursor:pointer; font-size:13px;">
                                 <i class="fa fa-plus"/> Add Product
                             </button>
                             <button class="preview-close" t-on-click="closeCatalogueModal" style="position: static; color: white; background:transparent; border:none; font-size:18px; cursor:pointer;"><i class="fa fa-times"/></button>
@@ -1126,6 +1171,9 @@
                                 </div>
                                 <div style="padding: 8px 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; cursor:pointer;" t-on-click="() => this.sendProduct(prod)">
                                     <div style="font-size: 13px; font-weight: 500; color: #111b21; margin-bottom: 4px; line-height: 1.2;"><t t-esc="prod.name"/></div>
+                                    <t t-if="prod.description">
+                                        <div style="font-size: 11px; color: #667781; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><t t-esc="prod.description"/></div>
+                                    </t>
                                     <div style="font-size: 13px; color: #25D366; font-weight: bold;"><t t-esc="prod.list_price.toFixed ? prod.list_price.toFixed(2) : prod.list_price"/></div>
                                 </div>
                             </div>

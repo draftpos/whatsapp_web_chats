@@ -13,6 +13,7 @@
         'views/whatsapp_quick_reply_views.xml',
         'views/chats_action.xml',
         'views/product_template_views.xml',
+        'views/whatsapp_product_views.xml',
         'views/res_users_views.xml',
         'views/res_config_settings_views.xml',
     ],
