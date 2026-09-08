@@ -111,14 +111,31 @@ class DiscussChannel(models.Model):
         
         # Don't create a whatsapp.message manually; the native hook will handle it if we post a comment
         if channel.whatsapp_partner_id:
-            channel.message_post(body=customer_msg, message_type='comment', subtype_xmlid='mail.mt_comment')
+            channel.message_post(body=customer_msg, message_type='whatsapp_message', subtype_xmlid='mail.mt_comment')
             
         return True
 
     def _notify_thread(self, message, msg_vals=False, **kwargs):
         # Prevent Odoo native Discuss from popping up or showing notifications for whatsapp channels
         if getattr(self, 'channel_type', False) == 'whatsapp':
+            # CRITICAL: We must replicate Native Odoo's whatsapp module logic to create the inbound
+            # whatsapp.message. If we don't, Native Odoo's message_post override will think this is an 
+            # outbound message and ECHO it back to the customer!
+            parent_msg_id = kwargs.get('parent_msg_id', False)
+            if kwargs.get('whatsapp_inbound_msg_uid'):
+                self.env['whatsapp.message'].create({
+                    'mail_message_id': message.id,
+                    'message_type': 'inbound',
+                    'mobile_number': f'+{self.whatsapp_number}',
+                    'msg_uid': kwargs['whatsapp_inbound_msg_uid'],
+                    'parent_id': parent_msg_id,
+                    'state': 'received',
+                    'wa_account_id': self.wa_account_id.id,
+                })
+                if parent_msg_id:
+                    self.env['whatsapp.message'].browse(parent_msg_id).state = 'replied'
             return True
+            
         if hasattr(super(), '_notify_thread'):
             return super()._notify_thread(message, msg_vals=msg_vals, **kwargs)
         return True
