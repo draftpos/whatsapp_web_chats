@@ -16,10 +16,11 @@ class WhatsAppQuickReply(models.Model):
     @api.model
     def get_quick_replies(self, account_id=None):
         current_company = self.env.company
-        domain = [('account_id', '=', False), ('tenant_id', '=', current_company.id)]
+        # Show replies for this company OR unassigned legacy replies (tenant_id = False)
+        tenant_filter = ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
+        domain = [('account_id', '=', False)] + tenant_filter
         if account_id:
-            domain = ['|', ('account_id', '=', account_id), ('account_id', '=', False)]
-            domain.append(('tenant_id', '=', current_company.id))
+            domain = ['|', ('account_id', '=', account_id), ('account_id', '=', False)] + tenant_filter
         
         replies = self.search(domain)
         return [{'id': r.id, 'shortcut': r.shortcut or '', 'body': r.body, 'is_pinned': r.is_pinned, 'is_favorite': r.is_favorite} for r in replies]

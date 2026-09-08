@@ -75,8 +75,8 @@ class WhatsAppAccount(models.Model):
     def get_whatsapp_web_channels(self, wa_account_id=None):
         current_company = self.env.company
         domain = [('channel_type', '=', 'whatsapp'), '|', ('whatsapp_partner_id', '!=', False), ('whatsapp_number', '!=', False)]
-        # Filter by tenant (company) to isolate each tenant's data
-        domain.append(('tenant_id', '=', current_company.id))
+        # Tenant isolation: show channels for this company OR unassigned legacy channels (tenant_id = False)
+        domain = ['&'] + domain + ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
         if wa_account_id:
             domain.append(('wa_account_id', '=', int(wa_account_id)))
         
@@ -212,7 +212,8 @@ class WhatsAppAccount(models.Model):
     @api.model
     def get_all_chat_tags(self):
         current_company = self.env.company
-        tags = self.env['wa.chat.tag'].sudo().search([('tenant_id', '=', current_company.id)])
+        # Show tags for this company OR unassigned legacy tags
+        tags = self.env['wa.chat.tag'].sudo().search(['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)])
         return [{'id': t.id, 'name': t.name, 'color': t.color} for t in tags]
 
     @api.model
