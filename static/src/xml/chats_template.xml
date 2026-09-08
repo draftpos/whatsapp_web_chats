@@ -47,7 +47,7 @@
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'favourites' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('favourites')">Favourites</div>
                         <!-- Dropdown Filter for Done/Urgent/Labels -->
                         <div class="chat-filter-dropdown-container" style="position: relative;">
-                            <div t-attf-class="chat-filter-pill {{ ['done', 'urgent'].includes(state.chatFilter) || (state.chatFilter.startsWith('tag_')) ? 'active' : '' }}" t-on-click="() => this.setState({showFilterDropdown: !state.showFilterDropdown})">
+                            <div t-attf-class="chat-filter-pill {{ ['done', 'urgent'].includes(state.chatFilter) || (state.chatFilter.startsWith('tag_')) ? 'active' : '' }}" t-on-click="() => Object.assign(this.state, {showFilterDropdown: !state.showFilterDropdown})">
                                 <t t-if="state.chatFilter === 'done'">Done</t>
                                 <t t-elif="state.chatFilter === 'urgent'">Urgent</t>
                                 <t t-elif="state.chatFilter.startsWith('tag_')">
@@ -59,12 +59,12 @@
                             </div>
                             <t t-if="state.showFilterDropdown">
                                 <div class="filter-dropdown-menu" style="position: absolute; top: 100%; left: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 150px; margin-top: 5px; max-height: 300px; overflow-y: auto;">
-                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('done'); this.setState({showFilterDropdown: false}); }">Done</div>
-                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('urgent'); this.setState({showFilterDropdown: false}); }">Urgent</div>
+                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('done'); Object.assign(this.state, {showFilterDropdown: false}); }">Done</div>
+                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('urgent'); Object.assign(this.state, {showFilterDropdown: false}); }">Urgent</div>
                                     <t t-if="state.availableTags and state.availableTags.length > 0">
                                         <div style="border-top: 1px solid #f0f2f5; margin: 4px 0;"></div>
                                         <t t-foreach="state.availableTags" t-as="tag" t-key="tag.id">
-                                            <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('tag_' + tag.id); this.setState({showFilterDropdown: false}); }" style="display: flex; align-items: center;">
+                                            <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('tag_' + tag.id); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center;">
                                                 <div style="width: 12px; height: 12px; border-radius: 50%; margin-right: 8px;" t-attf-style="background-color: {{tag.color}};"></div>
                                                 <t t-esc="tag.name"/>
                                             </div>
@@ -685,7 +685,7 @@
                 <div class="whatsapp-contact-info" style="width: 350px; min-width: 350px; background: #f0f2f5; border-left: 1px solid #d1d7db; display: flex; flex-direction: column; overflow-y: auto;">
                     <div class="whatsapp-header" style="display: flex; align-items: center; background: #f0f2f5; min-height: 60px;">
                         <t t-if="state.showMediaTabsView">
-                            <i class="fa fa-arrow-left" style="font-size: 20px; color: #54656f; cursor: pointer; margin-right: 20px; padding-left: 10px;" t-on-click="() => this.setState({showMediaTabsView: false})"></i>
+                            <i class="fa fa-arrow-left" style="font-size: 20px; color: #54656f; cursor: pointer; margin-right: 20px; padding-left: 10px;" t-on-click="() => Object.assign(this.state, {showMediaTabsView: false})"></i>
                             <span style="font-size: 16px; color: #111b21;">Media, links and docs</span>
                         </t>
                         <t t-else="">
@@ -743,7 +743,7 @@
 
                     <!-- Media Preview Section -->
                     <div style="background: white; padding: 20px 0; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px 15px 20px; cursor: pointer;" t-on-click="() => this.setState({showMediaTabsView: true})">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px 15px 20px; cursor: pointer;" t-on-click="() => Object.assign(this.state, {showMediaTabsView: true})">
                             <span style="font-size: 16px; color: #111b21;">Media, links and docs</span>
                             <div style="display: flex; align-items: center; color: #54656f;">
                                 <span style="margin-right: 10px;"><t t-esc="(state.contactMedia?.length || 0) + (state.contactLinks?.length || 0)"/></span>
@@ -753,7 +753,7 @@
                         <t t-if="state.contactMedia?.filter(m => m.mimetype and (m.mimetype.startsWith('image/') || m.mimetype.startsWith('video/'))).length">
                             <div style="display: flex; gap: 10px; padding: 0 20px; overflow-x: auto;">
                                 <t t-foreach="state.contactMedia.filter(m => m.mimetype and (m.mimetype.startsWith('image/') || m.mimetype.startsWith('video/'))).slice(0, 3)" t-as="media" t-key="media.id">
-                                    <div style="width: 80px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #eee; cursor: pointer;" t-on-click="() => this.setState({showMediaTabsView: true, contactMediaTab: 'media'})">
+                                    <div style="width: 80px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #eee; cursor: pointer;" t-on-click="() => Object.assign(this.state, {showMediaTabsView: true, contactMediaTab: 'media'})">
                                         <t t-if="media.mimetype.startsWith('image/')">
                                             <img t-attf-src="/web/image/{{media.id}}" style="width: 100%; height: 100%; object-fit: cover;"/>
                                         </t>
