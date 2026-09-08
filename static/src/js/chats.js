@@ -606,16 +606,19 @@ export class WhatsAppChatsAction extends Component {
                 filtered = filtered.filter(c => c.wa_is_favourite);
                 break;
             case 'done':
-                filtered = filtered.filter(c => c.wa_is_done);
+                filtered = filtered.filter(c => c.wa_is_done && !c.wa_is_blocked);
                 break;
             case 'urgent':
-                filtered = filtered.filter(c => c.wa_is_urgent);
+                filtered = filtered.filter(c => c.wa_is_urgent && !c.wa_is_blocked);
                 break;
             case 'all':
             default:
                 if (this.state.chatFilter && this.state.chatFilter.startsWith('tag_')) {
                     const tagId = parseInt(this.state.chatFilter.replace('tag_', ''));
-                    filtered = filtered.filter(c => c.wa_tags && c.wa_tags.some(t => t.id === tagId));
+                    filtered = filtered.filter(c => !c.wa_is_blocked && c.wa_tags && c.wa_tags.some(t => t.id === tagId));
+                } else {
+                    // Inbox view: hide archived and blocked chats
+                    filtered = filtered.filter(c => !c.wa_is_done && !c.wa_is_blocked);
                 }
                 break;
         }
@@ -2009,7 +2012,36 @@ export class WhatsAppChatsAction extends Component {
     async toggleContactInfo() {
         this.state.showContactInfo = !this.state.showContactInfo;
         if (this.state.showContactInfo && this.state.selectedChannel) {
+            this.state.showMediaTabsView = false;
             await this.fetchContactMedia(this.state.selectedChannel.id);
+        }
+    }
+
+    async viewContactProfile(channel, ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showChatDropdownId = null;
+        this.state.dropdownStyle = "";
+        
+        // Ensure channel is selected
+        if (!this.state.selectedChannel || this.state.selectedChannel.id !== channel.id) {
+            await this.selectChannel(channel);
+        }
+        
+        this.state.showContactInfo = true;
+        this.state.showMediaTabsView = false;
+        await this.fetchContactMedia(channel.id);
+    }
+
+    async blockContact(channel, ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showChatDropdownId = null;
+        this.state.dropdownStyle = "";
+        
+        if (confirm(`Are you sure you want to block ${channel.name}? They will no longer be able to message you.`)) {
+            await this.setChatState(channel.id, 'wa_is_blocked', true);
+            if (this.state.selectedChannel && this.state.selectedChannel.id === channel.id) {
+                this.closeChat();
+            }
         }
     }
     

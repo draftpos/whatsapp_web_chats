@@ -172,16 +172,21 @@
                             </div>
                             <t t-if="state.showChatDropdownId === channel.id">
                                 <div class="chat-dropdown-menu" t-attf-style="max-height: 250px; overflow-y: auto; position: fixed; z-index: 1050; {{ state.dropdownStyle || '' }}" t-on-click.stop="() => {}">
-                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_done', true, ev)">Archive chat</div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_done', !channel.wa_is_done, ev)">
+                                        <t t-esc="channel.wa_is_done ? 'Unarchive chat' : 'Archive chat'"/>
+                                    </div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Mute notifications</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.openDeleteChatModal(channel.id, ev)">Delete chat</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_favourite', !channel.wa_is_favourite, ev)">
                                         <t t-esc="channel.wa_is_favourite ? 'Unpin from top' : 'Pin to top'"/>
                                     </div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleChannelSelection(channel.id, ev); this.toggleChatDropdown(channel.id, ev); }">Select chat</div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.viewContactProfile(channel, ev)">View contact</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_unread_global', !channel.wa_is_unread_global, ev)">
                                         <t t-esc="channel.wa_is_unread_global ? 'Mark as read' : 'Mark as unread'"/>
                                     </div>
+                                    <div class="chat-dropdown-divider" style="height:1px; background:#f0f2f5; margin:4px 0;"></div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.blockContact(channel, ev)">Block</div>
                                     <div class="chat-dropdown-divider" style="height:1px; background:#f0f2f5; margin:4px 0;"></div>
                                     <t t-if="state.showLabels and state.availableTags and state.availableTags?.length > 0">
                                         <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Label chat</div>
@@ -761,7 +766,7 @@
                             <i class="fa fa-minus-circle" style="width: 24px; color: #eb5757; font-size: 20px; margin-right: 15px; text-align: center;"></i>
                             <span style="font-size: 16px; color: #eb5757;">Clear chat</span>
                         </div>
-                        <div style="padding: 15px 20px; display: flex; align-items: center; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f5f6f6'" onmouseout="this.style.background='white'" t-on-click="(ev) => this.comingSoon(ev)">
+                        <div style="padding: 15px 20px; display: flex; align-items: center; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f5f6f6'" onmouseout="this.style.background='white'" t-on-click="(ev) => this.blockContact(state.selectedChannel, ev)">
                             <i class="fa fa-ban" style="width: 24px; color: #eb5757; font-size: 20px; margin-right: 15px; text-align: center;"></i>
                             <span style="font-size: 16px; color: #eb5757;">Block <t t-esc="state.selectedChannel.name || 'contact'"/></span>
                         </div>
