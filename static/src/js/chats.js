@@ -1909,8 +1909,6 @@ export class WhatsAppChatsAction extends Component {
                 wa_disappearing_mode: mode
             });
             this.state.selectedChannel.wa_disappearing_mode = mode;
-            const modeLabels = { off: 'Off', '24h': '24 Hours', '7d': '7 Days', '90d': '90 Days' };
-            this.comingSoon(null, `Disappearing messages: ${modeLabels[mode] || mode}`);
         } catch (e) {
             console.error('[WA] Disappearing mode set failed:', e);
         }
@@ -1928,7 +1926,6 @@ export class WhatsAppChatsAction extends Component {
                 wa_is_muted: newVal
             });
             this.state.selectedChannel.wa_is_muted = newVal;
-            this.comingSoon(null, newVal ? 'Chat muted — notifications suppressed' : 'Chat unmuted');
         } catch (e) {
             console.error('[WA] Mute toggle failed:', e);
         }
@@ -1937,18 +1934,9 @@ export class WhatsAppChatsAction extends Component {
 
     async toggleBlockChat(ev) {
         if (ev) ev.stopPropagation();
-        if (!this.state.selectedChannel) return;
-        const newVal = !this.state.selectedChannel.wa_is_blocked;
-        try {
-            await this.orm.write('discuss.channel', [this.state.selectedChannel.id], {
-                wa_is_blocked: newVal
-            });
-            this.state.selectedChannel.wa_is_blocked = newVal;
-            this.comingSoon(null, newVal ? 'Chat blocked — messages disabled' : 'Chat unblocked');
-        } catch (e) {
-            console.error('[WA] Block toggle failed:', e);
+        if (this.state.selectedChannel) {
+            this.blockContact(this.state.selectedChannel, ev);
         }
-        this.state.showHeaderDropdown = false;
     }
 
     openCatalogueModal() {
@@ -2036,8 +2024,28 @@ export class WhatsAppChatsAction extends Component {
         if (ev) ev.stopPropagation();
         this.state.showChatDropdownId = null;
         this.state.dropdownStyle = "";
+        this.state.showHeaderDropdown = false;
+        
+        if (channel.wa_is_blocked) {
+            await this.setChatState(channel.id, 'wa_is_blocked', false);
+            return;
+        }
         
         if (confirm(`Are you sure you want to block ${channel.name}? They will no longer be able to message you.`)) {
+            await this.setChatState(channel.id, 'wa_is_blocked', true);
+            if (this.state.selectedChannel && this.state.selectedChannel.id === channel.id) {
+                this.closeChat();
+            }
+        }
+    }
+
+    async reportContact(channel, ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showChatDropdownId = null;
+        this.state.dropdownStyle = "";
+        this.state.showHeaderDropdown = false;
+        
+        if (confirm(`Report ${channel.name} to WhatsApp? The last 5 messages will be forwarded to WhatsApp. This contact will also be blocked.`)) {
             await this.setChatState(channel.id, 'wa_is_blocked', true);
             if (this.state.selectedChannel && this.state.selectedChannel.id === channel.id) {
                 this.closeChat();

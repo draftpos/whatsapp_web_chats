@@ -175,7 +175,7 @@
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_done', !channel.wa_is_done, ev)">
                                         <t t-esc="channel.wa_is_done ? 'Unarchive chat' : 'Archive chat'"/>
                                     </div>
-                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Mute notifications</div>
+                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMuteChat(ev)">Mute notifications</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.openDeleteChatModal(channel.id, ev)">Delete chat</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_favourite', !channel.wa_is_favourite, ev)">
                                         <t t-esc="channel.wa_is_favourite ? 'Unpin from top' : 'Pin to top'"/>
@@ -282,7 +282,7 @@
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.openDisappearingModal(); this.toggleHeaderDropdown(ev); }">Disappearing messages</div>
                                         <div class="chat-dropdown-item" t-on-click="() => { this.clearChat(state.selectedChannel.id); this.toggleHeaderDropdown(); }">Clear chat</div>
                                         <div class="chat-dropdown-item" t-on-click="() => { this.openDeleteChatModal(state.selectedChannel.id); this.toggleHeaderDropdown(); }">Delete chat</div>
-                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Report</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => this.reportContact(state.selectedChannel, ev)">Report</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleBlockChat(ev)">
                                             <t t-esc="state.selectedChannel and state.selectedChannel.wa_is_blocked ? 'Unblock' : 'Block'"/>
                                         </div>
@@ -449,7 +449,7 @@
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessagePin(msg.id, ev)">
                                                 <t t-esc="msg.wa_is_pinned ? 'Unpin' : 'Pin'"/>
                                             </div>
-                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Report</div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.reportContact(state.selectedChannel, ev)">Report</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
