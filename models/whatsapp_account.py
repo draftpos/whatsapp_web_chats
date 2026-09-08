@@ -230,6 +230,22 @@ class WhatsAppAccount(models.Model):
                 self.mark_whatsapp_web_messages_read(channel_id)
             return {'success': True}
         return {'success': False, 'error': 'Invalid channel or field'}
+
+    @api.model
+    def toggle_message_star(self, message_id):
+        wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', int(message_id))], limit=1)
+        if wa_msg:
+            wa_msg.wa_is_starred = not wa_msg.wa_is_starred
+            return {'success': True, 'wa_is_starred': wa_msg.wa_is_starred}
+        return {'success': False, 'error': 'Message not found'}
+
+    @api.model
+    def toggle_message_pin(self, message_id):
+        wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', int(message_id))], limit=1)
+        if wa_msg:
+            wa_msg.wa_is_pinned = not wa_msg.wa_is_pinned
+            return {'success': True, 'wa_is_pinned': wa_msg.wa_is_pinned}
+        return {'success': False, 'error': 'Message not found'}
         
     @api.model
     def get_whatsapp_web_messages(self, channel_id):
@@ -252,9 +268,6 @@ class WhatsAppAccount(models.Model):
             domain = domain[1:]
             
         messages = self.env['mail.message'].sudo().search(domain, order='id asc')
-        import logging
-        _logger = logging.getLogger(__name__)
-        _logger.info("get_whatsapp_web_messages called for channel %s. Found %s messages. Last ID: %s", channel_id, len(messages), messages[-1].id if messages else None)
         
         import re
         def clean_name(n):
@@ -273,18 +286,17 @@ class WhatsAppAccount(models.Model):
         wa_msgs = self.env['whatsapp.message'].sudo().search([
             ('mail_message_id', 'in', messages.ids)
         ])
-        wa_state_map = {wa.mail_message_id.id: wa.state for wa in wa_msgs if wa.mail_message_id}
+        wa_map = {wa.mail_message_id.id: wa for wa in wa_msgs if wa.mail_message_id}
         
         res = []
         for m in messages:
             body_text = re.sub(r'<[^>]+>', '', m.body or '').strip()
-            # We must not skip messages here. Even if plain text is empty, it might be an HTML-only message (like an inline image or system notification).
-            # Skipping it causes the UI to revert the chat list preview.            
-            wa_state = wa_state_map.get(m.id, False)
             
             if m.author_id and m.author_id.id == self.env.user.partner_id.id:
                 is_me = True
             elif self.env.user.has_group('base.group_user'):
+                wa_rec = wa_map.get(m.id)
+                wa_state = wa_rec.state if wa_rec else False
                 if wa_state == 'received':
                     is_me = False
                 elif m.author_id:
@@ -317,6 +329,11 @@ class WhatsAppAccount(models.Model):
                     author_name = clean_name(customer.name) if customer else clean_name(channel.name)
                 author_data = [m.author_id.id, author_name]
             
+            wa_rec = wa_map.get(m.id)
+            wa_state = wa_rec.state if wa_rec else False
+            wa_is_starred = wa_rec.wa_is_starred if wa_rec else False
+            wa_is_pinned = wa_rec.wa_is_pinned if wa_rec else False
+            
             msg_dict = {
                 'id': m.id,
                 'body': m.body,
@@ -326,7 +343,9 @@ class WhatsAppAccount(models.Model):
                 'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype, 'name': a.name, 'access_token': a.access_token if 'access_token' in a else getattr(a, 'access_token', '')} for a in m.attachment_ids],
                 'is_me': is_me,
                 'isMe': is_me,
-                'wa_state': wa_state_map.get(m.id, False),
+                'wa_state': wa_state,
+                'wa_is_starred': wa_is_starred,
+                'wa_is_pinned': wa_is_pinned,
                 'quoted_message_id': m.parent_id.id if m.parent_id else False,
                 'quoted_message_body': re.sub(r'<[^>]+>', '', m.parent_id.body or '').strip()[:100] if m.parent_id and m.parent_id.body else False,
             }

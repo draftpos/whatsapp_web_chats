@@ -304,6 +304,22 @@
                         </div>
                     </div>
                     <div class="whatsapp-messages" t-ref="messagesContainer">
+                        <!-- Pinned Messages Banner -->
+                        <t t-set="pinnedMsgs" t-value="(state.messages || []).filter(m => m.wa_is_pinned)"/>
+                        <t t-if="pinnedMsgs.length > 0">
+                            <div style="position: sticky; top: 10px; z-index: 10; margin: 0 5%; background: white; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); display: flex; padding: 10px; cursor: pointer; align-items: center;" t-on-click="() => this.scrollToMessage(pinnedMsgs[0].id)">
+                                <i class="fa fa-thumb-tack" style="color: #8696a0; margin-right: 15px; font-size: 16px;"></i>
+                                <div style="flex: 1; overflow: hidden;">
+                                    <div style="font-size: 13px; font-weight: 500; color: #111b21; margin-bottom: 2px;">Pinned Message</div>
+                                    <div style="font-size: 13px; color: #667781; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        <t t-esc="pinnedMsgs[0].bodyText || 'Attachment'"/>
+                                    </div>
+                                </div>
+                                <t t-if="pinnedMsgs.length > 1">
+                                    <div style="font-size: 12px; color: #8696a0; margin-left: 10px;">1 of <t t-esc="pinnedMsgs.length"/></div>
+                                </t>
+                            </div>
+                        </t>
                         <t t-foreach="state.messages || []" t-as="msg" t-key="msg.id">
                             <div t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }}">
                                 <div class="message-selection" t-on-click="(ev) => this.toggleMessageSelection(msg.id, ev)" t-if="!msg.isSystem">
@@ -385,6 +401,9 @@
                                     </t>
 
                                     <div class="message-time">
+                                        <t t-if="msg.wa_is_starred">
+                                            <i class="fa fa-star" style="color: #8696a0; font-size: 10px; margin-right: 4px;"/>
+                                        </t>
                                         <t t-if="msg.authorName">
                                             [<t t-esc="msg.authorName"/>] 
                                         </t>
@@ -424,7 +443,12 @@
                                             <div class="chat-dropdown-item" t-on-click="() => this.openReply(msg)">Reply</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.openEmojiPicker(msg.id, ev)">React</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openForwardModal(msg.id)">Forward</div>
-                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Star</div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessageStar(msg.id, ev)">
+                                                <t t-esc="msg.wa_is_starred ? 'Unstar' : 'Star'"/>
+                                            </div>
+                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessagePin(msg.id, ev)">
+                                                <t t-esc="msg.wa_is_pinned ? 'Unpin' : 'Pin'"/>
+                                            </div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Report</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>

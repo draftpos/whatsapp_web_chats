@@ -2419,6 +2419,71 @@ export class WhatsAppChatsAction extends Component {
             }
         }, 100);
     }
+    
+    scrollToMessage(msgId) {
+        setTimeout(() => {
+            if (this.messagesContainer.el) {
+                const msgs = this.messagesContainer.el.querySelectorAll('.message-row');
+                for (let msg of msgs) {
+                    if (msg.querySelector('.msg-dropdown-btn') && msg.outerHTML.includes(`toggleMessageDropdown(${msgId}`)) {
+                        msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Add a temporary highlight class
+                        msg.style.transition = "background-color 0.5s ease";
+                        const oldBg = msg.style.backgroundColor;
+                        msg.style.backgroundColor = "rgba(0, 168, 132, 0.2)";
+                        setTimeout(() => {
+                            msg.style.backgroundColor = oldBg;
+                        }, 1500);
+                        break;
+                    }
+                }
+            }
+        }, 100);
+    }
+
+    async toggleMessageStar(msgId, ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showMessageDropdownId = null;
+        try {
+            const res = await this.orm.call(
+                "whatsapp.account",
+                "toggle_message_star",
+                [msgId],
+                {},
+                { silent: true }
+            );
+            if (res.success) {
+                const msg = this.state.messages.find(m => m.id === msgId);
+                if (msg) {
+                    msg.wa_is_starred = res.wa_is_starred;
+                }
+            }
+        } catch (e) {
+            console.error("Failed to toggle star", e);
+        }
+    }
+
+    async toggleMessagePin(msgId, ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showMessageDropdownId = null;
+        try {
+            const res = await this.orm.call(
+                "whatsapp.account",
+                "toggle_message_pin",
+                [msgId],
+                {},
+                { silent: true }
+            );
+            if (res.success) {
+                const msg = this.state.messages.find(m => m.id === msgId);
+                if (msg) {
+                    msg.wa_is_pinned = res.wa_is_pinned;
+                }
+            }
+        } catch (e) {
+            console.error("Failed to toggle pin", e);
+        }
+    }
 }
 
 WhatsAppChatsAction.template = "whatsapp_web_chats.ChatsAction";
