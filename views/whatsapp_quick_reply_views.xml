@@ -33,6 +33,6 @@
     <record id="whatsapp_quick_reply_action" model="ir.actions.act_window">
         <field name="name">Quick Replies</field>
         <field name="res_model">whatsapp.quick.reply</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 </odoo>
