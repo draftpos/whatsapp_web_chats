@@ -609,6 +609,9 @@ export class WhatsAppChatsAction extends Component {
             case 'done':
                 filtered = filtered.filter(c => c.wa_is_done && !c.wa_is_blocked);
                 break;
+            case 'archived':
+                filtered = filtered.filter(c => c.wa_is_done && !c.wa_is_blocked);
+                break;
             case 'urgent':
                 filtered = filtered.filter(c => c.wa_is_urgent && !c.wa_is_blocked);
                 break;

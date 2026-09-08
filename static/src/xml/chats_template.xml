@@ -47,9 +47,10 @@
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'favourites' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('favourites')">Favourites</div>
                         <!-- Dropdown Filter for Done/Urgent/Labels -->
                         <div class="chat-filter-dropdown-container" style="position: relative;">
-                            <div t-attf-class="chat-filter-pill {{ ['done', 'urgent'].includes(state.chatFilter) || (state.chatFilter.startsWith('tag_')) ? 'active' : '' }}" t-on-click="() => Object.assign(this.state, {showFilterDropdown: !state.showFilterDropdown})">
+                            <div t-attf-class="chat-filter-pill {{ ['done', 'urgent', 'archived'].includes(state.chatFilter) || (state.chatFilter.startsWith('tag_')) ? 'active' : '' }}" t-on-click="() => Object.assign(this.state, {showFilterDropdown: !state.showFilterDropdown})">
                                 <t t-if="state.chatFilter === 'done'">Done</t>
                                 <t t-elif="state.chatFilter === 'urgent'">Urgent</t>
+                                <t t-elif="state.chatFilter === 'archived'"><i class="fa fa-archive" style="margin-right:4px;"/>Archived</t>
                                 <t t-elif="state.chatFilter.startsWith('tag_')">
                                     <t t-set="activeTag" t-value="state.availableTags.find(t => 'tag_' + t.id === state.chatFilter)"/>
                                     <t t-esc="activeTag ? activeTag.name : 'Filter'"/>
@@ -61,6 +62,10 @@
                                 <div class="filter-dropdown-menu" style="position: absolute; top: 100%; left: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 150px; margin-top: 5px; max-height: 300px; overflow-y: auto;">
                                     <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('done'); Object.assign(this.state, {showFilterDropdown: false}); }">Done</div>
                                     <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('urgent'); Object.assign(this.state, {showFilterDropdown: false}); }">Urgent</div>
+                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('archived'); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa fa-archive" style="color: #667781;"/>
+                                        Archived
+                                    </div>
                                     <t t-if="state.availableTags and state.availableTags.length > 0">
                                         <div style="border-top: 1px solid #f0f2f5; margin: 4px 0;"></div>
                                         <t t-foreach="state.availableTags" t-as="tag" t-key="tag.id">
