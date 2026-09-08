@@ -272,7 +272,7 @@
     to { opacity: 1; transform: translateY(0); }
 }
 .chat-selection { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; background: rgba(255,255,255,0.9); border-radius: 50%; padding: 2px; z-index: 2; display: flex; align-items: center; justify-content: center; }
-.whatsapp-chat-item:hover .chat-selection, .whatsapp-chat-item.selected-bg .chat-selection { opacity: 1; }
+.whatsapp-chat-item.selection-mode .chat-selection, .whatsapp-chat-item.selected-bg .chat-selection { opacity: 1; }
 .contact-item:hover .contact-selection, .contact-item .contact-selection.selected { opacity: 1 !important; }
 
 /* Chat Transfer Dropdown */
