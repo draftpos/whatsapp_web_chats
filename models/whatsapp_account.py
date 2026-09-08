@@ -75,8 +75,6 @@ class WhatsAppAccount(models.Model):
     def get_whatsapp_web_channels(self, wa_account_id=None):
         current_company = self.env.company
         domain = [('channel_type', '=', 'whatsapp'), '|', ('whatsapp_partner_id', '!=', False), ('whatsapp_number', '!=', False)]
-        # Tenant isolation: show channels for this company OR unassigned legacy channels (tenant_id = False)
-        domain = ['&'] + domain + ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
         if wa_account_id:
             domain.append(('wa_account_id', '=', int(wa_account_id)))
         
