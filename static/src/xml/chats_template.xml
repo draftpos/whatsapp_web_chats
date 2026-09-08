@@ -572,7 +572,7 @@
                         </t>
                         <t t-else="">
                             <div class="whatsapp-input-area" style="justify-content: center; background: #f0f2f5;">
-                                <button class="btn btn-primary" style="background: #00a884; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; color: white; display: flex; align-items: center;" t-on-click="openTemplatesModal">
+                                <button class="btn btn-primary" style="background: #00a884; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; color: white; display: flex; align-items: center;" t-on-click="() => this.openTemplatesModal('templates')">
                                     <i class="fa fa-file-text-o" style="margin-right: 8px;"></i> Send Template to Start Chat
                                 </button>
                             </div>
