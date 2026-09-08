@@ -4,11 +4,11 @@
         <field name="name">whatsapp.quick.reply.tree</field>
         <field name="model">whatsapp.quick.reply</field>
         <field name="arch" type="xml">
-            <tree string="Quick Replies">
+            <list string="Quick Replies">
                 <field name="shortcut"/>
                 <field name="body"/>
-                <field name="account_id" optional="hide"/>
-            </tree>
+                <field name="account_id"/>
+            </list>
         </field>
     </record>
 
