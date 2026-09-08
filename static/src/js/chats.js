@@ -34,6 +34,8 @@ export class WhatsAppChatsAction extends Component {
             newNumberQuery: null,
             showContactInfo: false,
             contactMedia: [],
+            contactLinks: [],
+            contactMediaTab: 'media',
             isEditingContactName: false,
             editingContactNameValue: "",
             transferModalOpen: false,
@@ -2040,10 +2042,34 @@ export class WhatsAppChatsAction extends Component {
                 { order: "id desc", limit: 50 }
             );
             this.state.contactMedia = attachments;
+            
+            const msgs = this.messageCache[channelId] || this.state.messages || [];
+            const links = [];
+            const urlRegex = /(https?:\/\/[^\s<]+)/g;
+            for (const m of msgs) {
+                if (m.bodyText) {
+                    let match;
+                    while ((match = urlRegex.exec(m.bodyText)) !== null) {
+                        links.push({
+                            url: match[1],
+                            date: m.dateDate ? m.dateDate.toLocaleDateString() : (m.date || '')
+                        });
+                    }
+                }
+            }
+            this.state.contactLinks = links;
+            if (!this.state.contactMediaTab) {
+                this.state.contactMediaTab = 'media';
+            }
         } catch(e) {
             console.warn("Failed to fetch media", e);
             this.state.contactMedia = [];
+            this.state.contactLinks = [];
         }
+    }
+
+    setContactMediaTab(tab) {
+        this.state.contactMediaTab = tab;
     }
 
     async selectTemplate(tmpl) {
