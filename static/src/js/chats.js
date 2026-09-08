@@ -989,7 +989,9 @@ export class WhatsAppChatsAction extends Component {
                 } catch(e) {}
             }
             
-            if (wasAtBottom) {
+            // Scroll to bottom if this is an explicit chat load (loadId),
+            // or if it's a background poll but the user is already at the bottom.
+            if (loadId || wasAtBottom) {
                 this.scrollToBottom();
             }
         } catch(e) {
