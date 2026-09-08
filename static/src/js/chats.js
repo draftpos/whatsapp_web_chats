@@ -1303,13 +1303,60 @@ export class WhatsAppChatsAction extends Component {
         this.state.showPlusMenu = !this.state.showPlusMenu;
     }
 
-    triggerFileInput(acceptType) {
+    triggerFileInput(acceptType, mode) {
         this.state.showPlusMenu = false;
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = acceptType;
-        fileInput.onchange = (e) => this.onFileSelect(e);
+        fileInput.onchange = (e) => {
+            if (mode === 'sticker') {
+                this.onStickerSelect(e);
+            } else {
+                this.onFileSelect(e);
+            }
+        };
         fileInput.click();
+    }
+
+    async onStickerSelect(ev) {
+        let file = ev.target.files[0];
+        if (!file || !this.state.selectedChannel) return;
+
+        // Upload to Odoo as attachment
+        const formData = new window.FormData();
+        formData.append('csrf_token', window.odoo?.csrf_token || '');
+        formData.append('name', file.name);
+        formData.append('ufile', file, file.name);
+        formData.append('model', 'discuss.channel');
+        formData.append('id', this.state.selectedChannel.id);
+
+        try {
+            const response = await window.fetch('/web/binary/upload_attachment', {
+                method: 'POST',
+                body: formData,
+            });
+            const responseText = await response.text();
+            const match = responseText.match(/\[.*?\]|\{.*?\}/);
+            if (match) {
+                const result = JSON.parse(match[0]);
+                let attId = null;
+                if (Array.isArray(result)) attId = result[0].id;
+                else if (result.id) attId = result.id;
+                
+                if (attId) {
+                    await this.orm.call(
+                        "whatsapp.account",
+                        "send_whatsapp_sticker",
+                        [this.state.selectedChannel.id, attId],
+                        {},
+                        { silent: true }
+                    );
+                }
+            }
+        } catch (e) {
+            console.error("Sticker upload failed", e);
+            this.comingSoon(null, "Failed to upload and send sticker.");
+        }
     }
 
     async onFileSelect(ev) {
@@ -1712,16 +1759,23 @@ export class WhatsAppChatsAction extends Component {
             this.sendMessage();
         }
     }
-
+    
     onInputResize(ev) {
         const el = ev.target;
         el.style.height = 'auto';
-        el.style.height = (el.scrollHeight) + 'px';
-        if (el.scrollHeight > 150) {
-            el.style.overflowY = 'auto';
-        } else {
-            el.style.overflowY = 'hidden';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        if (el.value === "") {
+            el.style.height = 'auto';
         }
+    }
+
+    toggleInputEmojiPicker(ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showInputEmojiPicker = !this.state.showInputEmojiPicker;
+    }
+
+    insertEmoji(emoji) {
+        this.state.newMessage = (this.state.newMessage || "") + emoji;
     }
 
     closeChat() {
@@ -1850,12 +1904,22 @@ export class WhatsAppChatsAction extends Component {
     async reactToMessage(msgId, emoji) {
         this.state.emojiPickerMsgId = null;
         try {
-            await this.orm.write('whatsapp.message', [msgId], { wa_reaction: emoji });
-            // Update the message in state
-            const msg = this.state.messages.find(m => m.id === msgId);
-            if (msg) msg.wa_reaction = emoji;
+            const res = await this.orm.call(
+                "whatsapp.account",
+                "send_whatsapp_reaction",
+                [msgId, emoji],
+                {},
+                { silent: true }
+            );
+            if (res && res.success) {
+                // Update the message in state
+                const msg = this.state.messages.find(m => m.id === msgId);
+                if (msg) msg.wa_reaction_me = emoji;
+            } else {
+                this.comingSoon(null, `Failed to send reaction: ${res ? res.error : 'Unknown error'}`);
+            }
         } catch (e) {
-            console.warn('[WA] React failed, trying mail.message:', e);
+            console.error('[WA] React failed', e);
         }
     }
 

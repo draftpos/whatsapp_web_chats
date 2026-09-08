@@ -9,6 +9,7 @@ class WhatsAppMessage(models.Model):
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
     tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
     wa_reaction = fields.Char(string='WhatsApp Reaction', help='Emoji reaction from the user')
+    wa_reaction_me = fields.Char(string='My Reaction', help='Emoji reaction sent by me')
     wa_is_starred = fields.Boolean(string='Starred (Local)')
     wa_is_pinned = fields.Boolean(string='Pinned (Local)')
 

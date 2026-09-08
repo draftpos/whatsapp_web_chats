@@ -429,10 +429,19 @@
                                         </t>
                                     </div>
                                     <!-- Emoji Reaction Badge -->
-                                    <t t-if="msg.wa_reaction">
-                                        <div style="position: absolute; bottom: -12px; right: 8px; background: white; border-radius: 10px; padding: 1px 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-size: 14px; cursor: pointer; z-index: 5;"
+                                    <t t-if="msg.wa_reaction or msg.wa_reaction_me">
+                                        <div style="position: absolute; bottom: -12px; right: 8px; display: flex; gap: 4px; background: white; border-radius: 12px; padding: 2px 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-size: 14px; cursor: pointer; z-index: 5;"
                                              t-on-click="(ev) => this.openEmojiPicker(msg.id, ev)" title="React">
-                                            <t t-esc="msg.wa_reaction"/>
+                                            <t t-if="msg.wa_reaction">
+                                                <div style="display: flex; align-items: center; justify-content: center; width: 18px; height: 18px;">
+                                                    <t t-esc="msg.wa_reaction"/>
+                                                </div>
+                                            </t>
+                                            <t t-if="msg.wa_reaction_me">
+                                                <div style="display: flex; align-items: center; justify-content: center; width: 18px; height: 18px;">
+                                                    <t t-esc="msg.wa_reaction_me"/>
+                                                </div>
+                                            </t>
                                         </div>
                                     </t>
                                     <div class="msg-dropdown-btn" t-on-click="(ev) => this.toggleMessageDropdown(msg.id, ev)">
@@ -571,10 +580,22 @@
                                 </div>
                             </t>
                             <div class="whatsapp-input-area">
-                                <div style="position: relative;">
-                                    <button class="whatsapp-attach-btn" title="Attach" t-on-click="togglePlusMenu" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent; font-size: 20px;">
+                                <div style="position: relative; display: flex; align-items: center;">
+                                    <button class="whatsapp-emoji-btn" title="Emoji" t-on-click="(ev) => this.toggleInputEmojiPicker(ev)" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent; font-size: 20px; color: #54656f;">
+                                        <i class="fa fa-smile-o"/>
+                                    </button>
+                                    <button class="whatsapp-attach-btn" title="Attach" t-on-click="togglePlusMenu" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent; font-size: 20px; color: #54656f;">
                                         <i t-attf-class="fa {{ state.showPlusMenu ? 'fa-times' : 'fa-plus' }}"/>
                                     </button>
+                                    
+                                    <t t-if="state.showInputEmojiPicker">
+                                        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000;" t-on-click="() => this.state.showInputEmojiPicker = false"/>
+                                        <div style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 12px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1001; padding: 10px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;">
+                                            <t t-foreach="['😀','😂','😍','🙏','👍','🔥','😊','😢','😎','🎉','👏','❤️']" t-as="emoji" t-key="emoji">
+                                                <span t-on-click="() => this.insertEmoji(emoji)" style="font-size: 22px; cursor: pointer; text-align: center; padding: 4px; border-radius: 8px;" class="emoji-reaction-btn"><t t-esc="emoji"/></span>
+                                            </t>
+                                        </div>
+                                    </t>
                                     
                                     <t t-if="state.showPlusMenu">
                                         <div class="attach-dropdown-menu" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1000; min-width: 220px; padding: 12px 0; display: flex; flex-direction: column; gap: 5px;">
@@ -590,6 +611,13 @@
                                                     <i class="fa fa-image" style="font-size: 18px;"/>
                                                 </div>
                                                 <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Photos &amp; Videos</span>
+                                            </div>
+
+                                            <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/webp,image/png,image/jpeg', 'sticker')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                <div style="background: #00A884; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                    <i class="fa fa-sticky-note" style="font-size: 18px;"/>
+                                                </div>
+                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Sticker</span>
                                             </div>
 
                                             <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">

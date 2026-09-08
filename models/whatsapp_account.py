@@ -246,6 +246,115 @@ class WhatsAppAccount(models.Model):
             wa_msg.wa_is_pinned = not wa_msg.wa_is_pinned
             return {'success': True, 'wa_is_pinned': wa_msg.wa_is_pinned}
         return {'success': False, 'error': 'Message not found'}
+
+    @api.model
+    def send_whatsapp_reaction(self, message_id, emoji):
+        """Sends a reaction to a specific WhatsApp message via the Cloud API"""
+        import requests
+        wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', int(message_id))], limit=1)
+        if not wa_msg or not wa_msg.msg_uid:
+            return {'success': False, 'error': 'Message not found or has no WhatsApp ID'}
+            
+        channel = self.env['discuss.channel'].sudo().search([('message_ids', 'in', [wa_msg.mail_message_id.id])], limit=1)
+        if not channel:
+            return {'success': False, 'error': 'Channel not found'}
+            
+        account = channel.wa_account_id
+        if not account or not account.phone_uid or not account.token:
+            return {'success': False, 'error': 'WhatsApp account not configured properly'}
+            
+        phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
+        if not phone:
+            return {'success': False, 'error': 'No phone number for channel'}
+
+        url = f"https://graph.facebook.com/v19.0/{account.phone_uid}/messages"
+        headers = {
+            "Authorization": f"Bearer {account.token}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": phone,
+            "type": "reaction",
+            "reaction": {
+                "message_id": wa_msg.msg_uid,
+                "emoji": emoji
+            }
+        }
+        
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            response.raise_for_status()
+            
+            # Update local DB
+            wa_msg.sudo().write({'wa_reaction_me': emoji})
+            return {'success': True, 'emoji': emoji, 'message_id': message_id}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @api.model
+    def send_whatsapp_sticker(self, channel_id, attachment_id):
+        """Sends a sticker via the Cloud API using an Odoo attachment"""
+        import requests
+        channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
+        if not channel:
+            return {'success': False, 'error': 'Channel not found'}
+            
+        account = channel.wa_account_id
+        if not account or not account.phone_uid or not account.token:
+            return {'success': False, 'error': 'WhatsApp account not configured properly'}
+            
+        phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
+        if not phone:
+            return {'success': False, 'error': 'No phone number for channel'}
+
+        attachment = self.env['ir.attachment'].sudo().browse(int(attachment_id))
+        if not attachment:
+            return {'success': False, 'error': 'Attachment not found'}
+
+        # 1. Upload media to WhatsApp
+        upload_url = f"https://graph.facebook.com/v19.0/{account.phone_uid}/media"
+        files = {
+            'file': (attachment.name, attachment.raw, 'image/webp'),
+        }
+        data = {
+            'messaging_product': 'whatsapp',
+            'type': 'image/webp'
+        }
+        auth_header = {"Authorization": f"Bearer {account.token}"}
+        
+        try:
+            upload_resp = requests.post(upload_url, headers=auth_header, data=data, files=files, timeout=15)
+            upload_resp.raise_for_status()
+            media_id = upload_resp.json().get('id')
+            if not media_id:
+                return {'success': False, 'error': 'Failed to get media ID from WhatsApp'}
+                
+            # 2. Send the sticker message
+            msg_url = f"https://graph.facebook.com/v19.0/{account.phone_uid}/messages"
+            headers = {
+                "Authorization": auth_header["Authorization"],
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": phone,
+                "type": "sticker",
+                "sticker": {
+                    "id": media_id
+                }
+            }
+            
+            response = requests.post(msg_url, headers=headers, json=payload, timeout=10)
+            response.raise_for_status()
+            # WhatsApp will echo this back to our webhook, which will add it to the chat
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
         
     @api.model
     def get_whatsapp_web_messages(self, channel_id):
@@ -333,6 +442,8 @@ class WhatsAppAccount(models.Model):
             wa_state = wa_rec.state if wa_rec else False
             wa_is_starred = wa_rec.wa_is_starred if wa_rec else False
             wa_is_pinned = wa_rec.wa_is_pinned if wa_rec else False
+            wa_reaction = wa_rec.wa_reaction if wa_rec else False
+            wa_reaction_me = wa_rec.wa_reaction_me if wa_rec else False
             
             msg_dict = {
                 'id': m.id,
@@ -346,6 +457,8 @@ class WhatsAppAccount(models.Model):
                 'wa_state': wa_state,
                 'wa_is_starred': wa_is_starred,
                 'wa_is_pinned': wa_is_pinned,
+                'wa_reaction': wa_reaction,
+                'wa_reaction_me': wa_reaction_me,
                 'quoted_message_id': m.parent_id.id if m.parent_id else False,
                 'quoted_message_body': re.sub(r'<[^>]+>', '', m.parent_id.body or '').strip()[:100] if m.parent_id and m.parent_id.body else False,
             }
@@ -440,6 +553,23 @@ class WhatsAppAccount(models.Model):
                         text_lines.append(f"- {qty}x {product_name} ({currency} {price})")
                     message['type'] = 'text'
                     message['text'] = {'body': '\n'.join(text_lines)}
+
+                # Handle Reactions
+                if message.get('type') == 'reaction':
+                    reaction = message.get('reaction', {})
+                    orig_msg_id = reaction.get('message_id')
+                    emoji = reaction.get('emoji', '')
+                    if orig_msg_id:
+                        wa_msg = self.env['whatsapp.message'].sudo().search([('msg_uid', '=', orig_msg_id)], limit=1)
+                        if wa_msg:
+                            wa_msg.wa_reaction = emoji
+                    # Do not pass reaction to super(), Odoo standard doesn't support it
+                    continue
+                    
+                # Handle Stickers (convert to image so standard Odoo downloads them)
+                if message.get('type') == 'sticker':
+                    message['type'] = 'image'
+                    message['image'] = message.pop('sticker')
 
                 filtered_messages.append(message)
 
