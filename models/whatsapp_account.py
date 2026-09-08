@@ -84,10 +84,14 @@ class WhatsAppAccount(models.Model):
             last_message = self.env['mail.message'].sudo().search([
                 ('model', '=', 'discuss.channel'),
                 ('res_id', '=', c.id)
-            ], order='date desc, id desc', limit=1)
+            ], order='id desc', limit=1)
             
             sort_date_obj = last_message.date if last_message else c.write_date
             sort_date = sort_date_obj.strftime('%Y-%m-%dT%H:%M:%SZ') if sort_date_obj else ''
+            
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.info("get_whatsapp_web_channels channel %s. Last msg ID: %s", c.id, last_message.id if last_message else None)
             
             import re
             last_msg_body = ''
@@ -234,7 +238,10 @@ class WhatsAppAccount(models.Model):
         messages = self.env['mail.message'].sudo().search([
             ('res_id', '=', int(channel_id)),
             ('model', '=', 'discuss.channel'),
-        ], order='date asc, id asc')
+        ], order='id asc')
+        import logging
+        _logger = logging.getLogger(__name__)
+        _logger.info("get_whatsapp_web_messages called for channel %s. Found %s messages. Last ID: %s", channel_id, len(messages), messages[-1].id if messages else None)
         
         import re
         def clean_name(n):
