@@ -328,7 +328,7 @@ class WhatsAppAccount(models.Model):
                 'isMe': is_me,
                 'wa_state': wa_state_map.get(m.id, False),
                 'quoted_message_id': m.parent_id.id if m.parent_id else False,
-                'quoted_message_body': self.env['ir.qweb.field.html'].from_html(m.parent_id.body or '', {'template_options': {}})[:100] if m.parent_id and m.parent_id.body else False,
+                'quoted_message_body': re.sub(r'<[^>]+>', '', m.parent_id.body or '').strip()[:100] if m.parent_id and m.parent_id.body else False,
             }
             res.append(msg_dict)
             
