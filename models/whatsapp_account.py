@@ -926,15 +926,21 @@ class WhatsAppAccount(models.Model):
             return {'success': False, 'error': f"Failed to create chat: {e}"}
 
     @api.model
-    def update_contact_name(self, channel_id, new_name):
+    def update_contact_name(self, channel_id, new_name, new_number=False):
         try:
             channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
             if not channel.exists():
                 return {'success': False, 'error': 'Channel not found'}
                 
             channel.name = new_name
+            if new_number:
+                channel.whatsapp_number = new_number
+                
             if channel.whatsapp_partner_id:
                 channel.whatsapp_partner_id.name = new_name
+                if new_number:
+                    channel.whatsapp_partner_id.mobile = new_number
+                    channel.whatsapp_partner_id.phone = new_number
                 
             return {'success': True}
         except Exception as e:

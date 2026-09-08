@@ -2158,6 +2158,7 @@ export class WhatsAppChatsAction extends Component {
         this.state.isEditingContactName = !this.state.isEditingContactName;
         if (this.state.isEditingContactName && this.state.selectedChannel) {
             this.state.editingContactNameValue = this.state.selectedChannel.name || "";
+            this.state.editingContactNumberValue = this.state.selectedChannel.customer_phone || this.state.selectedChannel.whatsapp_number || "";
         }
     }
 
@@ -2173,18 +2174,27 @@ export class WhatsAppChatsAction extends Component {
         if (!this.state.selectedChannel || !this.state.editingContactNameValue) return;
         
         const newName = this.state.editingContactNameValue.trim();
+        const newNumber = (this.state.editingContactNumberValue || "").trim();
         if (!newName) return;
 
         try {
-            const result = await this.orm.call("whatsapp.account", "update_contact_name", [this.state.selectedChannel.id, newName]);
+            const result = await this.orm.call("whatsapp.account", "update_contact_name", [this.state.selectedChannel.id, newName, newNumber]);
             if (result && result.success) {
                 this.state.selectedChannel.name = newName;
+                if (newNumber) {
+                    this.state.selectedChannel.whatsapp_number = newNumber;
+                    this.state.selectedChannel.customer_phone = newNumber;
+                }
                 this.state.isEditingContactName = false;
                 
                 // Update in the channels list
                 const channelIndex = this.state.channels.findIndex(c => c.id === this.state.selectedChannel.id);
                 if (channelIndex !== -1) {
                     this.state.channels[channelIndex].name = newName;
+                    if (newNumber) {
+                        this.state.channels[channelIndex].whatsapp_number = newNumber;
+                        this.state.channels[channelIndex].customer_phone = newNumber;
+                    }
                 }
             } else {
                 alert("Failed to update name: " + (result ? result.error : "Unknown error"));
