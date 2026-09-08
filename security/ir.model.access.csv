@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_wa_chat_tag,wa.chat.tag,model_wa_chat_tag,,1,1,1,1
 access_whatsapp_quick_reply_user,whatsapp.quick.reply.user,model_whatsapp_quick_reply,base.group_user,1,1,1,1
+access_whatsapp_product,whatsapp.product,model_whatsapp_product,base.group_user,1,1,1,1
