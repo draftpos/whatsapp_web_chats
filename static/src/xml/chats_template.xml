@@ -15,6 +15,7 @@
                             </div>
                             <span>Chats</span>
                         </div>
+                    </div>
                     <t t-if="state.selectedChannels?.length > 0">
                         <button t-on-click="deleteSelectedChannels"
                                 style="margin-left: 10px; background: #f24a4a; border: none; border-radius: 6px; color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
