@@ -732,6 +732,7 @@ export class WhatsAppChatsAction extends Component {
         // Mark as read locally immediately for responsiveness
         channel.unread_count = 0;
         channel.wa_is_unread_global = false;
+        channel.message_needaction_counter = 0;
 
         try {
             this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id], {}, { silent: true }).catch(e => {
