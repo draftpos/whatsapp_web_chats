@@ -190,12 +190,12 @@ export class WhatsAppChatsAction extends Component {
         
         if (!this.state.messages || this.state.messages.length === 0) return false;
         
-        // Find the last CUSTOMER message time
+        // Find the last message time regardless of sender
         let lastMessageTime = null;
         for (let i = this.state.messages.length - 1; i >= 0; i--) {
             const msg = this.state.messages[i];
-            // Meta 24-hour window ONLY opens if the customer initiates/replies
-            if (msg.isMe === false && msg.date) {
+            // Meta 24-hour window: user wants to see it open if THEY or CUSTOMER sent a msg in last 24h
+            if (msg.date) {
                 lastMessageTime = msg.date;
                 break;
             }

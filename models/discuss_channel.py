@@ -132,6 +132,10 @@ class DiscussChannel(models.Model):
                     'state': 'received',
                     'wa_account_id': self.wa_account_id.id,
                 })
+                self.sudo().write({
+                    'wa_is_done': False,
+                    'wa_is_unread_global': True
+                })
                 if parent_msg_id:
                     self.env['whatsapp.message'].browse(parent_msg_id).state = 'replied'
             return True
