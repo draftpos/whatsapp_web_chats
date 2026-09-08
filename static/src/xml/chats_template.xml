@@ -69,7 +69,12 @@
                                 </t>
                             </div>
                             <div class="chat-avatar-container">
-                                <div class="chat-avatar"><t t-esc="(channel.name and channel.name?.length > 0) ? channel.name[0].toUpperCase() : '?'"/></div>
+                                <t t-if="channel.customer_image">
+                                    <img t-attf-src="data:image/jpeg;base64,{{channel.customer_image}}" class="chat-avatar" style="object-fit: cover; background: none;"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="chat-avatar" t-attf-style="background: {{ this.getAvatarColor(channel.name) }}; background-image: none;"><t t-esc="(channel.name and channel.name?.length > 0) ? channel.name[0].toUpperCase() : '?'"/></div>
+                                </t>
                             </div>
                             <div class="chat-info">
                                 <div class="chat-name-row" style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -600,12 +605,12 @@
                     </div>
                     
                     <div style="padding: 30px 20px; text-align: center; background: white; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                        <div style="width: 200px; height: 200px; border-radius: 50%; background: #dfe5e7; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; overflow: hidden;">
+                        <div style="width: 200px; height: 200px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; overflow: hidden;" t-attf-style="background: {{ this.getAvatarColor(state.selectedChannel.name) }}; background-image: none;">
                             <t t-if="state.selectedChannel.customer_image">
                                 <img t-attf-src="data:image/jpeg;base64,{{state.selectedChannel.customer_image}}" style="width:100%; height:100%; object-fit:cover;"/>
                             </t>
                             <t t-else="">
-                                <i class="fa fa-user" style="color: white; font-size: 80px;"></i>
+                                <span style="color: white; font-size: 80px; font-weight: bold;"><t t-esc="(state.selectedChannel.name and state.selectedChannel.name?.length > 0) ? state.selectedChannel.name[0].toUpperCase() : '?'"/></span>
                             </t>
                         </div>
                         
