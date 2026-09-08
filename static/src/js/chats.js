@@ -1683,10 +1683,11 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
-    openTemplatesModal() {
+    openTemplatesModal(tab = 'quick') {
         this.state.showAttachMenu = false;
+        this.state.showPlusMenu = false;
         this.state.showTemplatesModal = true;
-        this.state.quickReplyTab = 'quick';
+        this.state.quickReplyTab = (tab === 'templates') ? 'templates' : 'quick';
     }
 
     closeTemplatesModal() {
