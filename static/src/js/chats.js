@@ -40,6 +40,10 @@ export class WhatsAppChatsAction extends Component {
             isEditingContactName: false,
             editingContactNameValue: "",
             transferModalOpen: false,
+            agentsToTransfer: [],
+            selectedAgentToTransfer: null,
+            availableTags: [],
+            showFilterDropdown: false,
             transferChannelId: null,
             transferDepartments: [],
             transferAgents: [],
@@ -604,8 +608,15 @@ export class WhatsAppChatsAction extends Component {
             case 'done':
                 filtered = filtered.filter(c => c.wa_is_done);
                 break;
+            case 'urgent':
+                filtered = filtered.filter(c => c.wa_is_urgent);
+                break;
             case 'all':
             default:
+                if (this.state.chatFilter && this.state.chatFilter.startsWith('tag_')) {
+                    const tagId = parseInt(this.state.chatFilter.replace('tag_', ''));
+                    filtered = filtered.filter(c => c.wa_tags && c.wa_tags.some(t => t.id === tagId));
+                }
                 break;
         }
 

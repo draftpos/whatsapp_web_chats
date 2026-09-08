@@ -45,8 +45,35 @@
                         </span>
                     </div>
                     <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'favourites' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('favourites')">Favourites</div>
-                    <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'done' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('done')">Done</div>
-                </div>
+                        <!-- Dropdown Filter for Done/Urgent/Labels -->
+                        <div class="chat-filter-dropdown-container" style="position: relative;">
+                            <div t-attf-class="chat-filter-pill {{ ['done', 'urgent'].includes(state.chatFilter) || (state.chatFilter.startsWith('tag_')) ? 'active' : '' }}" t-on-click="() => this.setState({showFilterDropdown: !state.showFilterDropdown})">
+                                <t t-if="state.chatFilter === 'done'">Done</t>
+                                <t t-elif="state.chatFilter === 'urgent'">Urgent</t>
+                                <t t-elif="state.chatFilter.startsWith('tag_')">
+                                    <t t-set="activeTag" t-value="state.availableTags.find(t => 'tag_' + t.id === state.chatFilter)"/>
+                                    <t t-esc="activeTag ? activeTag.name : 'Filter'"/>
+                                </t>
+                                <t t-else="">Filter</t>
+                                <i class="fa fa-caret-down" style="margin-left: 5px;"></i>
+                            </div>
+                            <t t-if="state.showFilterDropdown">
+                                <div class="filter-dropdown-menu" style="position: absolute; top: 100%; left: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 150px; margin-top: 5px; max-height: 300px; overflow-y: auto;">
+                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('done'); this.setState({showFilterDropdown: false}); }">Done</div>
+                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('urgent'); this.setState({showFilterDropdown: false}); }">Urgent</div>
+                                    <t t-if="state.availableTags and state.availableTags.length > 0">
+                                        <div style="border-top: 1px solid #f0f2f5; margin: 4px 0;"></div>
+                                        <t t-foreach="state.availableTags" t-as="tag" t-key="tag.id">
+                                            <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('tag_' + tag.id); this.setState({showFilterDropdown: false}); }" style="display: flex; align-items: center;">
+                                                <div style="width: 12px; height: 12px; border-radius: 50%; margin-right: 8px;" t-attf-style="background-color: {{tag.color}};"></div>
+                                                <t t-esc="tag.name"/>
+                                            </div>
+                                        </t>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
                 <div class="whatsapp-chat-list" t-ref="chatList">
                     <t t-if="this.filteredChannels?.length === 0">
                         <div style="padding: 20px; text-align: center; color: #8696a0; font-size: 14px;">No chats found</div>
