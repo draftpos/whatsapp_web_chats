@@ -36,6 +36,7 @@ export class WhatsAppChatsAction extends Component {
             contactMedia: [],
             contactLinks: [],
             contactMediaTab: 'media',
+            showMediaTabsView: false,
             isEditingContactName: false,
             editingContactNameValue: "",
             transferModalOpen: false,
