@@ -63,5 +63,11 @@
             <field name="model_id" ref="model_whatsapp_product"/>
             <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
         </record>
+        <!-- WhatsApp Quick Reply Tenant Rule -->
+        <record id="whatsapp_quick_reply_tenant_rule" model="ir.rule">
+            <field name="name">WhatsApp Quick Reply Tenant Rule</field>
+            <field name="model_id" ref="model_whatsapp_quick_reply"/>
+            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
+        </record>
     </data>
 </odoo>

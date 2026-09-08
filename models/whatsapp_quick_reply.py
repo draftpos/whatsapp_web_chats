@@ -5,6 +5,8 @@ class WhatsAppQuickReply(models.Model):
     _description = 'WhatsApp Quick Reply'
     _order = 'shortcut asc, id desc'
 
+    tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
+
     shortcut = fields.Char(string="Shortcut", help="Optional shortcut to easily find the quick reply (e.g. greeting)")
     body = fields.Text(string="Message Body", required=True)
     account_id = fields.Many2one('whatsapp.account', string="WhatsApp Account", help="Leave blank if applicable to all accounts")
