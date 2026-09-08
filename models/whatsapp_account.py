@@ -258,11 +258,9 @@ class WhatsAppAccount(models.Model):
         
         res = []
         for m in messages:
-            # Skip messages with no body and no attachments
             body_text = re.sub(r'<[^>]+>', '', m.body or '').strip()
-            if not body_text and not m.attachment_ids:
-                continue
-            
+            # We must not skip messages here. Even if plain text is empty, it might be an HTML-only message (like an inline image or system notification).
+            # Skipping it causes the UI to revert the chat list preview.            
             wa_state = wa_state_map.get(m.id, False)
             
             if m.author_id and m.author_id.id == self.env.user.partner_id.id:
