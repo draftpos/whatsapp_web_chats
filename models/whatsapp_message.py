@@ -20,7 +20,7 @@ class WhatsAppMessage(models.Model):
                 # Find the copied discuss.channel message
                 copied_msg = self.env['mail.message'].sudo().search([
                     ('model', '=', 'discuss.channel'),
-                    ('message_type', '=', 'whatsapp_message'),
+                    ('message_type', 'in', ('whatsapp_message', 'comment')),
                     ('body', '=', rec.mail_message_id.body),
                     ('res_id', '!=', False)
                 ], order='id desc', limit=1)

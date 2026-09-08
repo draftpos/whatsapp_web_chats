@@ -143,21 +143,20 @@ class WhatsAppAccount(models.Model):
                 ('id', '>', seen_id),
                 ('message_type', 'not in', ['notification', 'user_notification']),
             ]
-            if c.whatsapp_partner_id:
-                domain_unread.append(('author_id', '=', c.whatsapp_partner_id.id))
-            else:
-                # Exclude current user and bots/system
-                excluded = [self.env.user.partner_id.id]
-                public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
-                if public_partner:
-                    excluded.append(public_partner.id)
-                domain_unread.append(('author_id', 'not in', excluded))
+            # Exclude all internal users (agents) and system/public users
+            excluded_users = self.env['res.users'].sudo().search([('groups_id', 'in', self.env.ref('base.group_user').id)])
+            excluded = excluded_users.mapped('partner_id').ids
+            public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
+            if public_partner:
+                excluded.append(public_partner.id)
+            domain_unread.append(('author_id', 'not in', excluded))
 
             unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
+            
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.error("DEBUG unread: channel=%s, seen_id=%s, domain=%s, unread_count=%s", c.id, seen_id, domain_unread, unread_count)
 
-            # Auto-clear wa_is_unread_global if there are actually no unread inbound messages
-            if c.wa_is_unread_global and unread_count == 0:
-                c.sudo().write({'wa_is_unread_global': False})
             
             import re
             def clean_name(n):
