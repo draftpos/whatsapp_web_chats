@@ -15,7 +15,6 @@
                             </div>
                             <span>Chats</span>
                         </div>
-                    </div>
                     <t t-if="state.selectedChannels?.length > 0">
                         <button t-on-click="deleteSelectedChannels"
                                 style="margin-left: 10px; background: #f24a4a; border: none; border-radius: 6px; color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
@@ -25,7 +24,8 @@
                     </t>
                     <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="New Chat"></i>
                 </div>
-                <!-- Search bar -->
+            </div>
+            <!-- Search bar -->
                 <div style="padding: 6px 12px 4px 12px; background: #f0f2f5;">
                     <div style="display: flex; align-items: center; background: white; border-radius: 8px; padding: 6px 12px; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
                         <i class="fa fa-search" style="color: #8696a0; font-size: 15px;"/>
@@ -742,8 +742,6 @@
                     </div>
                 </div>
             </t>
-        </div>
-
         <!-- Quick Replies / Templates Tabbed Modal -->
         <t t-if="state.showTemplatesModal">
             <div class="catalogue-modal">
