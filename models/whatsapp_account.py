@@ -172,6 +172,7 @@ class WhatsAppAccount(models.Model):
                 'whatsapp_partner_id': [c.whatsapp_partner_id.id, clean_name(c.whatsapp_partner_id.name)] if c.whatsapp_partner_id else False,
                 'wa_account_id': [c.wa_account_id.id, c.wa_account_id.name] if c.wa_account_id else False,
                 'message_needaction_counter': unread_count,
+                'unread_count': unread_count,
                 'write_date': sort_date,
                 'whatsapp_number': c.whatsapp_number,
                 'last_message_preview': last_msg_body,
@@ -303,6 +304,8 @@ class WhatsAppAccount(models.Model):
                 'is_me': is_me,
                 'isMe': is_me,
                 'wa_state': wa_state_map.get(m.id, False),
+                'quoted_message_id': m.parent_id.id if m.parent_id else False,
+                'quoted_message_body': self.env['ir.qweb.field.html'].from_html(m.parent_id.body or '', {'template_options': {}})[:100] if m.parent_id and m.parent_id.body else False,
             }
             res.append(msg_dict)
             

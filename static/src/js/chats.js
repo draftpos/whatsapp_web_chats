@@ -57,6 +57,9 @@ export class WhatsAppChatsAction extends Component {
             chatSearch: "",
             deleteChatConfirmId: null,
             dropdownUpwards: false,
+            replyingToMessage: null,
+            showPlusMenu: false,
+            showAttachMenu: false,
         });
         
         this.myPartnerId = null;
@@ -101,6 +104,14 @@ export class WhatsAppChatsAction extends Component {
                         changed = true;
                     }
                 }
+                if (this.state.showAttachMenu) {
+                    const attachMenu = document.querySelector('.attach-dropdown-menu');
+                    const attachBtn = document.querySelector('.whatsapp-attach-btn');
+                    if ((attachMenu && !attachMenu.contains(ev.target) && attachBtn && !attachBtn.contains(ev.target)) || !attachMenu) {
+                        this.state.showAttachMenu = false;
+                        changed = true;
+                    }
+                }
             };
             document.addEventListener('click', this._onDocumentClick, true);
 
@@ -111,6 +122,9 @@ export class WhatsAppChatsAction extends Component {
                 }
                 if (this.state.showMessageDropdownId !== null) {
                     this.state.showMessageDropdownId = null;
+                }
+                if (this.state.showAttachMenu) {
+                    this.state.showAttachMenu = false;
                 }
                 if (this.state.showHeaderDropdown) {
                     this.state.showHeaderDropdown = false;
@@ -411,61 +425,80 @@ export class WhatsAppChatsAction extends Component {
             domain.push(["wa_account_id", "=", parseInt(this.state.selectedAccount)]);
         }
 
-        const response = await this.orm.call(
-            "whatsapp.account",
-            "get_whatsapp_web_channels",
-            [],
-            { wa_account_id: this.state.selectedAccount },
-            { silent: true }
-        );
+        const cacheKey = 'wa_channels_' + (this.state.selectedAccount || '');
+        try {
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed && parsed.length > 0 && this.state.channels.length === 0) {
+                    this.state.channels = parsed;
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to load cached channels", e);
+        }
+
+        let response = { channels: [], show_labels: false };
+        try {
+            response = await this.orm.call(
+                "whatsapp.account",
+                "get_whatsapp_web_channels",
+                [],
+                { wa_account_id: this.state.selectedAccount },
+                { silent: true }
+            );
+        } catch (e) {
+            console.warn("Offline or failed to fetch channels", e);
+        }
         const channels = response.channels || [];
-        this.state.showLabels = response.show_labels;
+        if (response.show_labels !== undefined) {
+            this.state.showLabels = response.show_labels;
+        }
         
         if (channels.length > 0 && this.myPartnerId) {
             // Unread count is now calculated accurately by get_whatsapp_web_channels
         }
         
-        // Do NOT fallback to all channels — this causes ghost chats to appear.
-        // If no WhatsApp channels exist, simply show an empty list.
-
-
-        
-        const partnerIds = channels.map(c => c.whatsapp_partner_id && c.whatsapp_partner_id[0]).filter(id => id);
-        if (partnerIds.length > 0) {
-            const partners = await this.orm.searchRead("res.partner", [["id", "in", partnerIds]], ["id", "avatar_128", "phone"]);
-            const partnerMap = {};
-            for (const p of partners) {
-                partnerMap[p.id] = { image: p.avatar_128, phone: p.phone };
-            }
-            for (const c of channels) {
-                if (c.whatsapp_partner_id) {
-                    const pData = partnerMap[c.whatsapp_partner_id[0]];
-                    if (pData) {
-                        c.customer_image = pData.image;
-                        c.customer_phone = pData.phone;
+        if (channels.length > 0) {
+            const partnerIds = channels.map(c => c.whatsapp_partner_id && c.whatsapp_partner_id[0]).filter(id => id);
+            if (partnerIds.length > 0) {
+                const partners = await this.orm.searchRead("res.partner", [["id", "in", partnerIds]], ["id", "avatar_128", "phone"]);
+                const partnerMap = {};
+                for (const p of partners) {
+                    partnerMap[p.id] = { image: p.avatar_128, phone: p.phone };
+                }
+                for (const c of channels) {
+                    if (c.whatsapp_partner_id) {
+                        const pData = partnerMap[c.whatsapp_partner_id[0]];
+                        if (pData) {
+                            c.customer_image = pData.image;
+                            c.customer_phone = pData.phone;
+                        }
+                    }
+                    if (c.wa_account_id) {
+                        c.wa_account_id = c.wa_account_id[0];
                     }
                 }
-                if (c.wa_account_id) {
-                    c.wa_account_id = c.wa_account_id[0];
-                }
             }
-        }
-        
-        // Filter out ghost/empty channels that have no partner and no phone number
-        const validChannels = channels.filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
-        validChannels.sort((a, b) => (b.write_date || '').localeCompare(a.write_date || ''));
-        this.state.channels = validChannels;
-        if (channels.length > 0) {
+            
+            const validChannels = channels.filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
+            validChannels.sort((a, b) => (b.write_date || '').localeCompare(a.write_date || ''));
+            this.state.channels = validChannels;
+            
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify(validChannels));
+            } catch (e) {}
+            
             if (this.state.selectedChannel) {
                 const currentId = this.state.selectedChannel.id;
-                const updated = channels.find(c => c.id === currentId);
+                const updated = validChannels.find(c => c.id === currentId);
                 if (updated) {
                     this.state.selectedChannel = updated;
                 } else {
                     this.state.selectedChannel = null;
                 }
             }
-        } else {
+        } else if (!this.state.channels || this.state.channels.length === 0) {
             this.state.selectedChannel = null;
         }
     }
@@ -510,7 +543,7 @@ export class WhatsAppChatsAction extends Component {
     }
 
     get totalUnreadChannels() {
-        return (this.state.channels || []).filter(c => c.unread_count > 0 || c.wa_is_unread_global).length;
+        return (this.state.channels || []).filter(c => c.unread_count > 0 || c.message_needaction_counter > 0 || c.wa_is_unread_global).length;
     }
 
     get searchQuery() {
@@ -523,7 +556,7 @@ export class WhatsAppChatsAction extends Component {
         
         switch (this.state.chatFilter) {
             case 'unread':
-                filtered = filtered.filter(c => c.wa_is_unread_global || (c.unread_count && c.unread_count > 0));
+                filtered = filtered.filter(c => c.wa_is_unread_global || (c.unread_count && c.unread_count > 0) || (c.message_needaction_counter && c.message_needaction_counter > 0));
                 break;
             case 'favourites':
                 filtered = filtered.filter(c => c.wa_is_favourite);
@@ -579,6 +612,37 @@ export class WhatsAppChatsAction extends Component {
         this.state.showChatDropdownId = null;
         this.state.showHeaderDropdown = false;
         this.state.deleteChatConfirmId = channelId;
+    }
+
+    closeDeleteModal() {
+        this.state.deleteMessageConfirmId = null;
+    }
+
+    openReply(msg) {
+        this.state.replyingToMessage = msg;
+        this.state.showMessageDropdownId = null;
+        this.state.showAttachMenu = false;
+        // Focus the chat input
+        setTimeout(() => {
+            const input = document.querySelector('.chat-input');
+            if (input) input.focus();
+        }, 50);
+    }
+
+    closeReply() {
+        this.state.replyingToMessage = null;
+    }
+
+    toggleAttachMenu() {
+        this.state.showAttachMenu = !this.state.showAttachMenu;
+        this.state.showMessageDropdownId = null;
+    }
+
+    async confirmDeleteMessage() {
+        const messageId = this.state.deleteMessageConfirmId;
+        if (!messageId) return;
+        this.state.deleteMessageConfirmId = null;
+        await this.deleteMessage(messageId);
     }
 
     closeDeleteChatModal() {
@@ -731,14 +795,32 @@ export class WhatsAppChatsAction extends Component {
             wasAtBottom = true;
         }
 
+        const cacheKey = 'wa_messages_' + id;
+        if (!loadId) {
+            try {
+                const cached = localStorage.getItem(cacheKey);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (parsed && parsed.length > 0 && (!this.state.messages || this.state.messages.length === 0)) {
+                        this.state.messages = parsed;
+                    }
+                }
+            } catch (e) {}
+        }
+
         try {
-            const messages = await this.orm.call(
-                "whatsapp.account",
-                "get_whatsapp_web_messages",
-                [id],
-                {},
-                { silent: true }
-            );
+            let messages = [];
+            try {
+                messages = await this.orm.call(
+                    "whatsapp.account",
+                    "get_whatsapp_web_messages",
+                    [id],
+                    {},
+                    { silent: true }
+                );
+            } catch (e) {
+                console.warn("Offline or failed to fetch messages");
+            }
 
             // Race condition check: if a new channel was selected while we were loading, abort.
             if (loadId && this.currentLoadId !== loadId) {
@@ -748,6 +830,7 @@ export class WhatsAppChatsAction extends Component {
                 return;
             }
             
+            if (messages.length > 0) {
             this.state.messages = messages.map(msg => {
                 let isMe = msg.is_me !== undefined ? msg.is_me : false;
                 
@@ -820,6 +903,7 @@ export class WhatsAppChatsAction extends Component {
                 
                 return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem };
             });
+            } // end if messages.length > 0
             
             this.messageCache[id] = this.state.messages;
             
@@ -869,6 +953,13 @@ export class WhatsAppChatsAction extends Component {
                     chanInList.last_message_preview = "";
                     chanInList.last_message_body = "";
                 }
+            }
+            
+            if (messages.length > 0) {
+                this.messageCache[id] = this.state.messages;
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(this.state.messages));
+                } catch(e) {}
             }
             
             if (wasAtBottom) {
@@ -1007,6 +1098,7 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async pollMessages() {
+        this.flushOfflineQueue();
         // Only reload channels in background to check for NEW channels/messages
         // but do NOT call loadChannels() as it overwrites locally-cleared unread counts.
         // Instead, fetch fresh channel data and merge carefully.
@@ -1092,7 +1184,21 @@ export class WhatsAppChatsAction extends Component {
         });
     }
 
+    togglePlusMenu() {
+        this.state.showPlusMenu = !this.state.showPlusMenu;
+    }
+
+    triggerFileInput(acceptType) {
+        this.state.showPlusMenu = false;
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = acceptType;
+        fileInput.onchange = (e) => this.onFileSelect(e);
+        fileInput.click();
+    }
+
     async onFileSelect(ev) {
+        this.state.showPlusMenu = false;
         let file = ev.target.files[0];
         if (!file) return;
 
@@ -1104,14 +1210,18 @@ export class WhatsAppChatsAction extends Component {
             }
         }
 
-        this.state.pendingFile = {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            file: file,
-            dataUrl: URL.createObjectURL(file)
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.state.pendingFile = {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                file: file,
+                dataUrl: e.target.result
+            };
         };
-        ev.target.value = ""; // reset input
+        reader.readAsDataURL(file);
+        if (ev.target) ev.target.value = "";
     }
     
     removePendingFile() {
@@ -1288,6 +1398,7 @@ export class WhatsAppChatsAction extends Component {
         const pendingFile = this.state.pendingFile;
         this.state.newMessage = "";
         this.state.pendingFile = null;
+        this.state.replyingToMessage = null;
 
         const tempMsgId = 'temp_' + Date.now();
         const tempMsg = {
@@ -1312,61 +1423,133 @@ export class WhatsAppChatsAction extends Component {
         this.state.messages.push(tempMsg);
         this.scrollToBottom();
 
+        // Queue for background sending
+        const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
+        
+        let safeBody = messageBody;
+        if (!safeBody && pendingFile) {
+            safeBody = ' ';
+        }
+        
+        offlineQueue.push({
+            tempId: tempMsgId,
+            channelId: this.state.selectedChannel.id,
+            body: safeBody,
+            replyingToMessageId: this.state.replyingToMessage ? this.state.replyingToMessage.id : null,
+            file: pendingFile ? {
+                name: pendingFile.name,
+                type: pendingFile.type,
+                dataUrl: pendingFile.dataUrl
+            } : null,
+            timestamp: Date.now()
+        });
+        
+        localStorage.setItem('wa_offline_queue', JSON.stringify(offlineQueue));
+        
+        this.state.isSending = false;
+        
+        // Trigger background flush
+        this.flushOfflineQueue();
+    }
+    
+    dataURLtoBlob(dataurl) {
+        if (!dataurl) return null;
+        const arr = dataurl.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = window.atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while(n--){
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new window.Blob([u8arr], {type:mime});
+    }
+
+    async flushOfflineQueue() {
+        if (!this.state.selectedChannel || this.isFlushing) return;
+        this.isFlushing = true;
         try {
-            let attachment_ids = [];
-            if (pendingFile) {
-                try {
-                    const formData = new window.FormData();
-                    formData.append('csrf_token', window.odoo?.csrf_token || '');
-                    formData.append('name', pendingFile.name);
-                    formData.append('ufile', pendingFile.file);
-                    formData.append('model', 'discuss.channel');
-                    formData.append('id', this.state.selectedChannel.id);
+            while (true) {
+                const queue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
+                if (queue.length === 0) break;
 
-                    const response = await window.fetch('/web/binary/upload_attachment', {
-                        method: 'POST',
-                        body: formData,
-                    });
-                    const responseText = await response.text();
-                    const match = responseText.match(/\[.*?\]|\{.*?\}/);
-                    if (match) {
-                        const result = JSON.parse(match[0]);
-                        if (Array.isArray(result)) {
-                            attachment_ids = result.map(a => a.id);
-                        } else if (result.id) {
-                            attachment_ids = [result.id];
+                const task = queue[0];
+                let attachment_ids = [];
+
+                if (task.file && task.file.dataUrl) {
+                    try {
+                        const blob = this.dataURLtoBlob(task.file.dataUrl);
+                        const formData = new window.FormData();
+                        formData.append('csrf_token', window.odoo?.csrf_token || '');
+                        formData.append('name', task.file.name);
+                        formData.append('ufile', blob, task.file.name);
+                        formData.append('model', 'discuss.channel');
+                        formData.append('id', task.channelId);
+
+                        const response = await window.fetch('/web/binary/upload_attachment', {
+                            method: 'POST',
+                            body: formData,
+                        });
+                        const responseText = await response.text();
+                        const match = responseText.match(/\[.*?\]|\{.*?\}/);
+                        if (match) {
+                            const result = JSON.parse(match[0]);
+                            if (Array.isArray(result)) {
+                                attachment_ids = result.map(a => a.id);
+                            } else if (result.id) {
+                                attachment_ids = [result.id];
+                            }
                         }
+                    } catch (e) {
+                        console.error("Offline attachment upload failed", e);
+                        // If attachment upload fails completely, we might need to abort this task or retry later.
+                        // For now, if we are offline, fetch will throw. We break the loop and try later.
+                        throw e;
                     }
-                } catch (e) {
-                    console.error("Attachment upload failed", e);
                 }
-            }
-            
-            let safeBody = messageBody;
-            if (!safeBody && attachment_ids.length > 0) {
-                safeBody = ' ';
-            }
 
-            await this.orm.call(
-                "discuss.channel",
-                "message_post",
-                [this.state.selectedChannel.id],
-                {
-                    body: safeBody,
+                const kwargs = {
+                    body: task.body,
                     message_type: "whatsapp_message",
                     subtype_xmlid: "mail.mt_comment",
                     attachment_ids: attachment_ids
+                };
+                if (task.replyingToMessageId) {
+                    kwargs.parent_id = task.replyingToMessageId;
                 }
-            );
-            
-            // Small delay to allow Odoo to commit the message before fetching
-            await new Promise(resolve => setTimeout(resolve, 400));
-            await this.loadMessages();
-            this.scrollToBottom();
-            // Refresh channel list so this chat bubbles to the top
-            await this.loadChannels();
+
+                try {
+                    await this.orm.call(
+                        "discuss.channel",
+                        "message_post",
+                        [task.channelId],
+                        kwargs
+                    );
+
+                    // Successfully sent. Remove from queue.
+                    const newQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
+                    newQueue.shift(); // remove first item
+                    localStorage.setItem('wa_offline_queue', JSON.stringify(newQueue));
+
+                    // Update UI silently
+                    if (this.state.selectedChannel && this.state.selectedChannel.id === task.channelId) {
+                        const msgObj = this.state.messages.find(m => m.id === task.tempId);
+                        if (msgObj) {
+                            msgObj.wa_state = 'sent';
+                        }
+                    }
+                    
+                    // Refresh channel list so this chat bubbles to the top
+                    await this.loadChannels();
+                } catch (e) {
+                    // API call failed (offline). Break and retry later.
+                    throw e;
+                }
+            }
+        } catch (e) {
+            // We failed to send (offline). The interval loop will trigger this again later.
         } finally {
-            this.state.isSending = false;
+            this.isFlushing = false;
         }
     }
     
@@ -1435,6 +1618,7 @@ export class WhatsAppChatsAction extends Component {
     }
 
     openTemplatesModal() {
+        this.state.showAttachMenu = false;
         this.state.showTemplatesModal = true;
     }
 
@@ -1443,6 +1627,7 @@ export class WhatsAppChatsAction extends Component {
     }
 
     openCatalogueModal() {
+        this.state.showAttachMenu = false;
         this.state.showCatalogueModal = true;
     }
 

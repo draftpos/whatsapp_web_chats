@@ -157,10 +157,13 @@
                                     <span style="overflow:hidden; text-overflow:ellipsis;"><t t-esc="channel.last_message_preview || ''"/></span>
                                 </div>
                             </div>
-                            <t t-if="channel.wa_is_unread_global or (channel.unread_count and channel.unread_count > 0)">
+                            <t t-if="channel.wa_is_unread_global or (channel.unread_count and channel.unread_count > 0) or (channel.message_needaction_counter and channel.message_needaction_counter > 0)">
                                 <div class="chat-unread-badge">
                                     <t t-if="channel.unread_count and channel.unread_count > 0">
                                         <t t-esc="channel.unread_count"/>
+                                    </t>
+                                    <t t-elif="channel.message_needaction_counter and channel.message_needaction_counter > 0">
+                                        <t t-esc="channel.message_needaction_counter"/>
                                     </t>
                                     <t t-else="">
                                         1
@@ -355,6 +358,11 @@
                                         </div>
                                     </t>
                                     <t t-else="">
+                                        <t t-if="msg.quoted_message_body">
+                                            <div class="quoted-message" style="background: rgba(0,0,0,0.05); border-left: 4px solid #00a884; padding: 6px 10px; margin-bottom: 6px; border-radius: 4px; font-size: 13px; color: #666; max-height: 60px; overflow: hidden; text-overflow: ellipsis;">
+                                                <t t-esc="msg.quoted_message_body"/>
+                                            </div>
+                                        </t>
                                         <div class="message-body" t-esc="msg.bodyText"/>
                                     </t>
 
@@ -388,6 +396,7 @@
                                     </div>
                                     <t t-if="state.showMessageDropdownId === msg.id">
                                         <div class="msg-dropdown-menu" t-attf-style="position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 200px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 5px;' }}" t-on-click.stop="() => {}">
+                                            <div class="chat-dropdown-item" t-on-click="() => this.openReply(msg)">Reply</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
@@ -398,6 +407,9 @@
                         </t>
                     </div>
                         <style>
+                            .attach-menu-item:hover {
+                                background-color: #f0f2f5;
+                            }
                             .message-row { position: relative; display: flex; align-items: center; margin-bottom: 8px; }
                             .message-row.message-me { justify-content: flex-end; }
                             .message-row.message-other { justify-content: flex-start; }
@@ -483,17 +495,58 @@
                                     </button>
                                 </div>
                             </t>
+                            <!-- Replying to preview -->
+                            <t t-if="state.replyingToMessage">
+                                <div style="display: flex; align-items: center; justify-content: space-between; background: #f0f2f5; padding: 10px 15px; border-left: 4px solid #00a884; margin-bottom: 2px;">
+                                    <div style="flex-grow: 1; overflow: hidden;">
+                                        <div style="font-weight: 500; font-size: 13px; color: #00a884; margin-bottom: 3px;">Replying to...</div>
+                                        <div style="font-size: 13px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            <t t-esc="state.replyingToMessage.bodyText || 'Attachment'"/>
+                                        </div>
+                                    </div>
+                                    <div style="cursor: pointer; padding: 5px; color: #8696a0;" t-on-click="closeReply">
+                                        <i class="fa fa-times"/>
+                                    </div>
+                                </div>
+                            </t>
                             <div class="whatsapp-input-area">
-                                <input type="file" id="whatsapp-file-input" style="display: none;" t-on-change="onFileSelect"/>
-                                <label for="whatsapp-file-input" class="whatsapp-attach-btn" title="Attach File" style="margin: 0; cursor: pointer; padding: 8px;">
-                                    <i class="fa fa-paperclip"/>
-                                </label>
-                                <button class="whatsapp-attach-btn" title="WhatsApp Templates" t-on-click="openTemplatesModal" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent;">
-                                    <i class="fa fa-file-text-o"/>
-                                </button>
-                                <button class="whatsapp-attach-btn" title="Catalogue" t-on-click="openCatalogueModal" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent;">
-                                    <i class="fa fa-shopping-bag"/>
-                                </button>
+                                <div style="position: relative;">
+                                    <button class="whatsapp-attach-btn" title="Attach" t-on-click="togglePlusMenu" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent; font-size: 20px;">
+                                        <i t-attf-class="fa {{ state.showPlusMenu ? 'fa-times' : 'fa-plus' }}"/>
+                                    </button>
+                                    
+                                    <t t-if="state.showPlusMenu">
+                                        <div class="attach-dropdown-menu" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1000; min-width: 220px; padding: 12px 0; display: flex; flex-direction: column; gap: 5px;">
+                                            <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                <div style="background: #7F66FF; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                    <i class="fa fa-file-text" style="font-size: 18px;"/>
+                                                </div>
+                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Document</span>
+                                            </div>
+                                            
+                                            <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/*,video/*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                <div style="background: #007DFC; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                    <i class="fa fa-image" style="font-size: 18px;"/>
+                                                </div>
+                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Photos &amp; Videos</span>
+                                            </div>
+
+                                            <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                <div style="background: #FF2E74; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                    <i class="fa fa-bolt" style="font-size: 18px;"/>
+                                                </div>
+                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
+                                            </div>
+
+                                            <div class="attach-menu-item" t-on-click="openCatalogueModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                <div style="background: #128C7E; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                    <i class="fa fa-shopping-bag" style="font-size: 18px;"/>
+                                                </div>
+                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Catalogue</span>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
                                 <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onInputResize" style="overflow-y: hidden; resize: none;"/>
                                 <t t-if="!state.newMessage and !state.pendingFile and !state.isRecording and !state.recordingBlobUrl">
                             <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="background:#00a884;">
