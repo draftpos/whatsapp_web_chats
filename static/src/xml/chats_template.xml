@@ -701,10 +701,8 @@
                                 <div t-on-click="() => this.setContactMediaTab('docs')" t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; {{ state.contactMediaTab === 'docs' ? 'color: #00a884; border-bottom: 3px solid #00a884;' : 'color: #54656f;' }}">Docs</div>
                                 <div t-on-click="() => this.setContactMediaTab('links')" t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; {{ state.contactMediaTab === 'links' ? 'color: #00a884; border-bottom: 3px solid #00a884;' : 'color: #54656f;' }}">Links</div>
                             </div>
-                    
-                        </t>
-                    </div>
-                </t>
+                        </div>
+                    </t>
                 <t t-else="">
                     
                     <div style="padding: 30px 20px; text-align: center; background: white; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
@@ -833,7 +831,6 @@
                     </div>
                 </t>    
                     </div>
-                </div>
             </t>
             
             <!-- Profile Settings Modal -->
