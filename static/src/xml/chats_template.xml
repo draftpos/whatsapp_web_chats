@@ -348,7 +348,7 @@
                                                     <div t-attf-class="wa-audio-bubble {{ msg.isMe ? 'wa-audio-mine' : 'wa-audio-theirs' }}">
                                                         <!-- Play / Pause button -->
                                                         <button class="wa-audio-play-btn"
-                                                                t-on-click="(ev) => { ev.stopPropagation(); this.toggleAudioPlay(att.id, '/web/content/' + att.id + (att.access_token ? '?access_token=' + att.access_token : ''), att.mimetype); }">
+                                                                t-on-click="(ev) => { ev.stopPropagation(); this.toggleAudioPlay(att.id, att.localBlobUrl || ('/web/content/' + att.id + (att.access_token ? '?access_token=' + att.access_token : '')), att.mimetype); }">
                                                             <i t-attf-class="fa {{ state.activeAudioId == att.id.toString() ? 'fa-pause' : 'fa-play' }}"/>
                                                         </button>
                                                         <!-- Waveform + progress -->
@@ -855,7 +855,7 @@
                                         </div>
                                     </t>
                                 </div>
-                                <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onInputResize" style="overflow-y: hidden; resize: none;"/>
+                                <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onTextareaInput" t-on-focus="onTextareaFocus" style="overflow-y: hidden; resize: none;"/>
                                 <t t-if="!state.newMessage and (!state.pendingFiles or state.pendingFiles.length === 0) and !state.isRecording and !state.recordingBlobUrl">
                             <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="background:#00a884;">
                                         <i class="fa fa-microphone"/>

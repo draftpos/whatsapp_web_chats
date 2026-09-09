@@ -1832,29 +1832,41 @@ export class WhatsAppChatsAction extends Component {
         if (!this.state.recordingBlob || !this.state.selectedChannel) return;
         if (this._isSendingAudio) return;  // prevent double sends
         this._isSendingAudio = true;
-        // Capture and clear blob immediately so re-renders don't trigger another send
+
+        // Capture blob before clearing state
         const blob = this.state.recordingBlob;
+        const blobUrl = this.state.recordingBlobUrl;
+
+        // ── Clear recording UI INSTANTLY ──────────────────────────────────────
         this.state.recordingBlob = null;
         this.state.recordingBlobUrl = null;
         this.state.recordingSeconds = 0;
+
+        // ── Show audio bubble in chat INSTANTLY (optimistic UI) ───────────────
+        const tempAttId = 'temp_audio_' + Date.now();
+        const tempMsg = {
+            id: tempAttId,
+            bodyText: '',
+            isMe: true,
+            isSystem: false,
+            timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            wa_state: 'pending',
+            attachment_ids: [{
+                id: tempAttId,
+                mimetype: blob.type || 'audio/ogg',
+                name: 'voice_message.ogg',
+                localBlobUrl: blobUrl,  // plays immediately from blob, no server needed yet
+            }]
+        };
+        this.state.messages.push(tempMsg);
+        this.scrollToBottom();
+
         // Always use .ogg extension — the blob is already labelled audio/ogg above
         // so the server will store it with the correct mimetype that WhatsApp accepts
         let ext = 'ogg';
         if (blob.type.includes('mp4') || blob.type.includes('m4a')) ext = 'm4a';
         else if (blob.type.includes('mpeg')) ext = 'mp3';
         const filename = `voice_${Date.now()}.${ext}`;
-
-        const tempMsg = {
-            id: 'temp_' + Date.now(),
-            bodyText: '🎵 Voice Message',
-            isMe: true,
-            isSystem: false,
-            timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            wa_state: 'pending',
-            attachment_ids: []
-        };
-        this.state.messages.push(tempMsg);
-        this.scrollToBottom();
 
         try {
             const formData = new window.FormData();
@@ -2206,6 +2218,19 @@ export class WhatsAppChatsAction extends Component {
         el.style.height = Math.min(el.scrollHeight, 120) + 'px';
         if (el.value === "") {
             el.style.height = 'auto';
+        }
+    }
+
+    onTextareaInput(ev) {
+        // Auto-resize
+        this.onInputResize(ev);
+    }
+
+    onTextareaFocus() {
+        // If user clicks into the textarea while a recording preview is showing,
+        // discard the preview so they can type freely
+        if (this.state.recordingBlobUrl && !this.state.isRecording) {
+            this.cancelRecording();
         }
     }
 
