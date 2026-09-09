@@ -1443,15 +1443,28 @@ export class WhatsAppChatsAction extends Component {
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
+                    
+                    // Force WhatsApp-supported formats. Convert webp/bmp to jpeg.
+                    let outputType = file.type;
+                    if (outputType !== 'image/jpeg' && outputType !== 'image/png') {
+                        outputType = 'image/jpeg';
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, width, height);
+                    }
+                    
                     ctx.drawImage(img, 0, 0, width, height);
 
                     canvas.toBlob(blob => {
-                        const compressedFile = new File([blob], file.name, {
-                            type: file.type,
+                        let filename = file.name;
+                        if (outputType === 'image/jpeg' && !filename.toLowerCase().match(/\.jpe?g$/)) {
+                            filename = filename.replace(/\.[^/.]+$/, "") + ".jpg";
+                        }
+                        const compressedFile = new File([blob], filename, {
+                            type: outputType,
                             lastModified: Date.now()
                         });
                         resolve(compressedFile);
-                    }, file.type, quality);
+                    }, outputType, quality);
                 };
             };
         });
