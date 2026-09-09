@@ -1243,13 +1243,15 @@ export class WhatsAppChatsAction extends Component {
             }
         }
     
-    openMedia(attId, ev, type='image', filename='', accessToken='', albumMessages=null) {
+    openMedia(attId, ev, type='image', filename='', accessToken='', albumMessages=null, msg=null) {
         if (ev) ev.stopPropagation();
 
         let activeIndex = 0;
+        let currentMsg = msg;
         if (albumMessages && albumMessages.length > 0) {
             activeIndex = albumMessages.findIndex(m => m.attachment_ids && m.attachment_ids[0].id === attId);
             if (activeIndex === -1) activeIndex = 0;
+            currentMsg = albumMessages[activeIndex];
         }
 
         this.state.fullscreenMedia = {
@@ -1261,7 +1263,8 @@ export class WhatsAppChatsAction extends Component {
             translateX: 0,
             translateY: 0,
             albumMessages: albumMessages,
-            activeIndex: activeIndex
+            activeIndex: activeIndex,
+            msg: currentMsg
         };
         // Bind drag handlers (stored so we can remove them)
         this._lbDragging = false;
@@ -1277,7 +1280,7 @@ export class WhatsAppChatsAction extends Component {
         if (m && m.albumMessages && m.activeIndex < m.albumMessages.length - 1) {
             const nextMsg = m.albumMessages[m.activeIndex + 1];
             const att = nextMsg.attachment_ids[0];
-            this.openMedia(att.id, null, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token, m.albumMessages);
+            this.openMedia(att.id, null, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token, m.albumMessages, nextMsg);
         }
     }
 
@@ -1287,7 +1290,7 @@ export class WhatsAppChatsAction extends Component {
         if (m && m.albumMessages && m.activeIndex > 0) {
             const prevMsg = m.albumMessages[m.activeIndex - 1];
             const att = prevMsg.attachment_ids[0];
-            this.openMedia(att.id, null, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token, m.albumMessages);
+            this.openMedia(att.id, null, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token, m.albumMessages, prevMsg);
         }
     }
     
@@ -1765,15 +1768,17 @@ export class WhatsAppChatsAction extends Component {
         const replyingToMessageId = this.state.replyingToMessage ? this.state.replyingToMessage.id : null;
         let replyingToMessageBody = null;
         let replyingToAttachment = null;
+        let replyingToAuthor = null;
         if (this.state.replyingToMessage) {
-            replyingToMessageBody = this.state.replyingToMessage.bodyText || '📎 Attachment';
+            replyingToAuthor = this.state.replyingToMessage.isMe ? 'You' : (this.state.replyingToMessage.authorName || 'Customer');
+            replyingToMessageBody = this.state.replyingToMessage.bodyText || 'document';
             if (!this.state.replyingToMessage.bodyText && this.state.replyingToMessage.attachment_ids && this.state.replyingToMessage.attachment_ids.length > 0) {
                 replyingToAttachment = this.state.replyingToMessage.attachment_ids[0];
                 const mime = replyingToAttachment.mimetype || '';
-                if (mime.startsWith('image/')) replyingToMessageBody = '📷 Photo';
-                else if (mime.startsWith('video/')) replyingToMessageBody = '🎥 Video';
-                else if (mime.startsWith('audio/')) replyingToMessageBody = '🎵 Audio';
-                else replyingToMessageBody = '📄 Document';
+                if (mime.startsWith('image/')) replyingToMessageBody = 'image';
+                else if (mime.startsWith('video/')) replyingToMessageBody = 'video';
+                else if (mime.startsWith('audio/')) replyingToMessageBody = 'audio';
+                else replyingToMessageBody = 'document';
             }
         }
         this.state.replyingToMessage = null;
@@ -1793,7 +1798,8 @@ export class WhatsAppChatsAction extends Component {
                 attachment_ids: [],
                 quoted_message_id: replyingToMessageId,
                 quoted_message_body: replyingToMessageBody,
-                quoted_attachment: replyingToAttachment
+                quoted_attachment: replyingToAttachment,
+                quoted_author: replyingToAuthor
             };
             this.state.messages.push(tempMsg);
             
@@ -1828,7 +1834,8 @@ export class WhatsAppChatsAction extends Component {
                     }],
                     quoted_message_id: replyingToMessageId,
                     quoted_message_body: replyingToMessageBody,
-                    quoted_attachment: replyingToAttachment
+                    quoted_attachment: replyingToAttachment,
+                    quoted_author: replyingToAuthor
                 };
                 this.state.messages.push(tempMsg);
                 

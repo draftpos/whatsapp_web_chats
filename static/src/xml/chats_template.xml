@@ -352,7 +352,7 @@
                                                     </div>
                                                 </t>
                                                 <t t-elif="att.mimetype and att.mimetype.includes('video')">
-                                                    <div class="video-preview" style="position:relative; cursor:pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, 'video', att.name)">
+                                                    <div class="video-preview" style="position:relative; cursor:pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, 'video', att.name, att.access_token || '', null, msg)">
                                                         <video class="message-video" t-attf-src="/web/content/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"/>
                                                         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.5); border-radius:50%; padding:10px; color:white;">
                                                             <i class="fa fa-play fa-2x"/>
@@ -362,10 +362,10 @@
                                                 <t t-elif="att.mimetype and att.mimetype.startsWith('image/')">
                                                     <div style="position:relative; display:inline-block;">
                                                         <t t-if="att.dataUrl">
-                                                            <img class="message-img" t-attf-src="{{att.dataUrl}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name)" style="cursor: zoom-in; opacity: 0.7;"/>
+                                                            <img class="message-img" t-attf-src="{{att.dataUrl}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token || '', null, msg)" style="cursor: zoom-in; opacity: 0.7;"/>
                                                         </t>
                                                         <t t-else="">
-                                                            <img class="message-img" t-attf-src="/web/image/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token)" style="cursor: zoom-in;"/>
+                                                            <img class="message-img" t-attf-src="/web/image/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token || '', null, msg)" style="cursor: zoom-in;"/>
                                                         </t>
                                                         <t t-if="msg.wa_state === 'pending'">
                                                             <div class="media-upload-progress" style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; border-radius:8px; z-index:2; pointer-events:none;">
@@ -515,7 +515,7 @@
                                         <div t-attf-class="whatsapp-album-grid count-{{ group.messages.length > 4 ? 4 : group.messages.length }}">
                                             <t t-foreach="group.messages.slice(0, 4)" t-as="albumMsg" t-key="albumMsg.id">
                                                 <t t-set="att" t-value="albumMsg.attachment_ids[0]"/>
-                                                <div class="album-item" style="position: relative; cursor: pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token, group.messages)">
+                                                <div class="album-item" style="position: relative; cursor: pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token || '', group.messages, albumMsg)">
                                                     <t t-if="att.mimetype.startsWith('video/')">
                                                         <video class="message-video album-media" t-attf-src="/web/content/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" style="object-fit: cover; width: 100%; height: 100%; border-radius: 4px; pointer-events: none;"/>
                                                         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.5); border-radius:50%; padding:8px; color:white;">
@@ -1516,6 +1516,10 @@
                                 <i class="fa fa-expand"/>
                             </button>
                         </t>
+                        <!-- Reply button -->
+                        <button class="media-lb-btn" title="Reply" t-on-click="(ev) => { if (state.fullscreenMedia.msg) { this.openReply(state.fullscreenMedia.msg); this.closeMedia(); } }">
+                            <i class="fa fa-reply"/>
+                        </button>
                         <!-- Download button -->
                         <a class="media-lb-btn"
                            t-att-href="this.getMediaDownloadUrl()"
