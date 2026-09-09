@@ -1764,8 +1764,17 @@ export class WhatsAppChatsAction extends Component {
         this.state.pendingFiles = [];
         const replyingToMessageId = this.state.replyingToMessage ? this.state.replyingToMessage.id : null;
         let replyingToMessageBody = null;
+        let replyingToAttachment = null;
         if (this.state.replyingToMessage) {
             replyingToMessageBody = this.state.replyingToMessage.bodyText || '📎 Attachment';
+            if (!this.state.replyingToMessage.bodyText && this.state.replyingToMessage.attachment_ids && this.state.replyingToMessage.attachment_ids.length > 0) {
+                replyingToAttachment = this.state.replyingToMessage.attachment_ids[0];
+                const mime = replyingToAttachment.mimetype || '';
+                if (mime.startsWith('image/')) replyingToMessageBody = '📷 Photo';
+                else if (mime.startsWith('video/')) replyingToMessageBody = '🎥 Video';
+                else if (mime.startsWith('audio/')) replyingToMessageBody = '🎵 Audio';
+                else replyingToMessageBody = '📄 Document';
+            }
         }
         this.state.replyingToMessage = null;
 
@@ -1783,7 +1792,8 @@ export class WhatsAppChatsAction extends Component {
                 wa_state: 'pending',
                 attachment_ids: [],
                 quoted_message_id: replyingToMessageId,
-                quoted_message_body: replyingToMessageBody
+                quoted_message_body: replyingToMessageBody,
+                quoted_attachment: replyingToAttachment
             };
             this.state.messages.push(tempMsg);
             
@@ -1817,7 +1827,8 @@ export class WhatsAppChatsAction extends Component {
                         dataUrl: pendingFile.dataUrl || null
                     }],
                     quoted_message_id: replyingToMessageId,
-                    quoted_message_body: replyingToMessageBody
+                    quoted_message_body: replyingToMessageBody,
+                    quoted_attachment: replyingToAttachment
                 };
                 this.state.messages.push(tempMsg);
                 

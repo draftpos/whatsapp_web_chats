@@ -449,10 +449,26 @@ class WhatsAppAccount(models.Model):
             wa_reaction_me = wa_rec.wa_reaction_me if wa_rec else False
             
             quoted_body = False
+            quoted_attachment = False
             if m.parent_id:
                 quoted_body = re.sub(r'<[^>]+>', '', m.parent_id.body or '').strip()[:100]
-                if not quoted_body and m.parent_id.attachment_ids:
-                    quoted_body = '📎 Attachment'
+                if m.parent_id.attachment_ids:
+                    att = m.parent_id.attachment_ids[0]
+                    quoted_attachment = {
+                        'id': att.id,
+                        'mimetype': att.mimetype,
+                        'name': att.name,
+                        'access_token': att.access_token if 'access_token' in att else getattr(att, 'access_token', '')
+                    }
+                    if not quoted_body:
+                        if att.mimetype and att.mimetype.startswith('image/'):
+                            quoted_body = '📷 Photo'
+                        elif att.mimetype and att.mimetype.startswith('video/'):
+                            quoted_body = '🎥 Video'
+                        elif att.mimetype and att.mimetype.startswith('audio/'):
+                            quoted_body = '🎵 Audio'
+                        else:
+                            quoted_body = '📄 Document'
 
             msg_dict = {
                 'id': m.id,
@@ -470,6 +486,7 @@ class WhatsAppAccount(models.Model):
                 'wa_reaction_me': wa_reaction_me,
                 'quoted_message_id': m.parent_id.id if m.parent_id else False,
                 'quoted_message_body': quoted_body,
+                'quoted_attachment': quoted_attachment,
             }
             res.append(msg_dict)
             
