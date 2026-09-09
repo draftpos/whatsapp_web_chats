@@ -462,6 +462,9 @@
                                             </div>
                                         </t>
                                         <div class="message-body" t-esc="msg.bodyText"/>
+                                        <t t-if="msg.is_edited">
+                                            <span class="msg-edited-label">Edited</span>
+                                        </t>
                                     </t>
 
                                     <div class="message-time">
@@ -514,6 +517,9 @@
                                     <t t-if="state.showMessageDropdownId === msg.id">
                                         <div class="msg-dropdown-menu" t-attf-style="position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 250px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 5px;' }}" t-on-click.stop="() => {}">
                                             <div class="chat-dropdown-item" t-on-click="() => this.openReply(msg)">Reply</div>
+                                            <t t-if="msg.isMe and msg.bodyText and (!msg.attachment_ids or msg.attachment_ids.length === 0)">
+                                                <div class="chat-dropdown-item" t-on-click="() => this.startEditMessage(msg)">Edit</div>
+                                            </t>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.openEmojiPicker(msg.id, ev)">React</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openForwardModal(msg.id)">Forward</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessageStar(msg.id, ev)">
@@ -793,6 +799,23 @@
                                         <div style="cursor: pointer; padding: 15px 15px 15px 5px; color: #8696a0; display: flex; align-items: center;" t-on-click="closeReply">
                                             <i class="fa fa-times"/>
                                         </div>
+                                    </div>
+                                </div>
+                            </t>
+                            <!-- Editing message indicator -->
+                            <t t-if="state.editingMessageId">
+                                <div style="display: flex; align-items: stretch; justify-content: space-between; background: #f0f2f5; border-left: 4px solid #0084ff; margin-bottom: 2px; border-radius: 4px;">
+                                    <div style="flex-grow: 1; overflow: hidden; padding: 10px 15px; display: flex; flex-direction: column; justify-content: center;">
+                                        <div style="font-weight: 600; font-size: 12px; color: #0084ff; margin-bottom: 3px; display: flex; align-items: center; gap: 6px;">
+                                            <i class="fa fa-pencil" style="font-size: 11px;"/>
+                                            Edit message
+                                        </div>
+                                        <div style="font-size: 13px; color: #667781; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            <t t-esc="state.editingMessageOriginal"/>
+                                        </div>
+                                    </div>
+                                    <div style="cursor: pointer; padding: 15px; color: #8696a0; display: flex; align-items: center;" t-on-click="cancelEdit">
+                                        <i class="fa fa-times"/>
                                     </div>
                                 </div>
                             </t>

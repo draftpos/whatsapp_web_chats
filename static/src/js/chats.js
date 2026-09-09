@@ -88,8 +88,11 @@ export class WhatsAppChatsAction extends Component {
             // Deletion
             deleteMessageId: null,
             // Audio player
-            activeAudioId: null,   // attachment id currently playing
-            audioProgress: {},     // { [attId]: { current: 0, duration: 0 } }
+            activeAudioId: null,
+            audioProgress: {},
+            // Message editing
+            editingMessageId: null,
+            editingMessageOriginal: '',
         });
         
         this.myPartnerId = null;
@@ -961,6 +964,70 @@ export class WhatsAppChatsAction extends Component {
 
     closeReply() {
         this.state.replyingToMessage = null;
+    }
+
+    startEditMessage(msg) {
+        this.state.editingMessageId = msg.id;
+        this.state.editingMessageOriginal = msg.bodyText;
+        this.state.newMessage = msg.bodyText;
+        this.state.showMessageDropdownId = null;
+        this.state.replyingToMessage = null; // close reply if open
+        setTimeout(() => {
+            const input = document.querySelector('.whatsapp-input');
+            if (input) {
+                input.focus();
+                // Place cursor at end
+                input.setSelectionRange(input.value.length, input.value.length);
+                // Trigger resize
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+            }
+        }, 50);
+    }
+
+    cancelEdit() {
+        this.state.editingMessageId = null;
+        this.state.editingMessageOriginal = '';
+        this.state.newMessage = '';
+        setTimeout(() => {
+            const input = document.querySelector('.whatsapp-input');
+            if (input) { input.style.height = 'auto'; input.focus(); }
+        }, 50);
+    }
+
+    async submitMessageEdit() {
+        const msgId = this.state.editingMessageId;
+        const newBody = this.state.newMessage.trim();
+        if (!msgId || !newBody) {
+            this.cancelEdit();
+            return;
+        }
+        // Optimistic update in local state
+        const msg = this.state.messages.find(m => m.id === msgId);
+        if (msg) {
+            msg.bodyText = newBody;
+            msg.is_edited = true;
+        }
+        // Clear edit state immediately
+        this.state.editingMessageId = null;
+        this.state.editingMessageOriginal = '';
+        this.state.newMessage = '';
+
+        try {
+            await this.orm.call(
+                'whatsapp.account',
+                'edit_whatsapp_message',
+                [],
+                { message_id: msgId, new_body: newBody }
+            );
+        } catch (e) {
+            console.error('Failed to edit message:', e);
+            // Revert on failure
+            if (msg) {
+                msg.bodyText = this.state.editingMessageOriginal || msg.bodyText;
+                msg.is_edited = false;
+            }
+        }
     }
 
     toggleAttachMenu() {
@@ -2005,6 +2072,11 @@ export class WhatsAppChatsAction extends Component {
         // If a recorded blob is ready → send it
         if (this.state.recordingBlobUrl) {
             this.sendAudioMessage();
+            return;
+        }
+        // If editing an existing message → update it instead of posting new
+        if (this.state.editingMessageId) {
+            await this.submitMessageEdit();
             return;
         }
         if (this.state.isSending) return; // prevent double sends
