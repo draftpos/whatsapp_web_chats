@@ -324,8 +324,10 @@
                                 </t>
                             </div>
                         </t>
-                        <t t-foreach="state.messages || []" t-as="msg" t-key="msg.id">
-                            <div t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }}">
+                        <t t-foreach="this.groupedMessages || []" t-as="group" t-key="group.id">
+                            <t t-if="!group.isAlbum">
+                                <t t-set="msg" t-value="group.message"/>
+                                <div t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }}">
                                 <div class="message-selection" t-on-click="(ev) => this.toggleMessageSelection(msg.id, ev)" t-if="!msg.isSystem">
                                     <t t-if="state.selectedMessages.includes(msg.id)">
                                         <i class="fa fa-check-circle" style="color: #1976D2; font-size: 18px;"></i>
@@ -355,12 +357,19 @@
                                                     </div>
                                                 </t>
                                                 <t t-elif="att.mimetype and att.mimetype.startsWith('image/')">
-                                                    <t t-if="att.dataUrl">
-                                                        <img class="message-img" t-attf-src="{{att.dataUrl}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name)" style="cursor: zoom-in; opacity: 0.7;"/>
-                                                    </t>
-                                                    <t t-else="">
-                                                        <img class="message-img" t-attf-src="/web/image/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token)" style="cursor: zoom-in;"/>
-                                                    </t>
+                                                    <div style="position:relative; display:inline-block;">
+                                                        <t t-if="att.dataUrl">
+                                                            <img class="message-img" t-attf-src="{{att.dataUrl}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name)" style="cursor: zoom-in; opacity: 0.7;"/>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <img class="message-img" t-attf-src="/web/image/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token)" style="cursor: zoom-in;"/>
+                                                        </t>
+                                                        <t t-if="msg.wa_state === 'pending'">
+                                                            <div class="media-upload-progress" style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; border-radius:8px; z-index:2; pointer-events:none;">
+                                                                <i class="fa fa-circle-o-notch fa-spin fa-2x" style="color:#00a884;"/>
+                                                            </div>
+                                                        </t>
+                                                    </div>
                                                 </t>
                                                 <t t-else="">
                                                     <a t-attf-href="/web/content/{{att.id}}?download=true{{ att.access_token ? '&amp;access_token=' + att.access_token : '' }}" target="_blank" class="document-attachment" style="display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; text-decoration: none; color: inherit; max-width: 250px; margin-top: 5px;">
@@ -470,7 +479,62 @@
                                         </div>
                                     </t>
                                 </div>
-                            </div>
+                                </div>
+                            </t>
+                            <t t-else="">
+                                <div t-attf-class="message-row {{ group.isMe ? 'message-me' : 'message-other' }}">
+                                    <div class="message-bubble album-bubble" style="padding: 4px; background: transparent; box-shadow: none;">
+                                        <div t-attf-class="whatsapp-album-grid count-{{ group.messages.length > 4 ? 4 : group.messages.length }}">
+                                            <t t-foreach="group.messages.slice(0, 4)" t-as="albumMsg" t-key="albumMsg.id">
+                                                <t t-set="att" t-value="albumMsg.attachment_ids[0]"/>
+                                                <div class="album-item" style="position: relative; cursor: pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token, group.messages)">
+                                                    <t t-if="att.mimetype.startsWith('video/')">
+                                                        <video class="message-video album-media" t-attf-src="/web/content/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" style="object-fit: cover; width: 100%; height: 100%; border-radius: 4px; pointer-events: none;"/>
+                                                        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.5); border-radius:50%; padding:8px; color:white;">
+                                                            <i class="fa fa-play"/>
+                                                        </div>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <t t-if="att.dataUrl">
+                                                            <img class="message-img album-media" t-attf-src="{{att.dataUrl}}" style="object-fit: cover; width: 100%; height: 100%; border-radius: 4px; opacity: 0.7;"/>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <img class="message-img album-media" t-attf-src="/web/image/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" style="object-fit: cover; width: 100%; height: 100%; border-radius: 4px;"/>
+                                                        </t>
+                                                    </t>
+                                                    <!-- Loading spinner overlay for pending images -->
+                                                    <t t-if="albumMsg.wa_state === 'pending'">
+                                                        <div class="media-upload-progress" style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; border-radius:4px; z-index:2; pointer-events:none;">
+                                                            <i class="fa fa-circle-o-notch fa-spin fa-2x" style="color:#00a884;"/>
+                                                        </div>
+                                                    </t>
+                                                    
+                                                    <!-- +More overlay -->
+                                                    <t t-if="albumMsg_index === 3 and group.messages.length > 4">
+                                                        <div class="album-more-overlay" style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:white; font-size:24px; font-weight:bold; border-radius:4px; z-index:3;">
+                                                            +<t t-esc="group.messages.length - 4"/>
+                                                        </div>
+                                                    </t>
+                                                </div>
+                                            </t>
+                                        </div>
+                                        <div class="message-meta" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.4); color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px; display: flex; align-items: center; z-index: 4;">
+                                            <span class="time"><t t-esc="group.timeText"/></span>
+                                            <t t-if="group.isMe">
+                                                <t t-if="group.wa_state === 'error' or group.messages.some(m => m.wa_state === 'error')">
+                                                    <i class="fa fa-exclamation-circle" style="margin-left: 4px; color: #ff6b6b;" title="Delivery Failed"/>
+                                                </t>
+                                                <t t-elif="group.wa_state === 'pending' or group.messages.some(m => m.wa_state === 'pending')">
+                                                    <i class="fa fa-clock-o" style="margin-left: 4px; color: #fff;"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <i class="fa fa-check" style="margin-left: 4px; color: #fff;"/>
+                                                </t>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
                         </t>
                     </div>
                         <style>
@@ -1371,6 +1435,12 @@
 
                 <!-- Media content -->
                 <div class="media-lightbox-content" t-on-click.stop="() => {}">
+                    <t t-if="state.fullscreenMedia.albumMessages and state.fullscreenMedia.activeIndex > 0">
+                        <button class="media-nav-btn prev-btn" t-on-click="prevMedia" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 24px; cursor: pointer; z-index: 10;">
+                            <i class="fa fa-chevron-left"/>
+                        </button>
+                    </t>
+
                     <t t-if="state.fullscreenMedia.type === 'image'">
                         <img t-attf-class="media-lb-image {{ state.fullscreenMedia.scale > 1 ? 'zoomed' : '' }}"
                              t-attf-src="/web/image/{{state.fullscreenMedia.id}}?{{ state.fullscreenMedia.accessToken ? 'access_token=' + state.fullscreenMedia.accessToken : '' }}"
@@ -1385,6 +1455,12 @@
                                controls="controls"
                                autoplay="autoplay"
                                t-on-click.stop="() => {}"/>
+                    </t>
+
+                    <t t-if="state.fullscreenMedia.albumMessages and state.fullscreenMedia.activeIndex &lt; state.fullscreenMedia.albumMessages.length - 1">
+                        <button class="media-nav-btn next-btn" t-on-click="nextMedia" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 24px; cursor: pointer; z-index: 10;">
+                            <i class="fa fa-chevron-right"/>
+                        </button>
                     </t>
                 </div>
 

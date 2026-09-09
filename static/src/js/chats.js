@@ -703,6 +703,67 @@ export class WhatsAppChatsAction extends Component {
         return filtered;
     }
 
+    get groupedMessages() {
+        if (!this.state.messages || this.state.messages.length === 0) return [];
+        const groups = [];
+        let currentGroup = null;
+
+        for (let i = 0; i < this.state.messages.length; i++) {
+            const msg = this.state.messages[i];
+            const hasNoText = !msg.bodyText || msg.bodyText.trim() === '';
+            const isMedia = msg.attachment_ids && msg.attachment_ids.length === 1 && 
+                            msg.attachment_ids[0].mimetype && 
+                            (msg.attachment_ids[0].mimetype.startsWith('image/') || msg.attachment_ids[0].mimetype.startsWith('video/'));
+
+            if (isMedia && hasNoText) {
+                if (currentGroup && currentGroup.isAlbum && currentGroup.isMe === msg.isMe) {
+                    currentGroup.messages.push(msg);
+                    currentGroup.wa_state = msg.wa_state; // Keep the state of the last message in the album
+                } else {
+                    if (currentGroup) {
+                        if (currentGroup.isAlbum && currentGroup.messages.length === 1) {
+                            groups.push({ isAlbum: false, isMe: currentGroup.isMe, message: currentGroup.messages[0], id: 'msg_' + currentGroup.messages[0].id });
+                        } else {
+                            groups.push(currentGroup);
+                        }
+                    }
+                    currentGroup = {
+                        isAlbum: true,
+                        isMe: msg.isMe,
+                        messages: [msg],
+                        id: 'album_' + msg.id,
+                        timeText: msg.timeText,
+                        dateText: msg.dateText,
+                        wa_state: msg.wa_state,
+                    };
+                }
+            } else {
+                if (currentGroup) {
+                    if (currentGroup.isAlbum && currentGroup.messages.length === 1) {
+                        groups.push({ isAlbum: false, isMe: currentGroup.isMe, message: currentGroup.messages[0], id: 'msg_' + currentGroup.messages[0].id });
+                    } else {
+                        groups.push(currentGroup);
+                    }
+                    currentGroup = null;
+                }
+                groups.push({
+                    isAlbum: false,
+                    isMe: msg.isMe,
+                    message: msg,
+                    id: 'msg_' + msg.id,
+                });
+            }
+        }
+        if (currentGroup) {
+            if (currentGroup.isAlbum && currentGroup.messages.length === 1) {
+                groups.push({ isAlbum: false, isMe: currentGroup.isMe, message: currentGroup.messages[0], id: 'msg_' + currentGroup.messages[0].id });
+            } else {
+                groups.push(currentGroup);
+            }
+        }
+        return groups;
+    }
+
     async clearChat(channelId) {
         if (!confirm("Are you sure you want to clear this chat? All messages will be deleted, but the contact will remain.")) {
             return;
@@ -1166,8 +1227,15 @@ export class WhatsAppChatsAction extends Component {
             }
         }
     
-    openMedia(attId, ev, type='image', filename='', accessToken='') {
+    openMedia(attId, ev, type='image', filename='', accessToken='', albumMessages=null) {
         if (ev) ev.stopPropagation();
+
+        let activeIndex = 0;
+        if (albumMessages && albumMessages.length > 0) {
+            activeIndex = albumMessages.findIndex(m => m.attachment_ids && m.attachment_ids[0].id === attId);
+            if (activeIndex === -1) activeIndex = 0;
+        }
+
         this.state.fullscreenMedia = {
             id: attId,
             type: type,
@@ -1176,6 +1244,8 @@ export class WhatsAppChatsAction extends Component {
             scale: 1,
             translateX: 0,
             translateY: 0,
+            albumMessages: albumMessages,
+            activeIndex: activeIndex
         };
         // Bind drag handlers (stored so we can remove them)
         this._lbDragging = false;
@@ -1183,6 +1253,26 @@ export class WhatsAppChatsAction extends Component {
         this._lbDragStartY = 0;
         this._lbDragOriginX = 0;
         this._lbDragOriginY = 0;
+    }
+    
+    nextMedia(ev) {
+        if (ev) ev.stopPropagation();
+        const m = this.state.fullscreenMedia;
+        if (m && m.albumMessages && m.activeIndex < m.albumMessages.length - 1) {
+            const nextMsg = m.albumMessages[m.activeIndex + 1];
+            const att = nextMsg.attachment_ids[0];
+            this.openMedia(att.id, null, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token, m.albumMessages);
+        }
+    }
+
+    prevMedia(ev) {
+        if (ev) ev.stopPropagation();
+        const m = this.state.fullscreenMedia;
+        if (m && m.albumMessages && m.activeIndex > 0) {
+            const prevMsg = m.albumMessages[m.activeIndex - 1];
+            const att = prevMsg.attachment_ids[0];
+            this.openMedia(att.id, null, att.mimetype.startsWith('video/') ? 'video' : 'image', att.name, att.access_token, m.albumMessages);
+        }
     }
     
     closeMedia() {
