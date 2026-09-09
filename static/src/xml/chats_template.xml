@@ -560,6 +560,28 @@
                                                 </t>
                                             </t>
                                         </div>
+                                        <t t-set="msg" t-value="group.messages[0]"/>
+                                        <div class="msg-dropdown-btn" t-on-click="(ev) => this.toggleMessageDropdown(msg.id, ev)">
+                                            <i class="fa fa-chevron-down"/>
+                                        </div>
+                                        <t t-if="state.showMessageDropdownId === msg.id">
+                                            <div class="msg-dropdown-menu" t-attf-style="position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 250px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 5px;' }}" t-on-click.stop="() => {}">
+                                                <div class="chat-dropdown-item" t-on-click="() => this.openReply(msg)">Reply</div>
+                                                <div class="chat-dropdown-item" t-on-click="(ev) => this.openEmojiPicker(msg.id, ev)">React</div>
+                                                <div class="chat-dropdown-item" t-on-click="() => this.openForwardModal(msg.id)">Forward</div>
+                                                <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessageStar(msg.id, ev)">
+                                                    <t t-esc="msg.wa_is_starred ? 'Unstar' : 'Star'"/>
+                                                </div>
+                                                <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessagePin(msg.id, ev)">
+                                                    <t t-esc="msg.wa_is_pinned ? 'Unpin' : 'Pin'"/>
+                                                </div>
+                                                <div class="chat-dropdown-item" t-on-click="(ev) => this.reportContact(state.selectedChannel, ev)">Report</div>
+                                                <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
+                                                <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
+                                                <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
+                                                <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Message info</div>
+                                            </div>
+                                        </t>
                                     </div>
                                 </div>
                             </t>
