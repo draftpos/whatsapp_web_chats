@@ -787,17 +787,216 @@
     z-index: 10001;
 }
 
-/* Audio recording pulse animation */
+/* ─── WhatsApp-style Audio Player ─────────────────────────────────────────── */
+
+.wa-audio-bubble {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 8px;
+    border-radius: 12px;
+    min-width: 220px;
+    max-width: 300px;
+    background: transparent;
+}
+
+/* Sent (right) bubbles get a slightly darker tint */
+.wa-audio-mine {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+/* Received (left) bubbles */
+.wa-audio-theirs {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* Circular play/pause button */
+.wa-audio-play-btn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: #00a884;
+    color: white;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    outline: none;
+    padding-left: 2px; /* optical centering for play icon */
+}
+.wa-audio-play-btn:hover {
+    background: #008f70;
+}
+.wa-audio-play-btn .fa-pause {
+    padding-left: 0;
+}
+
+/* Waveform container */
+.wa-audio-waveform {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 30px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+/* Individual waveform bars */
+.wa-audio-bar {
+    flex-shrink: 0;
+    width: 3px;
+    border-radius: 2px;
+    background: #c8d3d8;
+    transition: background 0.1s;
+    min-height: 4px;
+    max-height: 20px;
+}
+.wa-audio-bar-played {
+    background: #00a884;
+}
+
+/* Duration label */
+.wa-audio-time {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #54656f;
+    white-space: nowrap;
+    min-width: 28px;
+    text-align: right;
+}
+
+/* Profile / mic avatar on right */
+.wa-audio-avatar {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #d9d9d9;
+    color: #667781;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+.wa-audio-avatar-green {
+    background: #00a884;
+    color: white;
+}
+
+/* Mine bubble – avatar shows sender's color */
+.wa-audio-mine .wa-audio-avatar {
+    background: #25d366;
+    color: white;
+}
+
+/* ─── Recording live indicator ─────────────────────────────────────────────── */
+.wa-recording-live {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border-top: 1px solid #e9edef;
+    padding: 10px 14px;
+    animation: wa-pulse 1.4s ease-in-out infinite;
+}
+
+.wa-recording-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #f24a4a;
+    flex-shrink: 0;
+}
+
+.wa-recording-label {
+    font-size: 14px;
+    color: #f24a4a;
+    font-weight: 600;
+    flex: 1;
+}
+
+.wa-recording-timer {
+    font-size: 14px;
+    color: #667781;
+    font-family: monospace;
+}
+
+.wa-record-stop {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: #f24a4a;
+    color: white;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* ─── Recording preview bar ─────────────────────────────────────────────────── */
+.wa-record-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border-top: 1px solid #e9edef;
+    padding: 8px 14px;
+}
+
+.wa-record-discard {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #8696a0;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+.wa-record-discard:hover {
+    color: #f24a4a;
+}
+
+.wa-audio-preview-bubble {
+    flex: 1;
+    background: #f0f2f5;
+    border-radius: 24px;
+}
+
+.wa-record-send {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: #00a884;
+    color: white;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.wa-record-send:hover {
+    background: #008f70;
+}
+
 @keyframes wa-pulse {
     0%   { opacity: 1; }
     50%  { opacity: 0.7; }
     100% { opacity: 1; }
-}
-
-/* Audio player in message bubble */
-.wa-audio-player audio {
-    outline: none;
-}
-.wa-audio-player audio::-webkit-media-controls-panel {
-    background: transparent;
 }

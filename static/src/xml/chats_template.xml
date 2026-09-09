@@ -344,11 +344,34 @@
                                         <div class="message-attachments">
                                             <t t-foreach="msg.attachment_ids || []" t-as="att" t-key="att.id">
                                                 <t t-if="att.mimetype and att.mimetype.startsWith('audio/')">
-                                                    <div class="wa-audio-player" style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.05); border-radius:24px; padding:8px 12px; min-width:200px; max-width:280px;">
-                                                        <i class="fa fa-microphone" style="font-size:18px; color:#00a884;"/>
-                                                        <audio controls="controls" style="flex:1; height:32px;">
-                                                            <source t-attf-src="/web/content/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" t-att-type="att.mimetype"/>
-                                                        </audio>
+                                                    <!-- WhatsApp-style audio player -->
+                                                    <div t-attf-class="wa-audio-bubble {{ msg.isMe ? 'wa-audio-mine' : 'wa-audio-theirs' }}">
+                                                        <!-- Play / Pause button -->
+                                                        <button class="wa-audio-play-btn"
+                                                                t-on-click="(ev) => { ev.stopPropagation(); this.toggleAudioPlay(att.id, '/web/content/' + att.id + (att.access_token ? '?access_token=' + att.access_token : ''), att.mimetype); }">
+                                                            <i t-attf-class="fa {{ state.activeAudioId == att.id.toString() ? 'fa-pause' : 'fa-play' }}"/>
+                                                        </button>
+                                                        <!-- Waveform + progress -->
+                                                        <div class="wa-audio-waveform" t-on-click="(ev) => this.seekAudio(att.id, ev)">
+                                                            <!-- Static waveform bars -->
+                                                            <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
+                                                                <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress(att.id) ? 'wa-audio-bar-played' : '' }}"
+                                                                     t-attf-style="height: {{ h * 2 + 4 }}px;"/>
+                                                            </t>
+                                                        </div>
+                                                        <!-- Duration / elapsed -->
+                                                        <span class="wa-audio-time">
+                                                            <t t-if="state.activeAudioId == att.id.toString()">
+                                                                <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].current or 0)"/>
+                                                            </t>
+                                                            <t t-else="">
+                                                                <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].duration or 0)"/>
+                                                            </t>
+                                                        </span>
+                                                        <!-- Mic icon -->
+                                                        <div class="wa-audio-avatar">
+                                                            <i class="fa fa-microphone"/>
+                                                        </div>
                                                     </div>
                                                 </t>
                                                 <t t-elif="att.mimetype and att.mimetype.includes('video')">
@@ -683,25 +706,52 @@
                         <t t-if="this.isWithin24hWindow">
                             <!-- Audio recording preview bar (shown after recording stops) -->
                             <t t-if="state.recordingBlobUrl and !state.isRecording">
-                                <div class="wa-audio-preview" style="display:flex; align-items:center; gap:10px; background:#e8f5e9; border-radius:12px; padding:10px 14px; margin:6px 10px; border:1px solid #a5d6a7;">
-                                    <i class="fa fa-microphone" style="color:#00a884; font-size:18px;"/>
-                                    <audio controls="controls" t-att-src="state.recordingBlobUrl" style="flex:1; height:32px;"/>
-                                    <span style="font-size:12px; color:#54656f; white-space:nowrap;"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
-                                    <button title="Send voice message" t-on-click="sendAudioMessage" style="background:#00a884; border:none; color:white; border-radius:50%; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                                        <i class="fa fa-paper-plane"/>
-                                    </button>
-                                    <button title="Discard" t-on-click="cancelRecording" style="background:#f24a4a; border:none; color:white; border-radius:50%; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                                <div class="wa-record-preview">
+                                    <!-- Discard -->
+                                    <button class="wa-record-discard" title="Discard" t-on-click="cancelRecording">
                                         <i class="fa fa-trash"/>
+                                    </button>
+                                    <!-- Custom audio preview player -->
+                                    <div class="wa-audio-bubble wa-audio-preview-bubble">
+                                        <button class="wa-audio-play-btn" t-on-click="onPreviewPlayPause">
+                                            <i t-attf-class="fa {{ state.activeAudioId == '__preview__' ? 'fa-pause' : 'fa-play' }}"/>
+                                        </button>
+                                        <div class="wa-audio-waveform" t-on-click="seekPreviewAudio">
+                                            <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
+                                                <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress('__preview__') ? 'wa-audio-bar-played' : '' }}"
+                                                     t-attf-style="height: {{ h * 2 + 4 }}px;"/>
+                                            </t>
+                                        </div>
+                                        <span class="wa-audio-time">
+                                            <t t-if="state.activeAudioId == '__preview__'">
+                                                <t t-esc="this.formatAudioTime(state.audioProgress['__preview__'] and state.audioProgress['__preview__'].current or 0)"/>
+                                            </t>
+                                            <t t-else="">
+                                                <t t-esc="this.formatRecordingTime(state.recordingSeconds)"/>
+                                            </t>
+                                        </span>
+                                        <div class="wa-audio-avatar wa-audio-avatar-green">
+                                            <i class="fa fa-microphone"/>
+                                        </div>
+                                    </div>
+                                    <!-- Send -->
+                                    <button class="wa-record-send" title="Send voice message" t-on-click="sendAudioMessage">
+                                        <i class="fa fa-paper-plane"/>
                                     </button>
                                 </div>
                             </t>
                             <!-- Live recording indicator -->
                             <t t-if="state.isRecording">
-                                <div style="display:flex; align-items:center; gap:10px; background:#fdecea; border-radius:12px; padding:10px 14px; margin:6px 10px; border:1px solid #ef9a9a; animation:wa-pulse 1s infinite;">
-                                    <i class="fa fa-circle" style="color:#f24a4a; font-size:12px;"/>
-                                    <span style="font-size:13px; color:#c62828; font-weight:600;">Recording...</span>
-                                    <span style="font-size:13px; color:#c62828; font-family:monospace;"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
-                                    <button title="Stop recording" t-on-click="stopRecording" style="background:#f24a4a; border:none; color:white; border-radius:50%; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center; margin-left:auto;">
+                                <div class="wa-recording-live">
+                                    <!-- Cancel / trash -->
+                                    <button class="wa-record-discard" title="Cancel" t-on-click="cancelRecording">
+                                        <i class="fa fa-trash"/>
+                                    </button>
+                                    <span class="wa-recording-dot"/>
+                                    <span class="wa-recording-label">Recording</span>
+                                    <span class="wa-recording-timer"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
+                                    <!-- Stop -->
+                                    <button class="wa-record-stop" title="Stop recording" t-on-click="stopRecording">
                                         <i class="fa fa-stop"/>
                                     </button>
                                 </div>

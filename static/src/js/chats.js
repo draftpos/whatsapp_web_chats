@@ -87,6 +87,9 @@ export class WhatsAppChatsAction extends Component {
             showDisappearingModal: false,
             // Deletion
             deleteMessageId: null,
+            // Audio player
+            activeAudioId: null,   // attachment id currently playing
+            audioProgress: {},     // { [attId]: { current: 0, duration: 0 } }
         });
         
         this.myPartnerId = null;
@@ -805,6 +808,138 @@ export class WhatsAppChatsAction extends Component {
     closeDeleteModal() {
         this.state.deleteMessageConfirmId = null;
     }
+
+    // ─── Custom Audio Player ────────────────────────────────────────────────────
+
+    /** Toggle play/pause for a message audio attachment */
+    toggleAudioPlay(attId, url, mimetype) {
+        const audioId = String(attId);
+        const current = this.state.activeAudioId;
+
+        // Stop any currently playing audio
+        if (this._currentAudio) {
+            this._currentAudio.pause();
+            this._currentAudio.currentTime = 0;
+            this._currentAudio = null;
+        }
+
+        // If we clicked the already-active one, just stop it
+        if (current === audioId) {
+            this.state.activeAudioId = null;
+            return;
+        }
+
+        // Create a new Audio element
+        const audio = new Audio(url);
+        audio.preload = 'metadata';
+        this._currentAudio = audio;
+        this.state.activeAudioId = audioId;
+
+        if (!this.state.audioProgress[audioId]) {
+            this.state.audioProgress[audioId] = { current: 0, duration: 0 };
+        }
+
+        audio.addEventListener('loadedmetadata', () => {
+            this.state.audioProgress[audioId] = {
+                ...this.state.audioProgress[audioId],
+                duration: audio.duration || 0,
+            };
+        });
+
+        audio.addEventListener('timeupdate', () => {
+            if (this.state.activeAudioId === audioId) {
+                this.state.audioProgress[audioId] = {
+                    current: audio.currentTime,
+                    duration: audio.duration || this.state.audioProgress[audioId]?.duration || 0,
+                };
+            }
+        });
+
+        audio.addEventListener('ended', () => {
+            this.state.activeAudioId = null;
+            this.state.audioProgress[audioId] = {
+                current: 0,
+                duration: this.state.audioProgress[audioId]?.duration || 0,
+            };
+            this._currentAudio = null;
+        });
+
+        audio.play().catch(() => {
+            this.state.activeAudioId = null;
+            this._currentAudio = null;
+        });
+    }
+
+    /** Seek the current audio to a position (0-100 range from progress bar click) */
+    seekAudio(attId, ev) {
+        const audioId = String(attId);
+        if (this.state.activeAudioId !== audioId || !this._currentAudio) return;
+        const bar = ev.currentTarget;
+        const rect = bar.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+        this._currentAudio.currentTime = ratio * (this._currentAudio.duration || 0);
+    }
+
+    /** Format seconds as m:ss */
+    formatAudioTime(secs) {
+        if (!secs || isNaN(secs)) return '0:00';
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    /** Get progress percentage for waveform */
+    getAudioProgress(attId) {
+        const p = this.state.audioProgress[String(attId)];
+        if (!p || !p.duration) return 0;
+        return Math.min(100, (p.current / p.duration) * 100);
+    }
+
+    /** Play/pause the recording preview blob */
+    onPreviewPlayPause() {
+        if (this.state.activeAudioId === '__preview__') {
+            if (this._currentAudio) {
+                this._currentAudio.pause();
+                this._currentAudio = null;
+            }
+            this.state.activeAudioId = null;
+            return;
+        }
+        if (this._currentAudio) {
+            this._currentAudio.pause();
+            this._currentAudio = null;
+        }
+        if (!this.state.recordingBlobUrl) return;
+        const audio = new Audio(this.state.recordingBlobUrl);
+        this._currentAudio = audio;
+        this.state.activeAudioId = '__preview__';
+        if (!this.state.audioProgress['__preview__']) {
+            this.state.audioProgress['__preview__'] = { current: 0, duration: 0 };
+        }
+        audio.addEventListener('loadedmetadata', () => {
+            this.state.audioProgress['__preview__'] = { ...this.state.audioProgress['__preview__'], duration: audio.duration || 0 };
+        });
+        audio.addEventListener('timeupdate', () => {
+            if (this.state.activeAudioId === '__preview__') {
+                this.state.audioProgress['__preview__'] = { current: audio.currentTime, duration: audio.duration || 0 };
+            }
+        });
+        audio.addEventListener('ended', () => {
+            this.state.activeAudioId = null;
+            this.state.audioProgress['__preview__'] = { current: 0, duration: this.state.audioProgress['__preview__']?.duration || 0 };
+            this._currentAudio = null;
+        });
+        audio.play().catch(() => { this.state.activeAudioId = null; this._currentAudio = null; });
+    }
+
+    seekPreviewAudio(ev) {
+        if (this.state.activeAudioId !== '__preview__' || !this._currentAudio) return;
+        const bar = ev.currentTarget;
+        const rect = bar.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+        this._currentAudio.currentTime = ratio * (this._currentAudio.duration || 0);
+    }
+
 
     onLightboxReply() {
         if (this.state.fullscreenMedia && this.state.fullscreenMedia.msg) {
