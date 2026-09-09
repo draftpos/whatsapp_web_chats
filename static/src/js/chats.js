@@ -1627,9 +1627,15 @@ export class WhatsAppChatsAction extends Component {
                 }
             };
             this._mediaRecorder.onstop = () => {
-                // Use the actual mimeType the recorder used, instead of forcing ogg. 
-                // Forcing an incorrect container (e.g. ogg for webm) breaks audio playback.
-                const mimeType = this._mediaRecorder.mimeType || 'audio/webm';
+                // Chrome records audio/webm;codecs=opus but WhatsApp API only accepts audio/ogg.
+                // Since both formats use the Opus codec, we can safely re-label the blob
+                // as audio/ogg;codecs=opus without transcoding — this is the standard approach.
+                let mimeType = this._mediaRecorder.mimeType || 'audio/webm';
+                if (mimeType.includes('webm') && mimeType.includes('opus')) {
+                    mimeType = 'audio/ogg; codecs=opus';
+                } else if (mimeType.includes('webm')) {
+                    mimeType = 'audio/ogg; codecs=opus';
+                }
                 const blob = new Blob(this._audioChunks, { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 this.state.recordingBlob = blob;
@@ -1690,11 +1696,11 @@ export class WhatsAppChatsAction extends Component {
     async sendAudioMessage() {
         if (!this.state.recordingBlob || !this.state.selectedChannel) return;
         const blob = this.state.recordingBlob;
-        let ext = 'ogg'; // Default to ogg for WhatsApp compatibility
+        // Always use .ogg extension — the blob is already labelled audio/ogg above
+        // so the server will store it with the correct mimetype that WhatsApp accepts
+        let ext = 'ogg';
         if (blob.type.includes('mp4') || blob.type.includes('m4a')) ext = 'm4a';
         else if (blob.type.includes('mpeg')) ext = 'mp3';
-        else if (blob.type.includes('webm')) ext = 'webm';
-        
         const filename = `voice_${Date.now()}.${ext}`;
 
         const tempMsg = {
