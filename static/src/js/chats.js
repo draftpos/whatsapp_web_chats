@@ -591,21 +591,23 @@ export class WhatsAppChatsAction extends Component {
                 if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
                 return (b.write_date || '').localeCompare(a.write_date || '');
             });
-            this.state.channels = validChannels;
-            
-            try {
-                localStorage.setItem(cacheKey, JSON.stringify(validChannels));
-            } catch (e) {}
-            
+
             if (this.state.selectedChannel) {
                 const currentId = this.state.selectedChannel.id;
                 const updated = validChannels.find(c => c.id === currentId);
                 if (updated) {
+                    updated.unread_count = 0;
                     this.state.selectedChannel = updated;
                 } else {
                     this.state.selectedChannel = null;
                 }
             }
+
+            this.state.channels = validChannels;
+            
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify(validChannels));
+            } catch (e) {}
         } else if (!this.state.channels || this.state.channels.length === 0) {
             this.state.selectedChannel = null;
         }
@@ -1392,9 +1394,8 @@ export class WhatsAppChatsAction extends Component {
                 if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
                 return (b.write_date || '').localeCompare(a.write_date || '');
             });
-            this.state.channels = validFresh;
 
-            // Keep selected channel in sync
+            // Keep selected channel in sync and clear unread BEFORE updating this.state.channels to prevent UI flicker
             if (this.state.selectedChannel) {
                 const found = validFresh.find(c => c.id === this.state.selectedChannel.id);
                 if (found) {
@@ -1402,6 +1403,8 @@ export class WhatsAppChatsAction extends Component {
                     this.state.selectedChannel = found;
                 }
             }
+
+            this.state.channels = validFresh;
         } catch(e) {
             console.warn("Poll error", e);
         }
