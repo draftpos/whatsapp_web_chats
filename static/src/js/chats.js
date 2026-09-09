@@ -1830,7 +1830,13 @@ export class WhatsAppChatsAction extends Component {
 
     async sendAudioMessage() {
         if (!this.state.recordingBlob || !this.state.selectedChannel) return;
+        if (this._isSendingAudio) return;  // prevent double sends
+        this._isSendingAudio = true;
+        // Capture and clear blob immediately so re-renders don't trigger another send
         const blob = this.state.recordingBlob;
+        this.state.recordingBlob = null;
+        this.state.recordingBlobUrl = null;
+        this.state.recordingSeconds = 0;
         // Always use .ogg extension — the blob is already labelled audio/ogg above
         // so the server will store it with the correct mimetype that WhatsApp accepts
         let ext = 'ogg';
@@ -1883,16 +1889,13 @@ export class WhatsAppChatsAction extends Component {
                 'message_post',
                 [this.state.selectedChannel.id],
                 {
-                    body: ' ',
+                    body: '',
                     message_type: 'whatsapp_message',
                     subtype_xmlid: 'mail.mt_comment',
                     attachment_ids: Array.isArray(attachmentId) ? attachmentId : [attachmentId],
                 }
             );
 
-            this.state.recordingBlob = null;
-            this.state.recordingBlobUrl = null;
-            this.state.recordingSeconds = 0;
             await new Promise(resolve => setTimeout(resolve, 400));
             await this.loadMessages();
             this.scrollToBottom();
@@ -1900,12 +1903,36 @@ export class WhatsAppChatsAction extends Component {
         } catch (e) {
             console.error('Failed to send audio message:', e);
             alert('Failed to send voice message.');
+        } finally {
+            this._isSendingAudio = false;
         }
     }
 
     async sendMenuReply(optionText) {
+        // Bypass audio state guards — this is always a text reply
         this.state.newMessage = optionText;
-        await this.sendMessage();
+        if (this.state.isSending) return;
+        if (!this.state.selectedChannel) return;
+        this.state.isSending = true;
+        try {
+            await this.orm.call(
+                'discuss.channel',
+                'message_post',
+                [this.state.selectedChannel.id],
+                {
+                    body: optionText,
+                    message_type: 'whatsapp_message',
+                    subtype_xmlid: 'mail.mt_comment',
+                }
+            );
+            this.state.newMessage = '';
+            await this.loadMessages();
+            this.scrollToBottom();
+        } catch (e) {
+            console.error('Failed to send menu reply:', e);
+        } finally {
+            this.state.isSending = false;
+        }
     }
 
     async sendMessage() {
