@@ -566,6 +566,25 @@
                         </t>
                     </div>
                         <style>
+                            .message-body {
+                                font-size: 14.2px;
+                                line-height: 19px;
+                                color: #111b21;
+                                white-space: pre-wrap;
+                                word-wrap: break-word;
+                                margin-top: 2px;
+                                user-select: text;
+                                -webkit-user-select: text;
+                                -moz-user-select: text;
+                                -ms-user-select: text;
+                            }
+                            .quoted-message {
+                                user-select: text;
+                                -webkit-user-select: text;
+                                -moz-user-select: text;
+                                -ms-user-select: text;
+                            }
+
                             .attach-menu-item:hover {
                                 background-color: #f0f2f5;
                             }
