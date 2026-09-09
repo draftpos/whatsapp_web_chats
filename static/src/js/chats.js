@@ -1909,6 +1909,16 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async sendMessage() {
+        // If actively recording → stop and send the audio immediately
+        if (this.state.isRecording) {
+            this.stopAndSendRecording();
+            return;
+        }
+        // If a recorded blob is ready → send it
+        if (this.state.recordingBlobUrl) {
+            this.sendAudioMessage();
+            return;
+        }
         if (this.state.isSending) return; // prevent double sends
         if ((!this.state.newMessage.trim() && this.state.pendingFiles.length === 0) || !this.state.selectedChannel) return;
         
