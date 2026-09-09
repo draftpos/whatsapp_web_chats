@@ -2224,14 +2224,14 @@ export class WhatsAppChatsAction extends Component {
     onTextareaInput(ev) {
         // Auto-resize
         this.onInputResize(ev);
+        // If user starts typing while a recording preview is showing, discard it
+        if (ev.target.value && this.state.recordingBlobUrl && !this.state.isRecording) {
+            this.cancelRecording();
+        }
     }
 
     onTextareaFocus() {
-        // If user clicks into the textarea while a recording preview is showing,
-        // discard the preview so they can type freely
-        if (this.state.recordingBlobUrl && !this.state.isRecording) {
-            this.cancelRecording();
-        }
+        // Do nothing on focus — don't discard recording just because user clicks the input
     }
 
     toggleInputEmojiPicker(ev) {
