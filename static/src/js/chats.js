@@ -559,26 +559,27 @@ export class WhatsAppChatsAction extends Component {
             this.state.showLabels = response.show_labels;
         }
         
-        if (channels.length > 0 && this.myPartnerId) {
-            // Unread count is now calculated accurately by get_whatsapp_web_channels
-        }
-        
         if (channels.length > 0) {
             const partnerIds = channels.map(c => c.whatsapp_partner_id && c.whatsapp_partner_id[0]).filter(id => id);
             if (partnerIds.length > 0) {
-                const partners = await this.orm.searchRead("res.partner", [["id", "in", partnerIds]], ["id", "avatar_128", "phone"]);
+                const partners = await this.orm.searchRead("res.partner", [["id", "in", partnerIds]], ["id", "phone"]);
                 const partnerMap = {};
                 for (const p of partners) {
-                    partnerMap[p.id] = { image: p.avatar_128, phone: p.phone };
+                    partnerMap[p.id] = { phone: p.phone };
                 }
                 for (const c of channels) {
                     if (c.whatsapp_partner_id) {
                         const pData = partnerMap[c.whatsapp_partner_id[0]];
                         if (pData) {
-                            c.customer_image = pData.image;
                             c.customer_phone = pData.phone;
                         }
                     }
+                    if (c.wa_account_id) {
+                        c.wa_account_id = c.wa_account_id[0];
+                    }
+                }
+            } else {
+                for (const c of channels) {
                     if (c.wa_account_id) {
                         c.wa_account_id = c.wa_account_id[0];
                     }

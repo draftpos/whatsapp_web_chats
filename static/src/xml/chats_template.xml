@@ -102,7 +102,10 @@
                                 </t>
                             </div>
                             <div class="chat-avatar-container">
-                                <t t-if="channel.customer_image">
+                                <t t-if="channel.whatsapp_partner_id">
+                                    <img t-attf-src="/web/image/res.partner/{{channel.whatsapp_partner_id[0]}}/avatar_128" class="chat-avatar" style="object-fit: cover; background: none;" onerror="this.src='/web/static/img/placeholder.png';"/>
+                                </t>
+                                <t t-elif="channel.customer_image">
                                     <img t-attf-src="data:image/jpeg;base64,{{channel.customer_image}}" class="chat-avatar" style="object-fit: cover; background: none;"/>
                                 </t>
                                 <t t-else="">
@@ -774,7 +777,10 @@
                     
                     <div style="padding: 30px 20px; text-align: center; background: white; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
                         <div style="width: 200px; height: 200px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; overflow: hidden;" t-attf-style="background: {{ this.getAvatarColor(state.selectedChannel.name) }}; background-image: none;">
-                            <t t-if="state.selectedChannel.customer_image">
+                            <t t-if="state.selectedChannel.whatsapp_partner_id">
+                                <img t-attf-src="/web/image/res.partner/{{state.selectedChannel.whatsapp_partner_id[0]}}/avatar_128" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='/web/static/img/placeholder.png';"/>
+                            </t>
+                            <t t-elif="state.selectedChannel.customer_image">
                                 <img t-attf-src="data:image/jpeg;base64,{{state.selectedChannel.customer_image}}" style="width:100%; height:100%; object-fit:cover;"/>
                             </t>
                             <t t-else="">
