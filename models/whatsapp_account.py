@@ -450,7 +450,14 @@ class WhatsAppAccount(models.Model):
             
             quoted_body = False
             quoted_attachment = False
+            quoted_author = False
             if m.parent_id:
+                # Determine quoted author
+                if m.parent_id.author_id:
+                    quoted_author = m.parent_id.author_id.name
+                else:
+                    quoted_author = "You" if getattr(m.parent_id, 'is_me', getattr(m, 'is_me', False)) else "Customer"
+
                 quoted_body = re.sub(r'<[^>]+>', '', m.parent_id.body or '').strip()[:100]
                 if m.parent_id.attachment_ids:
                     att = m.parent_id.attachment_ids[0]
@@ -462,13 +469,13 @@ class WhatsAppAccount(models.Model):
                     }
                     if not quoted_body:
                         if att.mimetype and att.mimetype.startswith('image/'):
-                            quoted_body = '📷 Photo'
+                            quoted_body = 'image'
                         elif att.mimetype and att.mimetype.startswith('video/'):
-                            quoted_body = '🎥 Video'
+                            quoted_body = 'video'
                         elif att.mimetype and att.mimetype.startswith('audio/'):
-                            quoted_body = '🎵 Audio'
+                            quoted_body = 'audio'
                         else:
-                            quoted_body = '📄 Document'
+                            quoted_body = 'document'
 
             msg_dict = {
                 'id': m.id,
@@ -487,6 +494,7 @@ class WhatsAppAccount(models.Model):
                 'quoted_message_id': m.parent_id.id if m.parent_id else False,
                 'quoted_message_body': quoted_body,
                 'quoted_attachment': quoted_attachment,
+                'quoted_author': quoted_author,
             }
             res.append(msg_dict)
             

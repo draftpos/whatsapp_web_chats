@@ -806,6 +806,13 @@ export class WhatsAppChatsAction extends Component {
         this.state.deleteMessageConfirmId = null;
     }
 
+    onLightboxReply() {
+        if (this.state.fullscreenMedia && this.state.fullscreenMedia.msg) {
+            this.openReply(this.state.fullscreenMedia.msg);
+            this.closeMedia();
+        }
+    }
+
     openReply(msg) {
         this.state.replyingToMessage = msg;
         this.state.showMessageDropdownId = null;

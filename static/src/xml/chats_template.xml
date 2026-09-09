@@ -1517,7 +1517,7 @@
                             </button>
                         </t>
                         <!-- Reply button -->
-                        <button class="media-lb-btn" title="Reply" t-on-click="(ev) => { if (state.fullscreenMedia.msg) { this.openReply(state.fullscreenMedia.msg); this.closeMedia(); } }">
+                        <button class="media-lb-btn" title="Reply" t-on-click="onLightboxReply">
                             <i class="fa fa-reply"/>
                         </button>
                         <!-- Download button -->
