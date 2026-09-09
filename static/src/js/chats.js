@@ -17,7 +17,7 @@ export class WhatsAppChatsAction extends Component {
             selectedChannel: null,
             messages: [],
             newMessage: "",
-            pendingFile: null,
+            pendingFiles: [],
             accounts: [],
             selectedAccount: null,
             products: [],
@@ -1376,6 +1376,9 @@ export class WhatsAppChatsAction extends Component {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = acceptType;
+        if (mode !== 'sticker') {
+            fileInput.multiple = true;
+        }
         fileInput.onchange = (e) => {
             if (mode === 'sticker') {
                 this.onStickerSelect(e);
@@ -1429,33 +1432,42 @@ export class WhatsAppChatsAction extends Component {
 
     async onFileSelect(ev) {
         this.state.showPlusMenu = false;
-        let file = ev.target.files[0];
-        if (!file) return;
+        let files = ev.target.files;
+        if (!files || files.length === 0) return;
 
-        if (file.type.startsWith('image/') && !file.type.includes('gif')) {
-            try {
-                file = await this.compressImage(file);
-            } catch (e) {
-                console.warn('Image compression failed', e);
+        for (let i = 0; i < files.length; i++) {
+            let file = files[i];
+            if (file.type.startsWith('image/') && !file.type.includes('gif')) {
+                try {
+                    file = await this.compressImage(file);
+                } catch (e) {
+                    console.warn('Image compression failed', e);
+                }
             }
-        }
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.state.pendingFile = {
+            const dataUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+
+            this.state.pendingFiles.push({
                 name: file.name,
                 type: file.type,
                 size: file.size,
                 file: file,
-                dataUrl: e.target.result
-            };
-        };
-        reader.readAsDataURL(file);
+                dataUrl: dataUrl
+            });
+        }
         if (ev.target) ev.target.value = "";
     }
     
-    removePendingFile() {
-        this.state.pendingFile = null;
+    removePendingFile(index) {
+        if (typeof index === 'number') {
+            this.state.pendingFiles.splice(index, 1);
+        } else {
+            this.state.pendingFiles = [];
+        }
     }
 
     async startRecording() {
@@ -1621,13 +1633,13 @@ export class WhatsAppChatsAction extends Component {
 
     async sendMessage() {
         if (this.state.isSending) return; // prevent double sends
-        if ((!this.state.newMessage.trim() && !this.state.pendingFile) || !this.state.selectedChannel) return;
+        if ((!this.state.newMessage.trim() && this.state.pendingFiles.length === 0) || !this.state.selectedChannel) return;
         
         this.state.isSending = true;
         const messageBody = this.state.newMessage;
-        const pendingFile = this.state.pendingFile;
+        const pendingFiles = [...this.state.pendingFiles];
         this.state.newMessage = "";
-        this.state.pendingFile = null;
+        this.state.pendingFiles = [];
         this.state.replyingToMessage = null;
 
         const tempMsgId = 'temp_' + Date.now();
@@ -1641,9 +1653,9 @@ export class WhatsAppChatsAction extends Component {
             attachment_ids: []
         };
         
-        if (pendingFile) {
+        for (const pendingFile of pendingFiles) {
             tempMsg.attachment_ids.push({
-                id: 'temp_att',
+                id: 'temp_att_' + Math.random().toString(36).substr(2, 9),
                 name: pendingFile.name,
                 mimetype: pendingFile.type,
                 dataUrl: pendingFile.dataUrl || null
@@ -1657,7 +1669,7 @@ export class WhatsAppChatsAction extends Component {
         const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
         
         let safeBody = messageBody;
-        if (!safeBody && pendingFile) {
+        if (!safeBody && pendingFiles.length > 0) {
             safeBody = ' ';
         }
         
@@ -1666,11 +1678,11 @@ export class WhatsAppChatsAction extends Component {
             channelId: this.state.selectedChannel.id,
             body: safeBody,
             replyingToMessageId: this.state.replyingToMessage ? this.state.replyingToMessage.id : null,
-            file: pendingFile ? {
-                name: pendingFile.name,
-                type: pendingFile.type,
-                dataUrl: pendingFile.dataUrl
-            } : null,
+            files: pendingFiles.map(pf => ({
+                name: pf.name,
+                type: pf.type,
+                dataUrl: pf.dataUrl
+            })),
             timestamp: Date.now()
         });
         
@@ -1743,28 +1755,31 @@ export class WhatsAppChatsAction extends Component {
                 const task = queue[0];
                 let attachment_ids = [];
 
-                if (task.file && task.file.dataUrl) {
+                if (task.files && task.files.length > 0) {
                     try {
-                        const blob = this.dataURLtoBlob(task.file.dataUrl);
-                        const formData = new window.FormData();
-                        formData.append('csrf_token', window.odoo?.csrf_token || '');
-                        formData.append('name', task.file.name);
-                        formData.append('ufile', blob, task.file.name);
-                        formData.append('model', 'discuss.channel');
-                        formData.append('id', task.channelId);
+                        for (const fileData of task.files) {
+                            if (!fileData.dataUrl) continue;
+                            const blob = this.dataURLtoBlob(fileData.dataUrl);
+                            const formData = new window.FormData();
+                            formData.append('csrf_token', window.odoo?.csrf_token || '');
+                            formData.append('name', fileData.name);
+                            formData.append('ufile', blob, fileData.name);
+                            formData.append('model', 'discuss.channel');
+                            formData.append('id', task.channelId);
 
-                        const response = await window.fetch('/web/binary/upload_attachment', {
-                            method: 'POST',
-                            body: formData,
-                        });
-                        const responseText = await response.text();
-                        const match = responseText.match(/\[.*?\]|\{.*?\}/);
-                        if (match) {
-                            const result = JSON.parse(match[0]);
-                            if (Array.isArray(result)) {
-                                attachment_ids = result.map(a => a.id);
-                            } else if (result.id) {
-                                attachment_ids = [result.id];
+                            const response = await window.fetch('/web/binary/upload_attachment', {
+                                method: 'POST',
+                                body: formData,
+                            });
+                            const responseText = await response.text();
+                            const match = responseText.match(/\[.*?\]|\{.*?\}/);
+                            if (match) {
+                                const result = JSON.parse(match[0]);
+                                if (Array.isArray(result)) {
+                                    attachment_ids.push(...result.map(a => a.id));
+                                } else if (result.id) {
+                                    attachment_ids.push(result.id);
+                                }
                             }
                         }
                     } catch (e) {

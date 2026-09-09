@@ -529,18 +529,22 @@
                         }
                     </style>
                     <div class="whatsapp-footer">
-                        <t t-if="state.pendingFile">
-                            <div class="whatsapp-file-preview">
-                                <div class="preview-close" t-on-click="removePendingFile">
-                                    <i class="fa fa-times"/>
-                                </div>
-                                <t t-if="state.pendingFile.type.startsWith('image/')">
-                                    <img class="preview-img" t-att-src="state.pendingFile.dataUrl"/>
-                                </t>
-                                <t t-else="">
-                                    <div class="preview-doc">
-                                        <i class="fa fa-file-text-o fa-2x"/>
-                                        <div class="preview-filename"><t t-esc="state.pendingFile.name"/></div>
+                        <t t-if="state.pendingFiles and state.pendingFiles.length > 0">
+                            <div style="display: flex; gap: 10px; padding: 10px; overflow-x: auto;">
+                                <t t-foreach="state.pendingFiles" t-as="pendingFile" t-key="pendingFile.name">
+                                    <div class="whatsapp-file-preview" style="position: relative; margin: 0; min-width: 100px;">
+                                        <div class="preview-close" t-on-click="() => this.removePendingFile(pendingFile_index)">
+                                            <i class="fa fa-times"/>
+                                        </div>
+                                        <t t-if="pendingFile.type.startsWith('image/')">
+                                            <img class="preview-img" t-att-src="pendingFile.dataUrl" style="max-height: 80px;"/>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="preview-doc" style="height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                                <i class="fa fa-file-text-o fa-2x"/>
+                                                <div class="preview-filename" style="max-width: 100px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;"><t t-esc="pendingFile.name"/></div>
+                                            </div>
+                                        </t>
                                     </div>
                                 </t>
                             </div>
@@ -650,7 +654,7 @@
                                     </t>
                                 </div>
                                 <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onInputResize" style="overflow-y: hidden; resize: none;"/>
-                                <t t-if="!state.newMessage and !state.pendingFile and !state.isRecording and !state.recordingBlobUrl">
+                                <t t-if="!state.newMessage and (!state.pendingFiles or state.pendingFiles.length === 0) and !state.isRecording and !state.recordingBlobUrl">
                             <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="background:#00a884;">
                                         <i class="fa fa-microphone"/>
                                     </button>
