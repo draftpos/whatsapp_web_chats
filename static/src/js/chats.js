@@ -1627,8 +1627,10 @@ export class WhatsAppChatsAction extends Component {
                 }
             };
             this._mediaRecorder.onstop = () => {
-                // Force audio/ogg instead of video/webm to prevent WhatsApp API rejection
-                const blob = new Blob(this._audioChunks, { type: 'audio/ogg; codecs=opus' });
+                // Use the actual mimeType the recorder used, instead of forcing ogg. 
+                // Forcing an incorrect container (e.g. ogg for webm) breaks audio playback.
+                const mimeType = this._mediaRecorder.mimeType || 'audio/webm';
+                const blob = new Blob(this._audioChunks, { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 this.state.recordingBlob = blob;
                 this.state.recordingBlobUrl = url;
@@ -1691,6 +1693,8 @@ export class WhatsAppChatsAction extends Component {
         let ext = 'ogg'; // Default to ogg for WhatsApp compatibility
         if (blob.type.includes('mp4') || blob.type.includes('m4a')) ext = 'm4a';
         else if (blob.type.includes('mpeg')) ext = 'mp3';
+        else if (blob.type.includes('webm')) ext = 'webm';
+        
         const filename = `voice_${Date.now()}.${ext}`;
 
         const tempMsg = {
