@@ -1366,7 +1366,8 @@ export class WhatsAppChatsAction extends Component {
             const recentTempMsgs = oldMessages.filter(m => {
                 if (m.id && m.id.toString().startsWith('temp_')) {
                     const parts = m.id.toString().split('_');
-                    const tempTime = parseInt(parts[parts.length - 1] || 0);
+                    // Find the timestamp (e.g. temp_17000, temp_17000_0, temp_audio_17000)
+                    const tempTime = parseInt(parts[1]) || parseInt(parts[2]) || 0;
                     // Keep if it was created less than 15 seconds ago
                     if (now - tempTime < 15000) {
                         // For audio temp messages: check if a server audio msg already exists

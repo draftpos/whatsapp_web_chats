@@ -12,7 +12,6 @@ class WhatsAppMessage(models.Model):
     wa_reaction_me = fields.Char(string='My Reaction', help='Emoji reaction sent by me')
     wa_is_starred = fields.Boolean(string='Starred (Local)')
     wa_is_pinned = fields.Boolean(string='Pinned (Local)')
-    wa_is_edited = fields.Boolean(string='Is Edited (Local)', default=False)
 
 
     @api.model_create_multi

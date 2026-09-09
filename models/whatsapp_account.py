@@ -447,7 +447,7 @@ class WhatsAppAccount(models.Model):
             wa_is_pinned = wa_rec.wa_is_pinned if wa_rec else False
             wa_reaction = wa_rec.wa_reaction if wa_rec else False
             wa_reaction_me = wa_rec.wa_reaction_me if wa_rec else False
-            wa_is_edited = wa_rec.wa_is_edited if wa_rec else False
+            wa_is_edited = '<!--edited-->' in (m.body or '')
             
             quoted_body = False
             quoted_attachment = False
@@ -516,13 +516,8 @@ class WhatsAppAccount(models.Model):
         if not msg.exists():
             return {'success': False, 'error': 'Message not found'}
         
-        # We also need to update the body on the mail.message
-        msg.write({'body': new_body})
-        
-        # And flag it as edited on the whatsapp.message
-        wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', msg.id)], limit=1)
-        if wa_msg:
-            wa_msg.write({'wa_is_edited': True})
+        # Update the body with the edited flag as an HTML comment
+        msg.write({'body': new_body + '<!--edited-->'})
             
         return {'success': True}
 
