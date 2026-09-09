@@ -229,6 +229,17 @@
     font-weight: 500;
 }
 
+/* Fix for Odoo's native Loading indicator blocking the bottom right buttons */
+.o_loading_indicator {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+.o_loading {
+    display: none !important;
+    pointer-events: none !important;
+}
+
 .whatsapp-input-area {
     height: 70px;
     background-color: #ffffff;
