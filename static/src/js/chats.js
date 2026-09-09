@@ -1763,6 +1763,10 @@ export class WhatsAppChatsAction extends Component {
         this.state.newMessage = "";
         this.state.pendingFiles = [];
         const replyingToMessageId = this.state.replyingToMessage ? this.state.replyingToMessage.id : null;
+        let replyingToMessageBody = null;
+        if (this.state.replyingToMessage) {
+            replyingToMessageBody = this.state.replyingToMessage.bodyText || '📎 Attachment';
+        }
         this.state.replyingToMessage = null;
 
         const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
@@ -1777,7 +1781,9 @@ export class WhatsAppChatsAction extends Component {
                 isSystem: false,
                 timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 wa_state: 'pending',
-                attachment_ids: []
+                attachment_ids: [],
+                quoted_message_id: replyingToMessageId,
+                quoted_message_body: replyingToMessageBody
             };
             this.state.messages.push(tempMsg);
             
@@ -1809,7 +1815,9 @@ export class WhatsAppChatsAction extends Component {
                         name: pendingFile.name,
                         mimetype: pendingFile.type,
                         dataUrl: pendingFile.dataUrl || null
-                    }]
+                    }],
+                    quoted_message_id: replyingToMessageId,
+                    quoted_message_body: replyingToMessageBody
                 };
                 this.state.messages.push(tempMsg);
                 

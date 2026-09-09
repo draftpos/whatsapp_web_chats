@@ -448,6 +448,12 @@ class WhatsAppAccount(models.Model):
             wa_reaction = wa_rec.wa_reaction if wa_rec else False
             wa_reaction_me = wa_rec.wa_reaction_me if wa_rec else False
             
+            quoted_body = False
+            if m.parent_id:
+                quoted_body = re.sub(r'<[^>]+>', '', m.parent_id.body or '').strip()[:100]
+                if not quoted_body and m.parent_id.attachment_ids:
+                    quoted_body = '📎 Attachment'
+
             msg_dict = {
                 'id': m.id,
                 'body': m.body,
@@ -463,7 +469,7 @@ class WhatsAppAccount(models.Model):
                 'wa_reaction': wa_reaction,
                 'wa_reaction_me': wa_reaction_me,
                 'quoted_message_id': m.parent_id.id if m.parent_id else False,
-                'quoted_message_body': re.sub(r'<[^>]+>', '', m.parent_id.body or '').strip()[:100] if m.parent_id and m.parent_id.body else False,
+                'quoted_message_body': quoted_body,
             }
             res.append(msg_dict)
             
