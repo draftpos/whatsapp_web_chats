@@ -865,20 +865,30 @@ export class WhatsAppChatsAction extends Component {
         channel.wa_is_unread_global = false;
         channel.message_needaction_counter = 0;
 
-        try {
-            this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id], {}, { silent: true }).catch(e => {
-                console.warn("Failed to mark messages as read silently, queuing for offline retry");
-                try {
-                    const readQueue = JSON.parse(localStorage.getItem('wa_offline_read_queue') || '[]');
-                    if (!readQueue.includes(channel.id)) {
-                        readQueue.push(channel.id);
-                        localStorage.setItem('wa_offline_read_queue', JSON.stringify(readQueue));
-                    }
-                } catch(err) {}
-            });
-        } catch (e) {
-            console.warn("Failed to mark messages as read", e);
+        // Force reactivity update in case proxy tracking missed the direct mutation
+        const idx = this.state.channels.findIndex(c => c.id === channel.id);
+        if (idx !== -1) {
+            this.state.channels[idx].unread_count = 0;
+            this.state.channels[idx].wa_is_unread_global = false;
+            this.state.channels[idx].message_needaction_counter = 0;
         }
+
+        setTimeout(() => {
+            try {
+                this.orm.call("whatsapp.account", "mark_whatsapp_web_messages_read", [channel.id], {}, { silent: true }).catch(e => {
+                    console.warn("Failed to mark messages as read silently, queuing for offline retry");
+                    try {
+                        const readQueue = JSON.parse(localStorage.getItem('wa_offline_read_queue') || '[]');
+                        if (!readQueue.includes(channel.id)) {
+                            readQueue.push(channel.id);
+                            localStorage.setItem('wa_offline_read_queue', JSON.stringify(readQueue));
+                        }
+                    } catch(err) {}
+                });
+            } catch (e) {
+                console.warn("Failed to mark messages as read", e);
+            }
+        }, 50);
         
         // Load messages asynchronously without blocking the UI
         this.loadMessages(channel.id, loadId).catch(e => console.warn("Failed to load messages:", e));
