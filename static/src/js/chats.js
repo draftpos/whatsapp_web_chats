@@ -598,6 +598,8 @@ export class WhatsAppChatsAction extends Component {
                 const updated = validChannels.find(c => c.id === currentId);
                 if (updated) {
                     updated.unread_count = 0;
+                    updated.wa_is_unread_global = false;
+                    updated.message_needaction_counter = 0;
                     this.state.selectedChannel = updated;
                 } else {
                     this.state.selectedChannel = null;
@@ -1412,6 +1414,8 @@ export class WhatsAppChatsAction extends Component {
                 const found = validFresh.find(c => c.id === this.state.selectedChannel.id);
                 if (found) {
                     found.unread_count = 0; // always keep selected as read
+                    found.wa_is_unread_global = false;
+                    found.message_needaction_counter = 0;
                     this.state.selectedChannel = found;
                 }
             }
