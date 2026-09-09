@@ -1259,11 +1259,60 @@ export class WhatsAppChatsAction extends Component {
             
             // --- Merge pending/recently sent messages ---
             const now = Date.now();
+
+            // ── Audio-specific: carry over localBlobUrl from temp audio attachment ──
+            // When the server message arrives, preserve the blob URL so the player
+            // keeps working without any disruption to the UI.
+            const tempAudioMsgs = oldMessages.filter(m =>
+                m.id && m.id.toString().startsWith('temp_audio_') &&
+                m.attachment_ids && m.attachment_ids.some(a => a.localBlobUrl)
+            );
+            if (tempAudioMsgs.length > 0) {
+                for (const serverMsg of this.state.messages) {
+                    if (!serverMsg.isMe) continue;
+                    if (!serverMsg.attachment_ids || serverMsg.attachment_ids.length === 0) continue;
+                    const serverAtt = serverMsg.attachment_ids.find(a => a.mimetype && a.mimetype.startsWith('audio/'));
+                    if (!serverAtt) continue;
+                    // Match against a temp audio message (same channel, recent, audio attachment)
+                    const matchingTemp = tempAudioMsgs.find(t => {
+                        const tAtt = t.attachment_ids.find(a => a.localBlobUrl);
+                        return tAtt && !serverAtt.localBlobUrl;
+                    });
+                    if (matchingTemp) {
+                        const tempAtt = matchingTemp.attachment_ids.find(a => a.localBlobUrl);
+                        // Preserve localBlobUrl on the real server attachment
+                        serverAtt.localBlobUrl = tempAtt.localBlobUrl;
+                        // Migrate audio player state from temp ID to real server ID
+                        const tempId = String(tempAtt.id);
+                        const realId = String(serverAtt.id);
+                        if (this.state.activeAudioId === tempId) {
+                            this.state.activeAudioId = realId;
+                        }
+                        if (this.state.audioProgress[tempId]) {
+                            this.state.audioProgress[realId] = this.state.audioProgress[tempId];
+                            delete this.state.audioProgress[tempId];
+                        }
+                    }
+                }
+            }
+
             const recentTempMsgs = oldMessages.filter(m => {
                 if (m.id && m.id.toString().startsWith('temp_')) {
-                    const tempTime = parseInt(m.id.toString().split('_')[1] || 0);
+                    const parts = m.id.toString().split('_');
+                    const tempTime = parseInt(parts[parts.length - 1] || 0);
                     // Keep if it was created less than 15 seconds ago
                     if (now - tempTime < 15000) {
+                        // For audio temp messages: check if a server audio msg already exists
+                        const hasLocalAudio = m.attachment_ids && m.attachment_ids.some(a => a.localBlobUrl);
+                        if (hasLocalAudio) {
+                            // Audio already merged into server message above — discard temp
+                            const alreadyMerged = this.state.messages.some(serverMsg =>
+                                serverMsg.isMe &&
+                                serverMsg.attachment_ids &&
+                                serverMsg.attachment_ids.some(a => a.localBlobUrl)
+                            );
+                            return !alreadyMerged;
+                        }
                         // Check if the server already returned a message with the same body sent by me
                         const alreadyReceived = this.state.messages.some(serverMsg => 
                             serverMsg.isMe === true && 
