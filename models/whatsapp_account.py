@@ -1339,5 +1339,4 @@ class WhatsAppAccount(models.Model):
                 'image_1920': account.image_1920 if hasattr(account, 'image_1920') else False,
             }
         return {}
-   
- 
+ 
