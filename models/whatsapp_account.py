@@ -69,7 +69,7 @@ class WhatsAppAccount(models.Model):
             domain,
             ['id', 'name', 'image_1920', 'wa_bot_active', 'tenant_id'],
         )
-        # Normalize tenant_id to [id, name] or False
+        # Normalize tenant_id and decode binary image
         for acc in accounts:
             if isinstance(acc.get('tenant_id'), (list, tuple)):
                 pass  # already [id, name]
@@ -78,6 +78,11 @@ class WhatsAppAccount(models.Model):
                 acc['tenant_id'] = [company.id, company.name]
             else:
                 acc['tenant_id'] = False
+                
+            # Decode binary image to base64 string for JSON serialization
+            if acc.get('image_1920') and isinstance(acc['image_1920'], bytes):
+                acc['image_1920'] = acc['image_1920'].decode('utf-8')
+                
         return accounts
 
     @api.model
