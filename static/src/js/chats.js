@@ -524,7 +524,13 @@ export class WhatsAppChatsAction extends Component {
         }
         
         if (this.state.accounts.length === 0) {
-            this.state.accounts = await this.orm.searchRead("whatsapp.account", [], ["id", "name", "image_1920", "wa_bot_active"]);
+            this.state.accounts = await this.orm.call(
+                "whatsapp.account",
+                "get_whatsapp_web_accounts",
+                [],
+                {},
+                { silent: true }
+            );
             if (this.state.accounts.length > 0) {
                 this.state.selectedAccount = this.state.accounts[0].id.toString();
             }
@@ -660,10 +666,15 @@ export class WhatsAppChatsAction extends Component {
 
     setChatFilter(filterType) {
         this.state.chatFilter = filterType;
+        this.state.chatSearch = '';
     }
 
     get totalUnreadChannels() {
-        return (this.state.channels || []).filter(c => c.unread_count > 0 || c.message_needaction_counter > 0 || c.wa_is_unread_global).length;
+        const selectedId = this.state.selectedChannel?.id;
+        return (this.state.channels || []).filter(c =>
+            c.id !== selectedId &&
+            (c.unread_count > 0 || c.message_needaction_counter > 0 || c.wa_is_unread_global)
+        ).length;
     }
 
     get searchQuery() {
@@ -1061,6 +1072,7 @@ export class WhatsAppChatsAction extends Component {
 
         this.state.selectedChannel = channel;
         this.state.selectedMessages = [];
+        this.state.chatSearch = '';
         this.state.messages = this.messageCache[channel.id] || [];
 
         const loadId = Symbol();

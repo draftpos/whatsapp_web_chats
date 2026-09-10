@@ -26,4 +26,5 @@
     },
     'installable': True,
     'application': True,
+    'post_migrate': 'whatsapp_web_chats.post_migrate',
 }

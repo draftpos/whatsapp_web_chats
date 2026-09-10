@@ -60,6 +60,75 @@ class WhatsAppAccount(models.Model):
         return False
 
     @api.model
+    def get_whatsapp_web_accounts(self):
+        """Return WhatsApp accounts scoped to the current tenant (company).
+        Falls back to including legacy accounts with no tenant_id so no data is lost."""
+        current_company = self.env.company
+        domain = ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
+        accounts = self.sudo().search_read(
+            domain,
+            ['id', 'name', 'image_1920', 'wa_bot_active', 'tenant_id'],
+        )
+        # Normalize tenant_id to [id, name] or False
+        for acc in accounts:
+            if isinstance(acc.get('tenant_id'), (list, tuple)):
+                pass  # already [id, name]
+            elif acc.get('tenant_id'):
+                company = self.env['res.company'].sudo().browse(acc['tenant_id'])
+                acc['tenant_id'] = [company.id, company.name]
+            else:
+                acc['tenant_id'] = False
+        return accounts
+
+    @api.model
+    def update_tenant_data(self):
+        """One-time data migration: stamp tenant_id on all existing records
+        that are missing it, deriving the value from the linked WhatsApp account."""
+        _logger.info("Starting tenant_id data migration...")
+
+        # ── 1. Stamp discuss.channel ──────────────────────────────────────────
+        channels = self.env['discuss.channel'].sudo().search([
+            ('channel_type', '=', 'whatsapp'),
+        ])
+
+        for ch in channels:
+            new_tenant = False
+            if ch.wa_account_id and ch.wa_account_id.tenant_id:
+                new_tenant = ch.wa_account_id.tenant_id.id
+            elif ch.wa_account_id and ch.wa_account_id.company_id:
+                new_tenant = ch.wa_account_id.company_id.id
+            if new_tenant and not ch.tenant_id:
+                ch.sudo().write({'tenant_id': new_tenant, 'company_id': new_tenant})
+        _logger.info("Stamped %d discuss.channel records", len(channels))
+
+        # ── 2. Stamp whatsapp.message via mail_message → discuss.channel ─────
+        wa_messages = self.env['whatsapp.message'].sudo().search([
+            '|', ('mail_message_id.res_id', '!=', False), ('wa_account_id', '!=', False),
+        ])
+        for msg in wa_messages:
+            if not msg.tenant_id and msg.wa_account_id and msg.wa_account_id.tenant_id:
+                msg.sudo().write({'tenant_id': msg.wa_account_id.tenant_id.id})
+        _logger.info("Stamped %d whatsapp.message records", len(wa_messages))
+
+        # ── 3. Stamp mail.message (scoped to whatsapp discuss channels) ───────
+        stamped_channel_ids = self.env['discuss.channel'].sudo().search([
+            ('channel_type', '=', 'whatsapp'),
+            ('tenant_id', '!=', False),
+        ])
+        for ch in stamped_channel_ids:
+            mail_msgs = self.env['mail.message'].sudo().search([
+                ('model', '=', 'discuss.channel'),
+                ('res_id', '=', ch.id),
+                ('tenant_id', '=', False),
+            ])
+            if mail_msgs:
+                mail_msgs.sudo().write({'tenant_id': ch.tenant_id.id})
+        _logger.info("Stamped mail.message records under whatsapp channels")
+
+        _logger.info("tenant_id migration complete.")
+        return True
+
+    @api.model
     def mark_whatsapp_web_messages_read(self, channel_id):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         if channel.exists():
@@ -74,7 +143,12 @@ class WhatsAppAccount(models.Model):
     @api.model
     def get_whatsapp_web_channels(self, wa_account_id=None):
         current_company = self.env.company
-        domain = [('channel_type', '=', 'whatsapp'), '|', ('whatsapp_partner_id', '!=', False), ('whatsapp_number', '!=', False)]
+        domain = [
+            ('channel_type', '=', 'whatsapp'),
+            '|', ('whatsapp_partner_id', '!=', False), ('whatsapp_number', '!=', False),
+            # Tenant scoping: show channels belonging to current company OR legacy unscoped ones
+            '|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id),
+        ]
         if wa_account_id:
             domain.append(('wa_account_id', '=', int(wa_account_id)))
         
@@ -179,6 +253,7 @@ class WhatsAppAccount(models.Model):
                 'channel_type': c.channel_type,
                 'whatsapp_partner_id': [c.whatsapp_partner_id.id, clean_name(c.whatsapp_partner_id.name)] if c.whatsapp_partner_id else False,
                 'wa_account_id': [c.wa_account_id.id, c.wa_account_id.name] if c.wa_account_id else False,
+                'tenant_id': [c.tenant_id.id, c.tenant_id.name] if c.tenant_id else False,
                 'message_needaction_counter': unread_count,
                 'unread_count': unread_count,
                 'write_date': sort_date,
@@ -1264,3 +1339,5 @@ class WhatsAppAccount(models.Model):
                 'image_1920': account.image_1920 if hasattr(account, 'image_1920') else False,
             }
         return {}
+   
+ 

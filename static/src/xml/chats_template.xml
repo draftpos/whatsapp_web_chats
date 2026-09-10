@@ -162,7 +162,7 @@
                                     <span style="overflow:hidden; text-overflow:ellipsis;"><t t-esc="channel.last_message_preview || ''"/></span>
                                 </div>
                             </div>
-                            <t t-if="channel.wa_is_unread_global or (channel.unread_count and channel.unread_count > 0) or (channel.message_needaction_counter and channel.message_needaction_counter > 0)">
+                            <t t-if="(channel.id !== state.selectedChannel?.id) and (channel.wa_is_unread_global or (channel.unread_count and channel.unread_count > 0) or (channel.message_needaction_counter and channel.message_needaction_counter > 0))">
                                 <div class="chat-unread-badge">
                                     <t t-if="channel.unread_count and channel.unread_count > 0">
                                         <t t-esc="channel.unread_count"/>
@@ -1121,7 +1121,12 @@
                                                                 <t t-esc="acc.name[0].toUpperCase()"/>
                                                             </div>
                                                         </t>
-                                                        <span style="font-size: 14px; color: #111b21; flex-grow: 1; text-align: left;"><t t-esc="acc.name"/></span>
+                                                        <div style="display: flex; flex-direction: column; flex-grow: 1; text-align: left;">
+                                                            <span style="font-size: 14px; color: #111b21; font-weight: 500;"><t t-esc="acc.name"/></span>
+                                                            <t t-if="acc.tenant_id">
+                                                                <span style="font-size: 11px; color: #8696a0;"><i class="fa fa-building-o" style="margin-right:3px;"/><t t-esc="acc.tenant_id[1]"/></span>
+                                                            </t>
+                                                        </div>
                                                         <t t-if="acc.id.toString() === state.selectedAccount">
                                                             <i class="fa fa-check" style="color: #25D366; font-size: 14px;"></i>
                                                         </t>

@@ -15,6 +15,12 @@
                         <field name="company_id" groups="base.group_multi_company"/>
                     </setting>
                     <setting>
+                        <field name="tenant_id"/>
+                        <div class="text-muted mt-1" style="font-size:12px;">
+                            Chats and data for this account will be scoped to this tenant.
+                        </div>
+                    </setting>
+                    <setting>
                         <field name="wa_bot_active"/>
                     </setting>
                     <setting>
