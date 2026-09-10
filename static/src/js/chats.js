@@ -1458,7 +1458,7 @@ export class WhatsAppChatsAction extends Component {
                 if (!previewText.trim() && lastMsg.attachment_ids && lastMsg.attachment_ids.length > 0) {
                     previewText = "Attachment";
                 }
-                const timeStr = lastMsg.date ? lastMsg.date.replace(' ', 'T') + 'Z' : '';
+                const timeStr = lastMsg.date ? (lastMsg.date.includes('T') ? lastMsg.date : lastMsg.date.replace(' ', 'T') + 'Z') : '';
                 
                 this.state.selectedChannel.last_message_preview = previewText;
                 this.state.selectedChannel.last_message_body = previewText;
