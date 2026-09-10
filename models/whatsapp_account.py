@@ -91,6 +91,12 @@ class WhatsAppAccount(models.Model):
         that are missing it, deriving the value from the linked WhatsApp account."""
         _logger.info("Starting tenant_id data migration...")
 
+        # ── 0. Stamp whatsapp.account ─────────────────────────────────────────
+        accounts = self.sudo().search([('tenant_id', '=', False), ('company_id', '!=', False)])
+        for acc in accounts:
+            acc.sudo().write({'tenant_id': acc.company_id.id})
+        _logger.info("Stamped %d whatsapp.account records", len(accounts))
+
         # ── 1. Stamp discuss.channel ──────────────────────────────────────────
         channels = self.env['discuss.channel'].sudo().search([
             ('channel_type', '=', 'whatsapp'),
