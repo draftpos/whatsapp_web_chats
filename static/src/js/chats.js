@@ -297,7 +297,7 @@ export class WhatsAppChatsAction extends Component {
             const results = await this.orm.searchRead(
                 "whatsapp.product",
                 [["show_in_catalogue", "=", true]],
-                ["id", "name", "list_price", "image_128", "description", "url", "item_code", "image_1920"],
+                ["id", "name", "list_price", "description", "url", "item_code", "image_1920"],
                 { order: "name asc" }
             );
             this.state.products = results;
