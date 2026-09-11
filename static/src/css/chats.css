@@ -487,6 +487,9 @@
 
 .message-attachments {
     margin-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
 }
 
 .message-img {
@@ -894,63 +897,117 @@
     color: white;
 }
 
-/* ─── Recording live indicator ─────────────────────────────────────────────── */
-.wa-recording-live {
+/* ─── Recording live indicator & preview bar (dark WhatsApp style) ──────── */
+/* Shared dark charcoal bar – matches the screenshot */
+.wa-recording-live,
+.wa-record-preview {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #fff;
-    border-top: 1px solid #e9edef;
+    background: #202c33;
+    border-top: 1px solid #2a3942;
     padding: 10px 14px;
+}
+
+.wa-recording-live {
     animation: wa-pulse 1.4s ease-in-out infinite;
 }
 
+/* Pulsing red dot */
 .wa-recording-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background: #f24a4a;
     flex-shrink: 0;
+    animation: wa-dot-pulse 1.2s ease-in-out infinite;
+}
+@keyframes wa-dot-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.55; transform: scale(0.85); }
 }
 
-.wa-recording-label {
-    font-size: 14px;
-    color: #f24a4a;
-    font-weight: 600;
-    flex: 1;
-}
-
-.wa-recording-timer {
-    font-size: 14px;
-    color: #667781;
+/* Time readout (both live and preview) */
+.wa-recording-timer,
+.wa-preview-time {
+    font-size: 13px;
+    color: #aebac1;
     font-family: monospace;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.wa-record-stop {
-    width: 36px;
-    height: 36px;
+/* Waveform inside the dark bar – override bar colours for dark bg */
+.wa-preview-waveform {
+    flex: 1;
+    min-width: 0;
+}
+.wa-preview-waveform .wa-audio-bar {
+    background: #4a6270;
+}
+.wa-preview-waveform .wa-audio-bar-played {
+    background: #00a884;
+}
+
+/* Live recording: gentle opacity wave on bars */
+.wa-live-waveform .wa-audio-bar-live {
+    background: #4a6270;
+    animation: wa-live-bar 1.1s ease-in-out infinite alternate;
+}
+.wa-live-waveform .wa-audio-bar-live:nth-child(odd) {
+    animation-delay: 0.2s;
+}
+.wa-live-waveform .wa-audio-bar-live:nth-child(3n) {
+    animation-delay: 0.4s;
+}
+@keyframes wa-live-bar {
+    from { opacity: 0.4; }
+    to   { opacity: 1; }
+}
+
+/* Compact play/pause button inside dark bar */
+.wa-preview-playpause {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: none;
-    background: #f24a4a;
-    color: white;
-    font-size: 13px;
+    background: transparent;
+    color: #aebac1;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    flex-shrink: 0;
+    transition: color 0.15s;
+    padding-left: 2px;
+}
+.wa-preview-playpause:hover {
+    color: #ffffff;
 }
 
-/* ─── Recording preview bar ─────────────────────────────────────────────────── */
-.wa-record-preview {
+/* Speed (clock) button */
+.wa-preview-speed {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid #4a6270;
+    background: transparent;
+    color: #aebac1;
+    font-size: 12px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: #fff;
-    border-top: 1px solid #e9edef;
-    padding: 8px 14px;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+.wa-preview-speed:hover {
+    border-color: #00a884;
+    color: #00a884;
 }
 
+/* Trash / discard button */
 .wa-record-discard {
     width: 36px;
     height: 36px;
@@ -970,12 +1027,7 @@
     color: #f24a4a;
 }
 
-.wa-audio-preview-bubble {
-    flex: 1;
-    background: #f0f2f5;
-    border-radius: 24px;
-}
-
+/* Large green send button */
 .wa-record-send {
     width: 46px;
     height: 46px;
@@ -997,9 +1049,10 @@
 
 @keyframes wa-pulse {
     0%   { opacity: 1; }
-    50%  { opacity: 0.7; }
+    50%  { opacity: 0.75; }
     100% { opacity: 1; }
 }
+
 
 .msg-edited-label {
     font-size: 11px;

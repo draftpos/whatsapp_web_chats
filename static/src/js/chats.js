@@ -93,6 +93,12 @@ export class WhatsAppChatsAction extends Component {
             // Message editing
             editingMessageId: null,
             editingMessageOriginal: '',
+            // Send Phone Number modal
+            showPhoneModal: false,
+            phoneModalName: '',
+            phoneModalNumber: '',
+            phoneModalSearch: '',
+            phoneModalContacts: [],
         });
         
         this.myPartnerId = null;
@@ -1767,6 +1773,68 @@ export class WhatsAppChatsAction extends Component {
         this.state.showPlusMenu = !this.state.showPlusMenu;
     }
 
+    // ─── Send Phone Number / Contact ────────────────────────────────────────────
+
+    async openSendPhoneModal() {
+        this.state.showPlusMenu = false;
+        // Pre-fill with the current chat's customer if available
+        const ch = this.state.selectedChannel;
+        this.state.phoneModalName = (ch && ch.name) ? ch.name : '';
+        this.state.phoneModalNumber = (ch && (ch.whatsapp_number || ch.customer_phone)) || '';
+        this.state.phoneModalSearch = '';
+        this.state.phoneModalContacts = [];
+        this.state.showPhoneModal = true;
+    }
+
+    closeSendPhoneModal() {
+        this.state.showPhoneModal = false;
+        this.state.phoneModalName = '';
+        this.state.phoneModalNumber = '';
+        this.state.phoneModalSearch = '';
+        this.state.phoneModalContacts = [];
+    }
+
+    async onPhoneModalSearch() {
+        const q = (this.state.phoneModalSearch || '').trim();
+        if (q.length < 2) {
+            this.state.phoneModalContacts = [];
+            return;
+        }
+        try {
+            const results = await this.orm.call('res.partner', 'search_read', [], {
+                domain: ['|', ['name', 'ilike', q], '|', ['phone', 'ilike', q], ['mobile', 'ilike', q]],
+                fields: ['id', 'name', 'phone', 'mobile'],
+                limit: 8,
+            });
+            this.state.phoneModalContacts = results;
+        } catch (e) {
+            this.state.phoneModalContacts = [];
+        }
+    }
+
+    selectPhoneContact(contact) {
+        this.state.phoneModalName = contact.name || '';
+        this.state.phoneModalNumber = contact.phone || contact.mobile || '';
+        this.state.phoneModalSearch = '';
+        this.state.phoneModalContacts = [];
+    }
+
+    async sendPhoneNumber() {
+        const name = (this.state.phoneModalName || '').trim();
+        const number = (this.state.phoneModalNumber || '').trim();
+        if (!number || !this.state.selectedChannel) return;
+
+        // Build a nicely formatted contact card message
+        const body = `📋 *${name || 'Contact'}*\n📞 ${number}`;
+
+        // Reuse the existing text-send path
+        const prevMsg = this.state.newMessage;
+        this.state.newMessage = body;
+        this.closeSendPhoneModal();
+        await this.sendMessage();
+        // sendMessage clears state.newMessage itself, nothing extra needed
+    }
+
     triggerFileInput(acceptType, mode) {
         this.state.showPlusMenu = false;
         const fileInput = document.createElement('input');
@@ -2567,10 +2635,13 @@ export class WhatsAppChatsAction extends Component {
         if (!srcMsg) return;
 
         const body = srcMsg.bodyText || srcMsg.body || '';
+        const attachmentIds = srcMsg.attachment_ids ? srcMsg.attachment_ids.map(a => typeof a === 'object' ? a.id : a) : [];
+
         try {
             await this.orm.call('discuss.channel', 'message_post', [targetChannel.id], {
-                body: '↩ Forwarded: ' + body,
+                body: '↩ Forwarded' + (body ? ': ' + body : ''),
                 message_type: 'comment',
+                attachment_ids: attachmentIds,
             });
             this.comingSoon(null, `Message forwarded to ${targetChannel.name}`);
         } catch (e) {

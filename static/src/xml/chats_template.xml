@@ -717,29 +717,32 @@
                                     <button class="wa-record-discard" title="Discard" t-on-click="cancelRecording">
                                         <i class="fa fa-trash"/>
                                     </button>
-                                    <!-- Custom audio preview player -->
-                                    <div class="wa-audio-bubble wa-audio-preview-bubble">
-                                        <button class="wa-audio-play-btn" t-on-click="onPreviewPlayPause">
-                                            <i t-attf-class="fa {{ state.activeAudioId == '__preview__' ? 'fa-pause' : 'fa-play' }}"/>
-                                        </button>
-                                        <div class="wa-audio-waveform" t-on-click="seekPreviewAudio">
-                                            <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
-                                                <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress('__preview__') ? 'wa-audio-bar-played' : '' }}"
-                                                     t-attf-style="height: {{ h * 2 + 4 }}px;"/>
-                                            </t>
-                                        </div>
-                                        <span class="wa-audio-time">
-                                            <t t-if="state.activeAudioId == '__preview__'">
-                                                <t t-esc="this.formatAudioTime(state.audioProgress['__preview__'] and state.audioProgress['__preview__'].current or 0)"/>
-                                            </t>
-                                            <t t-else="">
-                                                <t t-esc="this.formatRecordingTime(state.recordingSeconds)"/>
-                                            </t>
-                                        </span>
-                                        <div class="wa-audio-avatar wa-audio-avatar-green">
-                                            <i class="fa fa-microphone"/>
-                                        </div>
+                                    <!-- Red dot -->
+                                    <span class="wa-recording-dot"/>
+                                    <!-- Time display -->
+                                    <span class="wa-preview-time">
+                                        <t t-if="state.activeAudioId == '__preview__'">
+                                            <t t-esc="this.formatAudioTime(state.audioProgress['__preview__'] and state.audioProgress['__preview__'].current or 0)"/>
+                                        </t>
+                                        <t t-else="">
+                                            <t t-esc="this.formatRecordingTime(state.recordingSeconds)"/>
+                                        </t>
+                                    </span>
+                                    <!-- Waveform -->
+                                    <div class="wa-audio-waveform wa-preview-waveform" t-on-click="seekPreviewAudio">
+                                        <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
+                                            <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress('__preview__') ? 'wa-audio-bar-played' : '' }}"
+                                                 t-attf-style="height: {{ h * 2 + 4 }}px;"/>
+                                        </t>
                                     </div>
+                                    <!-- Play/Pause -->
+                                    <button class="wa-preview-playpause" t-on-click="onPreviewPlayPause" title="Play / Pause">
+                                        <i t-attf-class="fa {{ state.activeAudioId == '__preview__' ? 'fa-pause' : 'fa-play' }}"/>
+                                    </button>
+                                    <!-- Speed indicator (1x) -->
+                                    <button class="wa-preview-speed" title="Playback speed">
+                                        <i class="fa fa-clock-o"/>
+                                    </button>
                                     <!-- Send -->
                                     <button class="wa-record-send" title="Send voice message" t-on-click="sendAudioMessage">
                                         <i class="fa fa-paper-plane"/>
@@ -754,11 +757,25 @@
                                         <i class="fa fa-trash"/>
                                     </button>
                                     <span class="wa-recording-dot"/>
-                                    <span class="wa-recording-label">Recording</span>
                                     <span class="wa-recording-timer"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
-                                    <!-- Stop -->
-                                    <button class="wa-record-stop" title="Stop recording" t-on-click="stopRecording">
-                                        <i class="fa fa-stop"/>
+                                    <!-- Live waveform placeholder -->
+                                    <div class="wa-audio-waveform wa-preview-waveform wa-live-waveform">
+                                        <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
+                                            <div class="wa-audio-bar wa-audio-bar-live"
+                                                 t-attf-style="height: {{ h * 2 + 4 }}px;"/>
+                                        </t>
+                                    </div>
+                                    <!-- Pause placeholder (visual only during live recording) -->
+                                    <button class="wa-preview-playpause" title="Recording..." style="cursor: default; opacity: 0.6;">
+                                        <i class="fa fa-pause"/>
+                                    </button>
+                                    <!-- Speed indicator (1x) -->
+                                    <button class="wa-preview-speed" title="Playback speed">
+                                        <i class="fa fa-clock-o"/>
+                                    </button>
+                                    <!-- Stop and send -->
+                                    <button class="wa-record-send" title="Stop &amp; send" t-on-click="stopAndSendRecording">
+                                        <i class="fa fa-paper-plane"/>
                                     </button>
                                 </div>
                             </t>
@@ -872,6 +889,13 @@
                                                     <i class="fa fa-file-text-o" style="font-size: 18px;"/>
                                                 </div>
                                                 <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Templates</span>
+                                            </div>
+
+                                            <div class="attach-menu-item" t-on-click="openSendPhoneModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                <div style="background: #E67E22; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                    <i class="fa fa-phone" style="font-size: 18px;"/>
+                                                </div>
+                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Contact / Phone</span>
                                             </div>
 
 
@@ -1266,6 +1290,96 @@
                                 <span style="font-size: 14px; color: #111b21;"><t t-esc="chan.name"/></span>
                             </div>
                         </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+        <!-- Send Phone Number / Contact Modal -->
+        <t t-if="state.showPhoneModal">
+            <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center;" t-on-click="closeSendPhoneModal">
+                <div style="background: white; width: 380px; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.25);" t-on-click.stop="() => {}">
+                    <!-- Header -->
+                    <div style="background: #E67E22; color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fa fa-phone" style="font-size: 18px;"/>
+                            <span style="font-size: 16px; font-weight: 600;">Send Contact / Phone Number</span>
+                        </div>
+                        <i class="fa fa-times" style="cursor: pointer; font-size: 16px;" t-on-click="closeSendPhoneModal"/>
+                    </div>
+
+                    <!-- Search existing contacts -->
+                    <div style="padding: 14px 16px; border-bottom: 1px solid #f0f2f5;">
+                        <div style="font-size: 12px; color: #8696a0; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Search Contacts</div>
+                        <div style="display: flex; align-items: center; background: #f0f2f5; border-radius: 8px; padding: 8px 12px; gap: 8px;">
+                            <i class="fa fa-search" style="color: #8696a0; font-size: 14px;"/>
+                            <input type="text"
+                                   t-model="state.phoneModalSearch"
+                                   t-on-input="onPhoneModalSearch"
+                                   placeholder="Search by name or number…"
+                                   style="border: none; outline: none; background: transparent; flex: 1; font-size: 14px; color: #111b21;"/>
+                        </div>
+                        <!-- Contact suggestions -->
+                        <t t-if="state.phoneModalContacts and state.phoneModalContacts.length > 0">
+                            <div style="margin-top: 8px; max-height: 160px; overflow-y: auto; border-radius: 8px; border: 1px solid #e9edef;">
+                                <t t-foreach="state.phoneModalContacts" t-as="pc" t-key="pc.id">
+                                    <div style="display: flex; align-items: center; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f2f5; gap: 10px; transition: background 0.15s;"
+                                         class="phone-modal-contact-row"
+                                         t-on-click="() => this.selectPhoneContact(pc)">
+                                        <div style="width: 36px; height: 36px; border-radius: 50%; background: #E67E22; color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; font-weight: 600;">
+                                            <t t-esc="(pc.name || '?')[0].toUpperCase()"/>
+                                        </div>
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-size: 14px; font-weight: 500; color: #111b21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><t t-esc="pc.name"/></div>
+                                            <div style="font-size: 12px; color: #8696a0;"><t t-esc="pc.phone || pc.mobile || '—'"/></div>
+                                        </div>
+                                        <i class="fa fa-check" t-if="state.phoneModalName === pc.name and state.phoneModalNumber === (pc.phone || pc.mobile || '')" style="color: #00a884; font-size: 14px;"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </div>
+
+                    <!-- Manual entry -->
+                    <div style="padding: 14px 16px;">
+                        <div style="font-size: 12px; color: #8696a0; font-weight: 600; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">Contact Details</div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="font-size: 12px; color: #667781; display: block; margin-bottom: 4px;">Contact Name</label>
+                            <input type="text"
+                                   t-model="state.phoneModalName"
+                                   placeholder="e.g. John Doe"
+                                   style="width: 100%; border: 1.5px solid #e9edef; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; box-sizing: border-box; color: #111b21;"
+                                   t-on-focus="(ev) => ev.target.style.borderColor = '#00a884'"
+                                   t-on-blur="(ev) => ev.target.style.borderColor = '#e9edef'"/>
+                        </div>
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 12px; color: #667781; display: block; margin-bottom: 4px;">Phone Number</label>
+                            <input type="tel"
+                                   t-model="state.phoneModalNumber"
+                                   placeholder="e.g. +27 82 123 4567"
+                                   style="width: 100%; border: 1.5px solid #e9edef; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; box-sizing: border-box; color: #111b21;"
+                                   t-on-focus="(ev) => ev.target.style.borderColor = '#00a884'"
+                                   t-on-blur="(ev) => ev.target.style.borderColor = '#e9edef'"/>
+                        </div>
+
+                        <!-- Preview -->
+                        <t t-if="state.phoneModalName or state.phoneModalNumber">
+                            <div style="background: #dcf8c6; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #111b21; border: 1px solid #c8e6b0;">
+                                <div style="font-weight: 600; color: #075e54; margin-bottom: 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;">Preview</div>
+                                <div>📋 <b><t t-esc="state.phoneModalName || 'Contact'"/></b></div>
+                                <div style="color: #128C7E; font-family: monospace;"><t t-esc="state.phoneModalNumber || ''"/></div>
+                            </div>
+                        </t>
+
+                        <!-- Actions -->
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button t-on-click="closeSendPhoneModal" style="padding: 9px 18px; border: 1.5px solid #e9edef; border-radius: 8px; background: white; color: #3b4a54; font-size: 14px; cursor: pointer; font-weight: 500;">Cancel</button>
+                            <button t-on-click="sendPhoneNumber"
+                                    t-att-disabled="!state.phoneModalNumber"
+                                    style="padding: 9px 20px; border: none; border-radius: 8px; background: #00a884; color: white; font-size: 14px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa fa-paper-plane"/>
+                                Send
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
