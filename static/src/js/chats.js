@@ -1530,9 +1530,16 @@ export class WhatsAppChatsAction extends Component {
                 const dt = new Date(isoStr);
                 if (isNaN(dt)) return '';
                 const now = new Date();
-                const isToday = dt.toDateString() === now.toDateString();
-                if (isToday) {
+                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const startOfTarget = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+                const diffCalendarDays = Math.round((startOfToday - startOfTarget) / (1000 * 3600 * 24));
+                
+                if (diffCalendarDays === 0) {
                     return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                } else if (diffCalendarDays === 1) {
+                    return 'Yesterday';
+                } else if (diffCalendarDays > 1 && diffCalendarDays < 7) {
+                    return dt.toLocaleDateString([], { weekday: 'long' });
                 } else {
                     return dt.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
                 }

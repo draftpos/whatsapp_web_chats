@@ -437,7 +437,7 @@
                                     </t>
                                     <t t-else="">
                                         <t t-if="msg.quoted_message_body or msg.quoted_attachment">
-                                            <div class="quoted-message" style="background: rgba(0,0,0,0.05); border-left: 4px solid #00a884; margin-bottom: 6px; border-radius: 4px; font-size: 13px; color: #666; max-height: 60px; overflow: hidden; display: flex; justify-content: space-between; align-items: stretch; cursor: pointer;">
+                                            <div class="quoted-message" style="background: rgba(0,0,0,0.05); border-left: 4px solid #00a884; margin-bottom: 6px; border-radius: 4px; font-size: 13px; color: #666; max-height: 60px; overflow: hidden; display: flex; justify-content: space-between; align-items: stretch; cursor: pointer;" t-on-click="() => this.scrollToMessage(msg.quoted_message_id)">
                                                 <div style="flex-grow: 1; padding: 6px 10px; overflow: hidden; display: flex; flex-direction: column; justify-content: center;">
                                                     <t t-if="msg.quoted_author">
                                                         <div style="color: #00a884; font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><t t-esc="msg.quoted_author"/></div>
@@ -731,74 +731,7 @@
                         </t>
                         <t t-if="this.isWithin24hWindow">
                             <!-- Audio recording preview bar (shown after recording stops) -->
-                            <t t-if="state.recordingBlobUrl and !state.isRecording">
-                                <div class="wa-record-preview">
-                                    <!-- Discard -->
-                                    <button class="wa-record-discard" title="Discard" t-on-click="cancelRecording">
-                                        <i class="fa fa-trash"/>
-                                    </button>
-                                    <!-- Red dot -->
-                                    <span class="wa-recording-dot"/>
-                                    <!-- Time display -->
-                                    <span class="wa-preview-time">
-                                        <t t-if="state.activeAudioId == '__preview__'">
-                                            <t t-esc="this.formatAudioTime(state.audioProgress['__preview__'] and state.audioProgress['__preview__'].current or 0)"/>
-                                        </t>
-                                        <t t-else="">
-                                            <t t-esc="this.formatRecordingTime(state.recordingSeconds)"/>
-                                        </t>
-                                    </span>
-                                    <!-- Waveform -->
-                                    <div class="wa-audio-waveform wa-preview-waveform" t-on-click="seekPreviewAudio">
-                                        <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
-                                            <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress('__preview__') ? 'wa-audio-bar-played' : '' }}"
-                                                 t-attf-style="height: {{ h * 2 + 4 }}px;"/>
-                                        </t>
-                                    </div>
-                                    <!-- Play/Pause -->
-                                    <button class="wa-preview-playpause" t-on-click="onPreviewPlayPause" title="Play / Pause">
-                                        <i t-attf-class="fa {{ state.activeAudioId == '__preview__' ? 'fa-pause' : 'fa-play' }}"/>
-                                    </button>
-                                    <!-- Speed indicator (1x) -->
-                                    <button class="wa-preview-speed" title="Playback speed">
-                                        <i class="fa fa-clock-o"/>
-                                    </button>
-                                    <!-- Send -->
-                                    <button class="wa-record-send" title="Send voice message" t-on-click="sendAudioMessage">
-                                        <i class="fa fa-paper-plane"/>
-                                    </button>
-                                </div>
-                            </t>
-                            <!-- Live recording indicator -->
-                            <t t-if="state.isRecording">
-                                <div class="wa-recording-live">
-                                    <!-- Cancel / trash -->
-                                    <button class="wa-record-discard" title="Cancel" t-on-click="cancelRecording">
-                                        <i class="fa fa-trash"/>
-                                    </button>
-                                    <span class="wa-recording-dot"/>
-                                    <span class="wa-recording-timer"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
-                                    <!-- Live waveform placeholder -->
-                                    <div class="wa-audio-waveform wa-preview-waveform wa-live-waveform">
-                                        <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
-                                            <div class="wa-audio-bar wa-audio-bar-live"
-                                                 t-attf-style="height: {{ h * 2 + 4 }}px;"/>
-                                        </t>
-                                    </div>
-                                    <!-- Pause recording button -->
-                                    <button class="wa-preview-playpause" title="Pause / Resume" t-on-click="pauseRecording">
-                                        <i t-attf-class="fa {{ state.isPaused ? 'fa-play' : 'fa-pause' }}"/>
-                                    </button>
-                                    <!-- Speed indicator (1x) -->
-                                    <button class="wa-preview-speed" title="Playback speed">
-                                        <i class="fa fa-clock-o"/>
-                                    </button>
-                                    <!-- Stop and send -->
-                                    <button class="wa-record-send" title="Stop &amp; send" t-on-click="stopAndSendRecording">
-                                        <i class="fa fa-paper-plane"/>
-                                    </button>
-                                </div>
-                            </t>
+
                             <!-- Replying to preview -->
                             <t t-if="state.replyingToMessage">
                                 <div style="display: flex; align-items: stretch; justify-content: space-between; background: #f0f2f5; border-left: 4px solid #00a884; margin-bottom: 2px; border-radius: 4px;">
@@ -857,72 +790,112 @@
                                 </div>
                             </t>
                             <div class="whatsapp-input-area">
-                                <div style="position: relative; display: flex; align-items: center;">
-                                    <button class="whatsapp-emoji-btn" title="Emoji" t-on-click="(ev) => this.toggleInputEmojiPicker(ev)" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent; font-size: 20px; color: #54656f;">
-                                        <i class="fa fa-smile-o"/>
-                                    </button>
-                                    <button class="whatsapp-attach-btn" title="Attach" t-on-click="togglePlusMenu" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent; font-size: 20px; color: #54656f;">
-                                        <i t-attf-class="fa {{ state.showPlusMenu ? 'fa-times' : 'fa-plus' }}"/>
-                                    </button>
-                                    
-                                    <t t-if="state.showInputEmojiPicker">
-                                        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000;" t-on-click="() => this.state.showInputEmojiPicker = false"/>
-                                        <div style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 12px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1001; padding: 10px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;">
-                                            <t t-foreach="['😀','😂','😍','🙏','👍','🔥','😊','😢','😎','🎉','👏','❤️']" t-as="emoji" t-key="emoji">
-                                                <span t-on-click="() => this.insertEmoji(emoji)" style="font-size: 22px; cursor: pointer; text-align: center; padding: 4px; border-radius: 8px;" class="emoji-reaction-btn"><t t-esc="emoji"/></span>
+                                <t t-if="!state.isRecording and !state.recordingBlobUrl">
+                                    <div style="position: relative; display: flex; align-items: center;">
+                                        <button class="whatsapp-emoji-btn" title="Emoji" t-on-click="(ev) => this.toggleInputEmojiPicker(ev)" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent; font-size: 20px; color: #54656f;">
+                                            <i class="fa fa-smile-o"/>
+                                        </button>
+                                        <button class="whatsapp-attach-btn" title="Attach" t-on-click="togglePlusMenu" style="margin: 0; cursor: pointer; padding: 8px; border: none; background: transparent; font-size: 20px; color: #54656f;">
+                                            <i t-attf-class="fa {{ state.showPlusMenu ? 'fa-times' : 'fa-plus' }}"/>
+                                        </button>
+                                        
+                                        <t t-if="state.showInputEmojiPicker">
+                                            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000;" t-on-click="() => this.state.showInputEmojiPicker = false"/>
+                                            <div style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 12px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1001; padding: 10px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;">
+                                                <t t-foreach="['😀','😂','😍','🙏','👍','🔥','😊','😢','😎','🎉','👏','❤️']" t-as="emoji" t-key="emoji">
+                                                    <span t-on-click="() => this.insertEmoji(emoji)" style="font-size: 22px; cursor: pointer; text-align: center; padding: 4px; border-radius: 8px;" class="emoji-reaction-btn"><t t-esc="emoji"/></span>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        
+                                        <t t-if="state.showPlusMenu">
+                                            <div class="attach-dropdown-menu" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1000; min-width: 220px; padding: 12px 0; display: flex; flex-direction: column; gap: 5px;">
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #7F66FF; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-file-text" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Document</span>
+                                                </div>
+                                                
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/*,video/*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #007DFC; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-image" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Photos &amp; Videos</span>
+                                                </div>
+
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/webp,image/png,image/jpeg', 'sticker')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #00A884; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-sticky-note" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Sticker</span>
+                                                </div>
+
+                                                <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #FF2E74; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-bolt" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
+                                                </div>
+
+                                                <div class="attach-menu-item" t-on-click="() => this.openTemplatesModal('templates')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #00A884; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-file-text-o" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Templates</span>
+                                                </div>
+
+                                                <div class="attach-menu-item" t-on-click="openSendPhoneModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #E67E22; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-phone" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Contact / Phone</span>
+                                                </div>
+
+
+                                            </div>
+                                        </t>
+                                    </div>
+                                    <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onTextareaInput" t-on-focus="onTextareaFocus" style="overflow-y: hidden; resize: none;"/>
+                                </t>
+                                <t t-if="state.recordingBlobUrl and !state.isRecording">
+                                    <div class="wa-audio-preview" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px;">
+                                        <button class="wa-preview-delete" title="Delete" t-on-click="deleteRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
+                                            <i class="fa fa-trash"/>
+                                        </button>
+                                        <div class="wa-audio-waveform wa-preview-waveform" t-on-click="seekPreviewAudio" style="flex: 1; margin: 0 15px; display: flex; align-items: center; gap: 2px;">
+                                            <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
+                                                <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress('__preview__') ? 'wa-audio-bar-played' : '' }}"
+                                                     t-attf-style="height: {{ h * 2 + 4 }}px; width: 3px; background: #00a884; border-radius: 2px;"/>
                                             </t>
                                         </div>
-                                    </t>
-                                    
-                                    <t t-if="state.showPlusMenu">
-                                        <div class="attach-dropdown-menu" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1000; min-width: 220px; padding: 12px 0; display: flex; flex-direction: column; gap: 5px;">
-                                            <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                <div style="background: #7F66FF; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                    <i class="fa fa-file-text" style="font-size: 18px;"/>
-                                                </div>
-                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Document</span>
-                                            </div>
-                                            
-                                            <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/*,video/*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                <div style="background: #007DFC; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                    <i class="fa fa-image" style="font-size: 18px;"/>
-                                                </div>
-                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Photos &amp; Videos</span>
-                                            </div>
-
-                                            <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/webp,image/png,image/jpeg', 'sticker')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                <div style="background: #00A884; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                    <i class="fa fa-sticky-note" style="font-size: 18px;"/>
-                                                </div>
-                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Sticker</span>
-                                            </div>
-
-                                            <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                <div style="background: #FF2E74; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                    <i class="fa fa-bolt" style="font-size: 18px;"/>
-                                                </div>
-                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
-                                            </div>
-
-                                            <div class="attach-menu-item" t-on-click="() => this.openTemplatesModal('templates')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                <div style="background: #00A884; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                    <i class="fa fa-file-text-o" style="font-size: 18px;"/>
-                                                </div>
-                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Templates</span>
-                                            </div>
-
-                                            <div class="attach-menu-item" t-on-click="openSendPhoneModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                <div style="background: #E67E22; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                    <i class="fa fa-phone" style="font-size: 18px;"/>
-                                                </div>
-                                                <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Contact / Phone</span>
-                                            </div>
-
-
+                                        <button class="wa-preview-playpause" t-on-click="onPreviewPlayPause" title="Play / Pause" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
+                                            <i t-attf-class="fa {{ state.activeAudioId == '__preview__' ? 'fa-pause' : 'fa-play' }}"/>
+                                        </button>
+                                        <div class="wa-preview-duration" style="margin-left: 15px; font-size: 13px; color: #54656f;">
+                                            <t t-if="state.activeAudioId == '__preview__'">
+                                                <t t-esc="this.formatAudioTime(state.audioProgress['__preview__'] and state.audioProgress['__preview__'].current or 0)"/>
+                                            </t>
+                                            <t t-else="">
+                                                <t t-esc="this.formatRecordingTime(state.recordingSeconds)"/>
+                                            </t>
                                         </div>
-                                    </t>
-                                </div>
-                                <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onTextareaInput" t-on-focus="onTextareaFocus" style="overflow-y: hidden; resize: none;"/>
+                                    </div>
+                                </t>
+                                <t t-if="state.isRecording">
+                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px;">
+                                        <button class="wa-record-discard" title="Cancel" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
+                                            <i class="fa fa-trash"/>
+                                        </button>
+                                        <div style="display: flex; align-items: center; flex: 1; margin-left: 15px;">
+                                            <span class="wa-recording-dot" style="width: 8px; height: 8px; background: #f15c6d; border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin-right: 8px;"/>
+                                            <span class="wa-recording-timer" style="font-size: 14px; font-weight: 500; color: #111b21;"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
+                                        </div>
+                                        <button class="wa-preview-playpause" title="Pause / Resume" t-on-click="pauseRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
+                                            <i t-attf-class="fa {{ state.isPaused ? 'fa-play' : 'fa-pause' }}"/>
+                                        </button>
+                                    </div>
+                                </t>
                                 <t t-if="!state.newMessage and (!state.pendingFiles or state.pendingFiles.length === 0) and !state.isRecording and !state.recordingBlobUrl">
                                     <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="color: #54656f; background: transparent;">
                                         <i class="fa fa-microphone" style="font-size: 20px;"/>
