@@ -770,9 +770,9 @@
                                                  t-attf-style="height: {{ h * 2 + 4 }}px;"/>
                                         </t>
                                     </div>
-                                    <!-- Pause placeholder (visual only during live recording) -->
-                                    <button class="wa-preview-playpause" title="Recording..." style="cursor: default; opacity: 0.6;">
-                                        <i class="fa fa-pause"/>
+                                    <!-- Pause recording button -->
+                                    <button class="wa-preview-playpause" title="Pause / Resume" t-on-click="pauseRecording">
+                                        <i t-attf-class="fa {{ state.isPaused ? 'fa-play' : 'fa-pause' }}"/>
                                     </button>
                                     <!-- Speed indicator (1x) -->
                                     <button class="wa-preview-speed" title="Playback speed">
@@ -909,8 +909,8 @@
                                 </div>
                                 <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onTextareaInput" t-on-focus="onTextareaFocus" style="overflow-y: hidden; resize: none;"/>
                                 <t t-if="!state.newMessage and (!state.pendingFiles or state.pendingFiles.length === 0) and !state.isRecording and !state.recordingBlobUrl">
-                            <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="background:#00a884;">
-                                        <i class="fa fa-microphone"/>
+                                    <button class="whatsapp-send-btn" title="Record voice message" t-on-click="startRecording" style="color: #54656f; background: transparent;">
+                                        <i class="fa fa-microphone" style="font-size: 20px;"/>
                                     </button>
                                 </t>
                                 <t t-else="">
@@ -1165,6 +1165,31 @@
                                         </t>
                                     </div>
                                 </t>
+                                
+                                <!-- Blocked Contacts -->
+                                <t t-if="state.channels">
+                                    <div style="margin-top: 24px; text-align: left; padding: 15px; border-top: 1px solid #f0f2f5;">
+                                        <label style="display: block; font-size: 13px; color: #54656f; font-weight: bold; margin-bottom: 8px;">Blocked Contacts</label>
+                                        <t t-set="blocked" t-value="state.channels.filter(c => c.wa_is_blocked)"/>
+                                        <t t-if="blocked.length > 0">
+                                            <t t-foreach="blocked" t-as="b" t-key="b.id">
+                                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f2f5;">
+                                                    <div style="display: flex; align-items: center;">
+                                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #dfe5e7; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                            <i class="fa fa-user" style="color: #fff;"></i>
+                                                        </div>
+                                                        <span style="font-size: 14px; color: #111b21;"><t t-esc="b.name"/></span>
+                                                    </div>
+                                                    <button t-on-click="() => this.blockContact(b)" style="background: transparent; border: 1px solid #d1d7db; border-radius: 12px; padding: 4px 10px; font-size: 12px; color: #54656f; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">Unblock</button>
+                                                </div>
+                                            </t>
+                                        </t>
+                                        <t t-else="">
+                                            <div style="font-size: 13px; color: #8696a0; text-align: center; padding: 10px;">No blocked contacts</div>
+                                        </t>
+                                    </div>
+                                </t>
+
                             </t>
                             <t t-else="">
                                 <div style="padding: 40px 0; color: #54656f;">

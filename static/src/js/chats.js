@@ -1786,13 +1786,12 @@ export class WhatsAppChatsAction extends Component {
 
     async openSendPhoneModal() {
         this.state.showPlusMenu = false;
-        // Pre-fill with the current chat's customer if available
-        const ch = this.state.selectedChannel;
-        this.state.phoneModalName = (ch && ch.name) ? ch.name : '';
-        this.state.phoneModalNumber = (ch && (ch.whatsapp_number || ch.customer_phone)) || '';
+        this.state.phoneModalName = '';
+        this.state.phoneModalNumber = '';
         this.state.phoneModalSearch = '';
         this.state.phoneModalContacts = [];
         this.state.showPhoneModal = true;
+        this.onPhoneModalSearch();
     }
 
     closeSendPhoneModal() {
@@ -1805,12 +1804,13 @@ export class WhatsAppChatsAction extends Component {
 
     async onPhoneModalSearch() {
         const q = (this.state.phoneModalSearch || '').trim();
-        if (q.length < 2) {
-            this.state.phoneModalContacts = [];
-            return;
+        let domain = [['phone', '!=', false]];
+        
+        if (q.length >= 2) {
+            domain = ['|', ['name', 'ilike', q], '|', ['phone', 'ilike', q], ['mobile', 'ilike', q]];
         }
+        
         try {
-            let domain = ['|', ['name', 'ilike', q], '|', ['phone', 'ilike', q], ['mobile', 'ilike', q]];
             const ch = this.state.selectedChannel;
             if (ch && ch.tenant_id) {
                 domain = ['&', ['tenant_id', '=', ch.tenant_id[0]], ...domain];
@@ -1998,15 +1998,30 @@ export class WhatsAppChatsAction extends Component {
 
             this._mediaRecorder.start();
             this.state.isRecording = true;
+            this.state.isPaused = false;
             this.state.recordingSeconds = 0;
             this.state.recordingBlob = null;
             this.state.recordingBlobUrl = null;
             this._recordingTimer = setInterval(() => {
-                this.state.recordingSeconds++;
+                if (!this.state.isPaused) {
+                    this.state.recordingSeconds++;
+                }
             }, 1000);
         } catch (e) {
             console.error('Microphone access denied or error:', e);
-            alert('Could not access microphone. Please allow microphone access and try again.');
+            alert('Microphone access is required to record audio.');
+        }
+    }
+
+    pauseRecording() {
+        if (this._mediaRecorder && this.state.isRecording) {
+            if (this._mediaRecorder.state === 'recording') {
+                this._mediaRecorder.pause();
+                this.state.isPaused = true;
+            } else if (this._mediaRecorder.state === 'paused') {
+                this._mediaRecorder.resume();
+                this.state.isPaused = false;
+            }
         }
     }
 
