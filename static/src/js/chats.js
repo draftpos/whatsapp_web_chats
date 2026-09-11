@@ -736,9 +736,28 @@ export class WhatsAppChatsAction extends Component {
         if (!this.state.messages || this.state.messages.length === 0) return [];
         const groups = [];
         let currentGroup = null;
+        let lastDateText = '';
 
         for (let i = 0; i < this.state.messages.length; i++) {
             const msg = this.state.messages[i];
+            
+            if (msg.dateText && msg.dateText !== lastDateText) {
+                if (currentGroup) {
+                    if (currentGroup.isAlbum && currentGroup.messages.length === 1) {
+                        groups.push({ isAlbum: false, isMe: currentGroup.isMe, message: currentGroup.messages[0], id: 'msg_' + currentGroup.messages[0].id });
+                    } else {
+                        groups.push(currentGroup);
+                    }
+                    currentGroup = null;
+                }
+                groups.push({
+                    isDateHeader: true,
+                    dateText: msg.dateText,
+                    id: 'date_' + msg.id
+                });
+                lastDateText = msg.dateText;
+            }
+
             const hasNoText = !msg.bodyText || msg.bodyText.trim() === '';
             const isMedia = msg.attachment_ids && msg.attachment_ids.length === 1 && 
                             msg.attachment_ids[0].mimetype && 
@@ -1336,6 +1355,7 @@ export class WhatsAppChatsAction extends Component {
                 }
                 
                 let timeText = '';
+                let dateText = '';
                 if (msg.date) {
                     try {
                         const dt = new Date(msg.date);
@@ -1343,11 +1363,13 @@ export class WhatsAppChatsAction extends Component {
                             timeText = msg.date;
                         } else {
                             timeText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                            dateText = this.formatChatTime(msg.date, true);
                         }
                     } catch (e) {
                         timeText = msg.date;
                     }
                 }
+
                                 let authorName = "";
                 if (msg.author_id) {
                     authorName = msg.author_id[1] || "";
@@ -1359,7 +1381,7 @@ export class WhatsAppChatsAction extends Component {
                     authorName = this.state.selectedChannel.name || "Customer";
                 }
                 
-                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
+                return { ...msg, isMe, bodyText, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
             });
             } // end if messages.length > 0
             
@@ -1524,7 +1546,7 @@ export class WhatsAppChatsAction extends Component {
         }
     }
     
-        formatChatTime(isoStr) {
+        formatChatTime(isoStr, isHeader = false) {
             if (!isoStr) return '';
             try {
                 const dt = new Date(isoStr);
@@ -1535,11 +1557,12 @@ export class WhatsAppChatsAction extends Component {
                 const diffCalendarDays = Math.round((startOfToday - startOfTarget) / (1000 * 3600 * 24));
                 
                 if (diffCalendarDays === 0) {
-                    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                    return isHeader ? 'TODAY' : dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
                 } else if (diffCalendarDays === 1) {
-                    return 'Yesterday';
+                    return isHeader ? 'YESTERDAY' : 'Yesterday';
                 } else if (diffCalendarDays > 1 && diffCalendarDays < 7) {
-                    return dt.toLocaleDateString([], { weekday: 'long' });
+                    const weekday = dt.toLocaleDateString([], { weekday: 'long' });
+                    return isHeader ? weekday.toUpperCase() : weekday;
                 } else {
                     return dt.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
                 }

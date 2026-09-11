@@ -328,7 +328,14 @@
                             </div>
                         </t>
                         <t t-foreach="this.groupedMessages || []" t-as="group" t-key="group.id">
-                            <t t-if="!group.isAlbum">
+                            <t t-if="group.isDateHeader">
+                                <div style="display: flex; justify-content: center; margin: 12px 0; position: sticky; top: 10px; z-index: 10;">
+                                    <div style="background-color: #f0f2f5; color: #54656f; font-size: 12.5px; font-weight: 500; padding: 6px 12px; border-radius: 8px; box-shadow: 0 1px 2px rgba(11,20,26,0.08); text-transform: uppercase;">
+                                        <t t-esc="group.dateText"/>
+                                    </div>
+                                </div>
+                            </t>
+                            <t t-elif="!group.isAlbum">
                                 <t t-set="msg" t-value="group.message"/>
                                 <div t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }}">
                                 <div class="message-selection" t-on-click="(ev) => this.toggleMessageSelection(msg.id, ev)" t-if="!msg.isSystem">
