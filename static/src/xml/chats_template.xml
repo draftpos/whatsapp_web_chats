@@ -866,7 +866,7 @@
                                     <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onTextareaInput" t-on-focus="onTextareaFocus" style="overflow-y: hidden; resize: none;"/>
                                 </t>
                                 <t t-if="state.recordingBlobUrl and !state.isRecording">
-                                    <div class="wa-audio-preview" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px;">
+                                    <div class="wa-audio-preview" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: white; border-radius: 8px; min-height: 40px;">
                                         <button class="wa-preview-delete" title="Delete" t-on-click="deleteRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
                                             <i class="fa fa-trash"/>
                                         </button>
@@ -890,7 +890,7 @@
                                     </div>
                                 </t>
                                 <t t-if="state.isRecording">
-                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px;">
+                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: white; border-radius: 8px; min-height: 40px;">
                                         <button class="wa-record-discard" title="Cancel" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
                                             <i class="fa fa-trash"/>
                                         </button>
