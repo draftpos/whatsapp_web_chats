@@ -867,7 +867,7 @@
                                 </t>
                                 <t t-if="state.recordingBlobUrl and !state.isRecording">
                                     <div class="wa-audio-preview" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: white; border-radius: 8px; min-height: 40px;">
-                                        <button class="wa-preview-delete" title="Delete" t-on-click="deleteRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
+                                        <button class="wa-preview-delete" title="Delete" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
                                             <i class="fa fa-trash"/>
                                         </button>
                                         <div class="wa-audio-waveform wa-preview-waveform" t-on-click="seekPreviewAudio" style="flex: 1; margin: 0 15px; display: flex; align-items: center; gap: 2px;">
