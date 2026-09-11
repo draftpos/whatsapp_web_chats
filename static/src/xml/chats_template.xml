@@ -695,7 +695,7 @@
                     </style>
                     <div class="whatsapp-footer">
                         <t t-if="state.pendingFiles and state.pendingFiles.length > 0">
-                            <div style="display: flex; gap: 10px; padding: 10px; overflow-x: auto;">
+                            <div style="display: flex; gap: 10px; padding: 10px; flex-wrap: wrap;">
                                 <t t-foreach="state.pendingFiles" t-as="pendingFile" t-key="pendingFile.name">
                                     <div class="whatsapp-file-preview" style="position: relative; margin: 0; min-width: 100px;">
                                         <div class="preview-close" t-on-click="() => this.removePendingFile(pendingFile_index)">
@@ -1018,7 +1018,7 @@
                             </div>
                         </div>
                         <t t-if="state.contactMedia?.filter(m => m.mimetype and (m.mimetype.startsWith('image/') || m.mimetype.startsWith('video/'))).length">
-                            <div style="display: flex; gap: 10px; padding: 0 20px; overflow-x: auto;">
+                            <div style="display: flex; gap: 10px; padding: 0 20px; flex-wrap: wrap;">
                                 <t t-foreach="state.contactMedia.filter(m => m.mimetype and (m.mimetype.startsWith('image/') || m.mimetype.startsWith('video/'))).slice(0, 3)" t-as="media" t-key="media.id">
                                     <div style="width: 80px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #eee; cursor: pointer;" t-on-click="() => Object.assign(this.state, {showMediaTabsView: true, contactMediaTab: 'media'})">
                                         <t t-if="media.mimetype.startsWith('image/')">
