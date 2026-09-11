@@ -1801,8 +1801,14 @@ export class WhatsAppChatsAction extends Component {
             return;
         }
         try {
+            let domain = ['|', ['name', 'ilike', q], '|', ['phone', 'ilike', q], ['mobile', 'ilike', q]];
+            const ch = this.state.selectedChannel;
+            if (ch && ch.tenant_id) {
+                domain = ['&', ['tenant_id', '=', ch.tenant_id[0]], ...domain];
+            }
+            
             const results = await this.orm.call('res.partner', 'search_read', [], {
-                domain: ['|', ['name', 'ilike', q], '|', ['phone', 'ilike', q], ['mobile', 'ilike', q]],
+                domain: domain,
                 fields: ['id', 'name', 'phone', 'mobile'],
                 limit: 8,
             });
