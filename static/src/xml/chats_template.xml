@@ -340,6 +340,11 @@
                                     </t>
                                 </div>
                                 <div t-attf-class="message-bubble {{ msg.isMenu ? 'is-menu' : '' }}" t-on-click="(ev) => state.selectedMessages?.length > 0 ? this.toggleMessageSelection(msg.id, ev) : null">
+                                    <t t-if="msg.isForwarded">
+                                        <div style="font-size: 12px; color: #8696a0; font-style: italic; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                            <i class="fa fa-share" style="font-size: 11px; transform: scaleX(-1);"/> Forwarded
+                                        </div>
+                                    </t>
                                     <t t-if="msg.attachment_ids and msg.attachment_ids?.length &gt; 0">
                                         <div class="message-attachments">
                                             <t t-foreach="msg.attachment_ids || []" t-as="att" t-key="att.id">

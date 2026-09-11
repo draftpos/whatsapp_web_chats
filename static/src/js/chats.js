@@ -1287,6 +1287,15 @@ export class WhatsAppChatsAction extends Component {
                 tmp.innerHTML = msg.body || "";
                 let bodyText = tmp.textContent || tmp.innerText || "";
                 
+                let isForwarded = false;
+                if (bodyText.startsWith("↩ Forwarded:")) {
+                    isForwarded = true;
+                    bodyText = bodyText.substring("↩ Forwarded:".length).trim();
+                } else if (bodyText.startsWith("↩ Forwarded")) {
+                    isForwarded = true;
+                    bodyText = bodyText.substring("↩ Forwarded".length).trim();
+                }
+                
                 // --- Menu Detection Logic ---
                 let isMenu = false;
                 let menuTitle = "";
@@ -1338,7 +1347,7 @@ export class WhatsAppChatsAction extends Component {
                     authorName = this.state.selectedChannel.name || "Customer";
                 }
                 
-                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem };
+                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded };
             });
             } // end if messages.length > 0
             
