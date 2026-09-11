@@ -474,7 +474,7 @@
                                                     </div>
                                                     <div style="font-weight: 500; color: #111b21; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;"><t t-esc="msg.contactCardName"/></div>
                                                 </div>
-                                                <div style="border-top: 1px solid #e9edef; padding: 10px 0; font-size: 14px; color: #00a884; display: flex; justify-content: center; font-weight: 500; cursor: pointer; background: #fff;" t-on-click="() => this.startNewChat(msg.contactCardPhone.replace(/\\D/g, ''))">
+                                                <div style="border-top: 1px solid #e9edef; padding: 10px 0; font-size: 14px; color: #00a884; display: flex; justify-content: center; font-weight: 500; cursor: pointer; background: #fff;" t-on-click="() => this.startNewChat(msg.contactCardCleanPhone)">
                                                     Message
                                                 </div>
                                             </div>

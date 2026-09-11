@@ -1326,11 +1326,13 @@ export class WhatsAppChatsAction extends Component {
                 let isContactCard = false;
                 let contactCardName = "";
                 let contactCardPhone = "";
+                let contactCardCleanPhone = "";
                 const contactCardMatch = bodyText.match(/^📋\s*\*(.+?)\*\n📞\s*(.+)$/);
                 if (contactCardMatch) {
                     isContactCard = true;
                     contactCardName = contactCardMatch[1].trim();
                     contactCardPhone = contactCardMatch[2].trim();
+                    contactCardCleanPhone = contactCardPhone.replace(/\D/g, '');
                 }
                 
                 let timeText = '';
@@ -1357,7 +1359,7 @@ export class WhatsAppChatsAction extends Component {
                     authorName = this.state.selectedChannel.name || "Customer";
                 }
                 
-                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone };
+                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
             });
             } // end if messages.length > 0
             
