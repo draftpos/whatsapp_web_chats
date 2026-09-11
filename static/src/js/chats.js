@@ -1322,6 +1322,16 @@ export class WhatsAppChatsAction extends Component {
                 }
                 // --- End Menu Detection ---
                 let isSystem = msg.message_type === 'notification' && !msg.wa_state;
+
+                let isContactCard = false;
+                let contactCardName = "";
+                let contactCardPhone = "";
+                const contactCardMatch = bodyText.match(/^📋\s*\*(.+?)\*\n📞\s*(.+)$/);
+                if (contactCardMatch) {
+                    isContactCard = true;
+                    contactCardName = contactCardMatch[1].trim();
+                    contactCardPhone = contactCardMatch[2].trim();
+                }
                 
                 let timeText = '';
                 if (msg.date) {
@@ -1347,7 +1357,7 @@ export class WhatsAppChatsAction extends Component {
                     authorName = this.state.selectedChannel.name || "Customer";
                 }
                 
-                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded };
+                return { ...msg, isMe, bodyText, timeText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone };
             });
             } // end if messages.length > 0
             
