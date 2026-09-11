@@ -851,7 +851,7 @@ export class WhatsAppChatsAction extends Component {
     // ─── Custom Audio Player ────────────────────────────────────────────────────
 
     /** Toggle play/pause for a message audio attachment */
-    toggleAudioPlay(attId, url, mimetype) {
+    async toggleAudioPlay(attId, url, mimetype) {
         const audioId = String(attId);
         const current = this.state.activeAudioId;
 
@@ -868,8 +868,22 @@ export class WhatsAppChatsAction extends Component {
             return;
         }
 
+        let playableUrl = url;
+        // Fix for Chrome rejecting WebM files disguised as Ogg (which we do for WhatsApp API support)
+        if (url.startsWith('/web/content')) {
+            try {
+                const response = await fetch(url);
+                const buffer = await response.arrayBuffer();
+                // We cast the blob to audio/webm so the browser correctly identifies and decodes the container.
+                const blob = new Blob([buffer], { type: 'audio/webm' });
+                playableUrl = URL.createObjectURL(blob);
+            } catch (err) {
+                console.error("Failed to fetch audio for playback fix:", err);
+            }
+        }
+
         // Create a new Audio element
-        const audio = new Audio(url);
+        const audio = new Audio(playableUrl);
         audio.preload = 'metadata';
         this._currentAudio = audio;
         this.state.activeAudioId = audioId;
