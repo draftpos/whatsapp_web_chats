@@ -1790,8 +1790,20 @@ export class WhatsAppChatsAction extends Component {
         this.state.phoneModalNumber = '';
         this.state.phoneModalSearch = '';
         this.state.phoneModalContacts = [];
+        this.state.allPhoneModalContacts = [];
         this.state.showPhoneModal = true;
-        this.onPhoneModalSearch();
+        
+        try {
+            const contacts = await this.orm.call(
+                "whatsapp.account",
+                "get_contacts_for_new_chat",
+                []
+            );
+            this.state.allPhoneModalContacts = contacts;
+            this.state.phoneModalContacts = contacts;
+        } catch (e) {
+            console.error("Failed to load contacts for phone modal", e);
+        }
     }
 
     closeSendPhoneModal() {
@@ -1802,29 +1814,18 @@ export class WhatsAppChatsAction extends Component {
         this.state.phoneModalContacts = [];
     }
 
-    async onPhoneModalSearch() {
-        const q = (this.state.phoneModalSearch || '').trim();
-        let domain = [['phone', '!=', false]];
-        
-        if (q.length >= 2) {
-            domain = ['|', ['name', 'ilike', q], '|', ['phone', 'ilike', q], ['mobile', 'ilike', q]];
+    onPhoneModalSearch() {
+        const q = (this.state.phoneModalSearch || '').trim().toLowerCase();
+        if (!q) {
+            this.state.phoneModalContacts = this.state.allPhoneModalContacts || [];
+            return;
         }
         
-        try {
-            const ch = this.state.selectedChannel;
-            if (ch && ch.tenant_id) {
-                domain = ['&', ['tenant_id', '=', ch.tenant_id[0]], ...domain];
-            }
-            
-            const results = await this.orm.call('res.partner', 'search_read', [], {
-                domain: domain,
-                fields: ['id', 'name', 'phone', 'mobile'],
-                limit: 8,
-            });
-            this.state.phoneModalContacts = results;
-        } catch (e) {
-            this.state.phoneModalContacts = [];
-        }
+        this.state.phoneModalContacts = (this.state.allPhoneModalContacts || []).filter(c => 
+            (c.name && c.name.toLowerCase().includes(q)) ||
+            (c.phone && c.phone.toLowerCase().includes(q)) ||
+            (c.mobile && c.mobile.toLowerCase().includes(q))
+        );
     }
 
     selectPhoneContact(contact) {
