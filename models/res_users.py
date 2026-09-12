@@ -38,7 +38,7 @@ class ResUsers(models.Model):
                 groups_to_remove.append(portal_group.id)
                 
             user.sudo().write({
-                'company_ids': [(6, 0, [new_company.id])],
+                'company_ids': [(4, new_company.id)],
                 'company_id': new_company.id,
                 'groups_id': [(3, gid) for gid in groups_to_remove] + [(4, gid) for gid in groups_to_add]
             })
