@@ -2181,8 +2181,8 @@ export class WhatsAppChatsAction extends Component {
             }
 
             await this.orm.call(
-                'discuss.channel',
-                'message_post',
+                'whatsapp.account',
+                'post_whatsapp_message',
                 [this.state.selectedChannel.id],
                 {
                     body: '',
@@ -2212,8 +2212,8 @@ export class WhatsAppChatsAction extends Component {
         this.state.isSending = true;
         try {
             await this.orm.call(
-                'discuss.channel',
-                'message_post',
+                'whatsapp.account',
+                'post_whatsapp_message',
                 [this.state.selectedChannel.id],
                 {
                     body: optionText,
@@ -2460,8 +2460,8 @@ export class WhatsAppChatsAction extends Component {
 
                 try {
                     await this.orm.call(
-                        "discuss.channel",
-                        "message_post",
+                        "whatsapp.account",
+                        "post_whatsapp_message",
                         [task.channelId],
                         kwargs,
                         { silent: true }
@@ -2725,7 +2725,7 @@ export class WhatsAppChatsAction extends Component {
         const attachmentIds = srcMsg.attachment_ids ? srcMsg.attachment_ids.map(a => typeof a === 'object' ? a.id : a) : [];
 
         try {
-            await this.orm.call('discuss.channel', 'message_post', [targetChannel.id], {
+            await this.orm.call('whatsapp.account', 'post_whatsapp_message', [targetChannel.id], {
                 body: '↩ Forwarded' + (body ? ': ' + body : ''),
                 message_type: 'comment',
                 attachment_ids: attachmentIds,
@@ -2829,8 +2829,8 @@ export class WhatsAppChatsAction extends Component {
             }
             
             await this.orm.call(
-                "discuss.channel",
-                "message_post",
+                "whatsapp.account",
+                "post_whatsapp_message",
                 [this.state.selectedChannel.id],
                 {
                     body: body,

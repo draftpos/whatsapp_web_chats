@@ -1047,20 +1047,30 @@ class WhatsAppAccount(models.Model):
             return {'success': False, 'error': str(e)}
 
     @api.model
+    def post_whatsapp_message(self, channel_id, **kwargs):
+        """ Wrapper to allow standard users to post messages without discuss.channel record rules blocking them """
+        channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
+        if channel.exists():
+            # Force author_id to the current user
+            kwargs['author_id'] = self.env.user.partner_id.id
+            return channel.message_post(**kwargs).id
+        return False
+
+    @api.model
     def mark_whatsapp_web_messages_read(self, channel_id):
-        channel = self.env['discuss.channel'].browse(int(channel_id))
+        channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         if channel.exists() and channel.wa_is_unread_global:
-            channel.sudo().write({'wa_is_unread_global': False})
+            channel.write({'wa_is_unread_global': False})
 
         # Find the user's member record for this channel
-        member = self.env['discuss.channel.member'].search([
+        member = self.env['discuss.channel.member'].sudo().search([
             ('channel_id', '=', int(channel_id)),
             ('partner_id', '=', self.env.user.partner_id.id)
         ], limit=1)
         
         if member:
             # Find the last message in this channel
-            last_message = self.env['mail.message'].search([
+            last_message = self.env['mail.message'].sudo().search([
                 ('res_id', '=', int(channel_id)),
                 ('model', '=', 'discuss.channel'),
             ], order='id desc', limit=1)
