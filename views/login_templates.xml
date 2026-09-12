@@ -4,7 +4,7 @@
     <template id="login_whatsapp_signup" inherit_id="web.login" name="WhatsApp Signup Link">
         <xpath expr="//div[hasclass('oe_login_buttons')]" position="after">
             <div class="mt-3 mb-2 text-center w-100">
-                <a t-attf-href="/web/whatsapp/signup?{{ keep_query() }}" class="btn btn-success btn-block w-100 fw-bold" style="background-color: #25D366; border-color: #25D366; color: white;">
+                <a t-attf-href="/web/signup?is_whatsapp_signup=1&amp;{{ keep_query() }}" class="btn btn-success btn-block w-100 fw-bold" style="background-color: #25D366; border-color: #25D366; color: white;">
                     <i class="fa fa-whatsapp mr-2"></i> Sign up for WhatsApp
                 </a>
             </div>
@@ -13,9 +13,10 @@
 
     <template id="signup_whatsapp_company_field" inherit_id="auth_signup.signup" name="WhatsApp Signup Company Field">
         <xpath expr="//div[hasclass('field-name')]" position="after">
-            <t t-if="request.session.get('is_whatsapp_signup')">
+            <t t-if="request.params.get('is_whatsapp_signup')">
                 <div class="mb-3 field-company_name">
                     <label for="company_name" class="form-label">Company Name</label>
+                    <input type="hidden" name="is_whatsapp_signup" value="1"/>
                     <input type="text" name="company_name" t-att-value="company_name" id="company_name" class="form-control" placeholder="e.g. My Awesome Company" required="required" />
                 </div>
             </t>

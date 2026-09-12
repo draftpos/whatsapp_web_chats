@@ -12,8 +12,8 @@ class ResUsers(models.Model):
         from odoo.http import request
         
         is_wa_signup = False
-        if request and hasattr(request, 'session'):
-            is_wa_signup = request.session.get('is_whatsapp_signup')
+        if request and hasattr(request, 'params'):
+            is_wa_signup = bool(request.params.get('is_whatsapp_signup'))
             
         if is_wa_signup:
             # Create a new company

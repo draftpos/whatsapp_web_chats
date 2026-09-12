@@ -1,5 +1,4 @@
 from . import models
-from . import controllers
 
 
 def post_migrate(env, version):
