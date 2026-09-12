@@ -148,8 +148,20 @@ class WhatsAppAccount(models.Model):
     def mark_whatsapp_web_messages_read(self, channel_id):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         if channel.exists():
-            # Reset Odoo's internal unread counter
-            channel.channel_seen()
+            # Find the last message and explicitly mark it seen for the CURRENT user
+            last_msg = self.env['mail.message'].sudo().search([
+                ('model', '=', 'discuss.channel'),
+                ('res_id', '=', channel.id)
+            ], order='id desc', limit=1)
+            
+            if last_msg:
+                member = self.env['discuss.channel.member'].sudo().search([
+                    ('channel_id', '=', channel.id),
+                    ('partner_id', '=', self.env.user.partner_id.id)
+                ], limit=1)
+                if member:
+                    member.sudo().write({'seen_message_id': last_msg.id})
+            
             # Also clear our custom flag so the badge disappears
             if channel.wa_is_unread_global:
                 channel.sudo().write({'wa_is_unread_global': False})
@@ -1152,19 +1164,40 @@ class WhatsAppAccount(models.Model):
         if not account.exists():
             return {'success': False, 'error': 'Account not found'}
             
-        domain = [
-            ('channel_type', '=', 'whatsapp'),
-            ('whatsapp_partner_id', '=', partner.id),
-            ('wa_account_id', '=', account.id)
-        ]
-        channel = self.env['discuss.channel'].sudo().search(domain, limit=1)
-        
-        if channel:
-            return {'success': True, 'channel_id': channel.id}
-            
         phone = partner.phone
         clean_phone = ''.join([c for c in str(phone) if c.isdigit()]) if phone else ''
         
+        domain = [
+            ('channel_type', '=', 'whatsapp'),
+            ('wa_account_id', '=', account.id),
+            '|',
+            ('whatsapp_partner_id', '=', partner.id),
+            ('whatsapp_number', '=', clean_phone)
+        ]
+        
+        # If partner has no phone, we can only search by partner_id
+        if not clean_phone:
+            domain = [
+                ('channel_type', '=', 'whatsapp'),
+                ('whatsapp_partner_id', '=', partner.id),
+                ('wa_account_id', '=', account.id)
+            ]
+            
+        channel = self.env['discuss.channel'].sudo().search(domain, limit=1)
+        
+        if channel:
+            # If we found it by number but it has no partner, link it now!
+            if not channel.whatsapp_partner_id:
+                channel.sudo().write({'whatsapp_partner_id': partner.id})
+                
+            # Ensure the current user is a member
+            if not self.env.user.partner_id.id in channel.channel_member_ids.mapped('partner_id').ids:
+                self.env['discuss.channel.member'].sudo().create({
+                    'channel_id': channel.id,
+                    'partner_id': self.env.user.partner_id.id
+                })
+            return {'success': True, 'channel_id': channel.id}
+            
         # Create new channel
         members = [(0, 0, {'partner_id': self.env.user.partner_id.id})]
         if partner.id != self.env.user.partner_id.id:
