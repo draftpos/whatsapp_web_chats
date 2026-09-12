@@ -3,7 +3,7 @@
     'version': '1.1',
     'category': 'Discuss',
     'summary': 'Provides a WhatsApp Web-like interface for managing WhatsApp chats.',
-    'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr'],
+    'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup'],
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
@@ -16,6 +16,7 @@
         'views/whatsapp_product_views.xml',
         'views/res_users_views.xml',
         'views/res_config_settings_views.xml',
+        'views/login_templates.xml',
     ],
     'assets': {
         'web.assets_backend': [
