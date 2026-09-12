@@ -155,12 +155,11 @@ class WhatsAppAccount(models.Model):
             ], order='id desc', limit=1)
             
             if last_msg:
-                member = self.env['discuss.channel.member'].sudo().search([
-                    ('channel_id', '=', channel.id),
-                    ('partner_id', '=', self.env.user.partner_id.id)
-                ], limit=1)
-                if member:
-                    member.sudo().write({'seen_message_id': last_msg.id})
+                # Make read status GLOBAL: If one agent reads it, it's read for everyone
+                members = self.env['discuss.channel.member'].sudo().search([
+                    ('channel_id', '=', channel.id)
+                ])
+                members.sudo().write({'seen_message_id': last_msg.id})
             
             # Also clear our custom flag so the badge disappears
             if channel.wa_is_unread_global:
