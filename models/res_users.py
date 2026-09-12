@@ -17,7 +17,7 @@ class ResUsers(models.Model):
             
         if is_wa_signup:
             # Create a new company
-            company_name = values.get('name', 'WhatsApp') + ' Company'
+            company_name = values.pop('company_name', None) or (values.get('name', 'WhatsApp') + ' Company')
             new_company = self.env['res.company'].sudo().create({'name': company_name})
             
             # Make sure they are assigned to this company

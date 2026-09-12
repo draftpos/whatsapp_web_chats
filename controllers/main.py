@@ -13,3 +13,9 @@ class WhatsAppSignupController(AuthSignupHome):
         # The easiest way is to set the token or just call web_auth_signup
         # But we must ensure the form POSTs back to either here or /web/signup with the session intact
         return self.web_auth_signup(*args, **kw)
+
+    def _prepare_signup_values(self, qcontext):
+        values = super(WhatsAppSignupController, self)._prepare_signup_values(qcontext)
+        if request.session.get('is_whatsapp_signup'):
+            values['company_name'] = qcontext.get('company_name')
+        return values
