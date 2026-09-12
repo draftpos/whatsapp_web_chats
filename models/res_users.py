@@ -12,30 +12,17 @@ class ResUsers(models.Model):
         from odoo.http import request
         
         is_wa_signup = False
+        company_name_from_req = None
         if request and hasattr(request, 'params'):
             is_wa_signup = bool(request.params.get('is_whatsapp_signup'))
-            
-        if is_wa_signup:
-            # Create a new company
-            company_name_from_req = request.params.get('company_name') if hasattr(request, 'params') else None
-            company_name = company_name_from_req or (values.get('name', 'WhatsApp') + ' Company')
-            new_company = self.env['res.company'].sudo().create({'name': company_name})
-            
-            # Make sure they are assigned to this company
-            values['company_id'] = new_company.id
-            values['company_ids'] = [(6, 0, [new_company.id])]
-            
-            # Pop the flag
-            request.session.pop('is_whatsapp_signup', None)
+            company_name_from_req = request.params.get('company_name')
 
-        result = super(ResUsers, self)._signup_create_user(values)
+        user = super(ResUsers, self)._signup_create_user(values)
         
         if is_wa_signup:
-            # result is a tuple (db, login, password)
-            login = result[1]
-            user = self.sudo().search([('login', '=', login)], limit=1)
+            company_name = company_name_from_req or (user.name + ' Company')
+            new_company = self.env['res.company'].sudo().create({'name': company_name})
             
-            # Replace portal group with internal user group
             portal_group = self.env.ref('base.group_portal', raise_if_not_found=False)
             internal_group = self.env.ref('base.group_user', raise_if_not_found=False)
             wa_admin_group = self.env.ref('whatsapp.group_whatsapp_admin', raise_if_not_found=False)
@@ -50,9 +37,10 @@ class ResUsers(models.Model):
             if portal_group:
                 groups_to_remove.append(portal_group.id)
                 
-            if user and (groups_to_add or groups_to_remove):
-                user.sudo().write({
-                    'groups_id': [(3, gid) for gid in groups_to_remove] + [(4, gid) for gid in groups_to_add]
-                })
+            user.sudo().write({
+                'company_ids': [(6, 0, [new_company.id])],
+                'company_id': new_company.id,
+                'groups_id': [(3, gid) for gid in groups_to_remove] + [(4, gid) for gid in groups_to_add]
+            })
                 
-        return result
+        return user
