@@ -8,6 +8,7 @@ import { session } from "@web/session";
 export class WhatsAppChatsAction extends Component {
     setup() {
         this.orm = useService("orm");
+        this.action = useService("action");
         this.messagesContainer = useRef("messagesContainer");
         this.chatList = useRef("chatList");
         this.messageCache = {};
@@ -514,6 +515,10 @@ export class WhatsAppChatsAction extends Component {
         } catch (e) {
             console.error("Failed to start new chat", e);
         }
+    }
+
+    goToConfigurations() {
+        this.action.doAction('whatsapp.whatsapp_account_action');
     }
 
     async loadChannels() {
