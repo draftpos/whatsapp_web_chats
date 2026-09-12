@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="base.view_users_form"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page string="WhatsApp Bot Settings">
+                <page string="WhatsApp Bot Settings" groups="base.group_erp_manager">
                     <group>
                         <field name="wa_department"/>
                         <field name="whatsapp_account_ids" widget="many2many_tags" options="{'no_create': True}"/>
