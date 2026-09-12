@@ -3,9 +3,8 @@ from odoo import models, api
 class IrUiMenu(models.Model):
     _inherit = 'ir.ui.menu'
 
-    @api.model
-    def _filter_visible_menus(self, menus):
-        menus = super(IrUiMenu, self)._filter_visible_menus(menus)
+    def _filter_visible_menus(self):
+        menus = super(IrUiMenu, self)._filter_visible_menus()
         
         # If the user is not an administrator, restrict the WhatsApp menu dynamically
         if not self.env.is_admin():
