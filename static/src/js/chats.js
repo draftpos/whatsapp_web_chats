@@ -253,27 +253,27 @@ export class WhatsAppChatsAction extends Component {
         
         if (!this.state.messages || this.state.messages.length === 0) return false;
         
-        // Find the last message time from the CUSTOMER
-        let lastCustomerMessageTime = null;
+        // Find the last message time regardless of sender
+        let lastMessageTime = null;
         for (let i = this.state.messages.length - 1; i >= 0; i--) {
             const msg = this.state.messages[i];
-            // Meta 24-hour window: Only a message from the customer opens the 24h window
-            if (!msg.isMe && msg.date) {
-                lastCustomerMessageTime = msg.date;
+            // Meta 24-hour window: user wants to see it open if THEY or CUSTOMER sent a msg in last 24h
+            if (msg.date) {
+                lastMessageTime = msg.date;
                 break;
             }
         }
         
-        if (!lastCustomerMessageTime) return false;
+        if (!lastMessageTime) return false;
         
         try {
             let msgDate;
-            if (lastCustomerMessageTime.includes('T') && lastCustomerMessageTime.endsWith('Z')) {
+            if (lastMessageTime.includes('T') && lastMessageTime.endsWith('Z')) {
                 // It is already a valid ISO string from the backend (e.g. 2026-08-18T09:27:00Z)
-                msgDate = new Date(lastCustomerMessageTime);
+                msgDate = new Date(lastMessageTime);
             } else {
                 // It is a standard Odoo date string (e.g. 2026-08-18 09:27:00)
-                const dateStr = lastCustomerMessageTime.replace(' ', 'T') + 'Z';
+                const dateStr = lastMessageTime.replace(' ', 'T') + 'Z';
                 msgDate = new Date(dateStr);
             }
             const now = new Date();
