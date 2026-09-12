@@ -1494,7 +1494,7 @@ export class WhatsAppChatsAction extends Component {
             
             // Also add ANY offline queue items that haven't even been attempted yet
             const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
-            const pendingQueueMsgs = offlineQueue.filter(q => q.channelId === id).map(q => {
+            const pendingQueueMsgs = offlineQueue.filter(q => q.channelId === id && !recentTempMsgs.some(r => r.id === q.tempId)).map(q => {
                 return {
                     id: q.tempId,
                     bodyText: q.body,
