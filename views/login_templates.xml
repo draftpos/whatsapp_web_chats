@@ -17,7 +17,7 @@
                 <div class="mb-3 field-company_name">
                     <label for="company_name" class="form-label">Company Name</label>
                     <input type="hidden" name="is_whatsapp_signup" value="1"/>
-                    <input type="text" name="company_name" t-att-value="company_name" id="company_name" class="form-control" placeholder="e.g. My Awesome Company" required="required" />
+                    <input type="text" name="company_name" t-att-value="request.params.get('company_name', '')" id="company_name" class="form-control" placeholder="e.g. My Awesome Company" required="required" />
                 </div>
             </t>
         </xpath>
