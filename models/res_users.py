@@ -27,16 +27,41 @@ class ResUsers(models.Model):
             internal_group = self.env.ref('base.group_user', raise_if_not_found=False)
             wa_admin_group = self.env.ref('whatsapp.group_whatsapp_admin', raise_if_not_found=False)
             
+            groups_to_add = []
             if internal_group:
-                internal_group.sudo().write({'users': [(4, user.id)]})
+                groups_to_add.append(internal_group.id)
             if wa_admin_group:
-                wa_admin_group.sudo().write({'users': [(4, user.id)]})
-            if portal_group:
-                portal_group.sudo().write({'users': [(3, user.id)]})
+                groups_to_add.append(wa_admin_group.id)
                 
-            user.sudo().write({
-                'company_ids': [(4, new_company.id)],
-                'company_id': new_company.id,
-            })
+            groups_to_remove = []
+            if portal_group:
+                groups_to_remove.append(portal_group.id)
+                
+            groups_val = [(3, gid) for gid in groups_to_remove] + [(4, gid) for gid in groups_to_add]
+            
+            try:
+                user.sudo().write({
+                    'company_ids': [(4, new_company.id)],
+                    'company_id': new_company.id,
+                    'groups_id': groups_val
+                })
+            except ValueError:
+                try:
+                    user.sudo().write({
+                        'company_ids': [(4, new_company.id)],
+                        'company_id': new_company.id,
+                        'group_ids': groups_val
+                    })
+                except ValueError:
+                    # Absolute Fallback: Write company safely, then use raw SQL for groups
+                    user.sudo().write({
+                        'company_ids': [(4, new_company.id)],
+                        'company_id': new_company.id,
+                    })
+                    for gid in groups_to_add:
+                        self.env.cr.execute("INSERT INTO res_groups_users_rel (uid, gid) VALUES (%s, %s) ON CONFLICT DO NOTHING", (user.id, gid))
+                    for gid in groups_to_remove:
+                        self.env.cr.execute("DELETE FROM res_groups_users_rel WHERE uid = %s AND gid = %s", (user.id, gid))
+                    user.clear_caches()
                 
         return user
