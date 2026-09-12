@@ -7,6 +7,7 @@
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
+        'data/ir_config_parameter_data.xml',
         'data/wa_chat_tag_data.xml',
         'data/whatsapp_cron.xml',
         'views/whatsapp_account_views.xml',
