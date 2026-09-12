@@ -600,6 +600,7 @@ class WhatsAppAccount(models.Model):
             for i in range(len(res)-1, -1, -1):
                 if res[i]['is_me']:
                     res[i]['wa_error'] = wa_error
+                    res[i]['wa_state'] = 'error'
                     res[i]['wa_error_msg_id'] = last_wa.id
                     break
                     

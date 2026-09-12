@@ -2431,7 +2431,7 @@ export class WhatsAppChatsAction extends Component {
                 if (queue.length === 0) break;
 
                 const task = queue[0];
-                let attachment_ids = [];
+                let attachment_ids = task.attachments ? [...task.attachments] : [];
 
                 if (task.files && task.files.length > 0) {
                     try {
@@ -2731,6 +2731,31 @@ export class WhatsAppChatsAction extends Component {
 
     closeForwardModal() {
         this.state.forwardMessageId = null;
+    }
+
+    async resendMessage(msg) {
+        if (!this.state.selectedChannel) return;
+        this.state.showMessageDropdownId = null;
+        
+        // Push the failed message to offline queue again
+        const tempId = 'temp_' + Date.now();
+        const attachments = msg.attachment_ids ? msg.attachment_ids.map(a => typeof a === 'object' ? a.id : a) : [];
+        
+        const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
+        offlineQueue.push({
+            tempId: tempId,
+            channelId: this.state.selectedChannel.id,
+            body: msg.bodyText || '',
+            attachments: attachments,
+            timestamp: new Date().getTime(),
+        });
+        localStorage.setItem('wa_offline_queue', JSON.stringify(offlineQueue));
+        
+        this.scrollToBottom();
+        
+        if (!this._isOfflineQueueRunning) {
+            this.flushOfflineQueue();
+        }
     }
 
     async forwardToChannel(targetChannel) {

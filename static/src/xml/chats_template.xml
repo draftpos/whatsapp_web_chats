@@ -559,6 +559,9 @@
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
+                                            <t t-if="msg.wa_error or msg.wa_state === 'error'">
+                                                <div class="chat-dropdown-item" style="color: #f24a4a;" t-on-click="() => this.resendMessage(msg)">Resend</div>
+                                            </t>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Message info</div>
                                         </div>
                                     </t>
@@ -635,6 +638,9 @@
                                                 <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                                 <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                                 <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
+                                                <t t-if="msg.wa_error or msg.wa_state === 'error'">
+                                                    <div class="chat-dropdown-item" style="color: #f24a4a;" t-on-click="() => this.resendMessage(msg)">Resend</div>
+                                                </t>
                                                 <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Message info</div>
                                             </div>
                                         </t>
