@@ -9,6 +9,7 @@
                 <page string="WhatsApp Bot Settings">
                     <group>
                         <field name="wa_department"/>
+                        <field name="whatsapp_account_ids" widget="many2many_tags" options="{'no_create': True}"/>
                     </group>
                 </page>
             </xpath>

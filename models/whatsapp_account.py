@@ -65,6 +65,11 @@ class WhatsAppAccount(models.Model):
         Falls back to including legacy accounts with no tenant_id so no data is lost."""
         current_company = self.env.company
         domain = ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
+        
+        if not self.env.is_admin():
+            if hasattr(self.env.user, 'whatsapp_account_ids'):
+                domain.append(('id', 'in', self.env.user.whatsapp_account_ids.ids))
+            
         accounts = self.sudo().search_read(
             domain,
             ['id', 'name', 'image_1920', 'wa_bot_active', 'tenant_id'],
@@ -162,6 +167,10 @@ class WhatsAppAccount(models.Model):
         ]
         if wa_account_id:
             domain.append(('wa_account_id', '=', int(wa_account_id)))
+            
+        if not self.env.is_admin():
+            if hasattr(self.env.user, 'whatsapp_account_ids'):
+                domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
         
         channels = self.env['discuss.channel'].sudo().search(domain)
         
