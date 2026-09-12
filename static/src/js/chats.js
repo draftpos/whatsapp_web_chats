@@ -1198,7 +1198,11 @@ export class WhatsAppChatsAction extends Component {
 
         try {
             for (const channelId of this.state.selectedChannels) {
-                await this.orm.call("whatsapp.account", "delete_whatsapp_chat", [channelId]);
+                const res = await this.orm.call("whatsapp.account", "delete_whatsapp_chat", [channelId]);
+                if (res && res.success === false) {
+                    alert(res.error);
+                    return;
+                }
                 if (this.state.selectedChannel && this.state.selectedChannel.id === channelId) {
                     this.state.selectedChannel = null;
                     this.state.messages = [];
@@ -1218,7 +1222,11 @@ export class WhatsAppChatsAction extends Component {
 
         try {
             for (const messageId of this.state.selectedMessages) {
-                await this.orm.call("whatsapp.account", "delete_whatsapp_message", [messageId]);
+                const res = await this.orm.call("whatsapp.account", "delete_whatsapp_message", [messageId]);
+                if (res && res.success === false) {
+                    alert(res.error);
+                    return;
+                }
             }
             this.state.selectedMessages = [];
             await this.loadMessages();
