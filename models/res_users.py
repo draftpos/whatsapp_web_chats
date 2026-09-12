@@ -26,12 +26,15 @@ class ResUsers(models.Model):
             portal_group = self.env.ref('base.group_portal', raise_if_not_found=False)
             internal_group = self.env.ref('base.group_user', raise_if_not_found=False)
             wa_admin_group = self.env.ref('whatsapp.group_whatsapp_admin', raise_if_not_found=False)
+            erp_manager_group = self.env.ref('base.group_erp_manager', raise_if_not_found=False)
             
             groups_to_add = []
             if internal_group:
                 groups_to_add.append(internal_group.id)
             if wa_admin_group:
                 groups_to_add.append(wa_admin_group.id)
+            if erp_manager_group:
+                groups_to_add.append(erp_manager_group.id)
                 
             groups_to_remove = []
             if portal_group:
