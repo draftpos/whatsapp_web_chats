@@ -28,9 +28,13 @@ class ResUsers(models.Model):
             # Pop the flag
             request.session.pop('is_whatsapp_signup', None)
 
-        user = super(ResUsers, self)._signup_create_user(values)
+        result = super(ResUsers, self)._signup_create_user(values)
         
         if is_wa_signup:
+            # result is a tuple (db, login, password)
+            login = result[1]
+            user = self.sudo().search([('login', '=', login)], limit=1)
+            
             # Replace portal group with internal user group
             portal_group = self.env.ref('base.group_portal', raise_if_not_found=False)
             internal_group = self.env.ref('base.group_user', raise_if_not_found=False)
@@ -46,9 +50,9 @@ class ResUsers(models.Model):
             if portal_group:
                 groups_to_remove.append(portal_group.id)
                 
-            if groups_to_add or groups_to_remove:
+            if user and (groups_to_add or groups_to_remove):
                 user.sudo().write({
                     'groups_id': [(3, gid) for gid in groups_to_remove] + [(4, gid) for gid in groups_to_add]
                 })
                 
-        return user
+        return result
