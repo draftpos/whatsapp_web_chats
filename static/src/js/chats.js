@@ -818,10 +818,6 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async clearChat(channelId) {
-        if (!this.isAdmin) {
-            alert("Only administrators can clear chats.");
-            return;
-        }
         if (!confirm("Are you sure you want to clear this chat? All messages will be deleted, but the contact will remain.")) {
             return;
         }
@@ -1202,10 +1198,6 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async deleteSelectedChannels() {
-        if (!this.isAdmin) {
-            alert("Only administrators can delete chats.");
-            return;
-        }
         if (this.state.selectedChannels.length === 0) return;
         if (!confirm(`Are you sure you want to permanently delete ${this.state.selectedChannels.length} chat(s) and all their messages?`)) return;
 
@@ -1230,10 +1222,6 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async deleteSelectedMessages() {
-        if (!this.isAdmin) {
-            alert("Only administrators can delete messages.");
-            return;
-        }
         if (this.state.selectedMessages.length === 0) return;
         if (!confirm(`Are you sure you want to permanently delete ${this.state.selectedMessages.length} message(s)?`)) return;
 
@@ -3078,10 +3066,6 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async deleteChat(channelId) {
-        if (!this.isAdmin) {
-            alert("Only administrators can delete chats.");
-            return;
-        }
         if (!confirm("Are you sure you want to completely delete this chat and all its messages?")) {
             return;
         }
@@ -3123,12 +3107,6 @@ export class WhatsAppChatsAction extends Component {
     deleteMessageForMe() {
         const messageId = this.state.deleteMessageId;
         if (!messageId) return;
-
-        if (!this.isAdmin) {
-            alert("Only administrators can delete messages.");
-            this.closeDeleteModal();
-            return;
-        }
         
         // Optimistic delete for me (hides it in frontend)
         this.state.messages = this.state.messages.filter(m => m.id !== messageId);
@@ -3139,12 +3117,6 @@ export class WhatsAppChatsAction extends Component {
     async confirmDeleteForEveryone() {
         const messageId = this.state.deleteMessageId;
         if (!messageId) return;
-        
-        if (!this.isAdmin) {
-            alert("Only administrators can delete messages.");
-            this.closeDeleteModal();
-            return;
-        }
         
         this.closeDeleteModal();
         
