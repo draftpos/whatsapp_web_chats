@@ -4,7 +4,7 @@ from odoo.addons.auth_signup.controllers.main import AuthSignupHome
 
 class WhatsAppSignupController(AuthSignupHome):
     
-    @http.route('/web/whatsapp/signup', type='http', auth='public', website=True, sitemap=False)
+    @http.route('/web/whatsapp/signup', type='http', auth='public')
     def web_whatsapp_signup(self, *args, **kw):
         # Set a flag in the session to indicate this is a WhatsApp SaaS signup
         request.session['is_whatsapp_signup'] = True
