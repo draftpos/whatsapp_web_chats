@@ -1084,3 +1084,16 @@
 .o_menu_systray .o-mail-ActivityMenu {
     display: none !important;
 }
+
+/* Hide the Odoo messaging and activity badges/counters */
+.o-mail-MessagingMenu-counter,
+.o_NotificationBadge_counter,
+.o_menu_systray_item .badge,
+.o_NavBar_systrayItem .badge {
+    display: none !important;
+}
+
+.search-match-active .message-bubble {
+    box-shadow: 0 0 0 2px #1976D2, 0 0 10px rgba(25,118,210,0.5);
+    transition: box-shadow 0.3s;
+}

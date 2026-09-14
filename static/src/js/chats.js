@@ -29,6 +29,8 @@ export class WhatsAppChatsAction extends Component {
             showTemplatesModal: false,
             showInChatSearch: false,
             inChatSearchQuery: "",
+            inChatSearchMatches: [],
+            inChatSearchIndex: -1,
             isAccountDropdownOpen: false,
             isNewChatModalOpen: false,
             contacts: [],
@@ -700,6 +702,64 @@ export class WhatsAppChatsAction extends Component {
         this.state.showInChatSearch = !this.state.showInChatSearch;
         if (!this.state.showInChatSearch) {
             this.state.inChatSearchQuery = '';
+            this.state.inChatSearchMatches = [];
+            this.state.inChatSearchIndex = -1;
+        }
+    }
+
+    handleInChatSearchInput(ev) {
+        this.state.inChatSearchQuery = ev.target.value;
+        const q = this.state.inChatSearchQuery.toLowerCase();
+        if (!q) {
+            this.state.inChatSearchMatches = [];
+            this.state.inChatSearchIndex = -1;
+            return;
+        }
+        
+        // Find matches
+        this.state.inChatSearchMatches = (this.state.messages || []).filter(m => 
+            (m.bodyText || '').toLowerCase().includes(q)
+        );
+        
+        if (this.state.inChatSearchMatches.length > 0) {
+            this.state.inChatSearchIndex = this.state.inChatSearchMatches.length - 1; // Start from newest message
+            this.scrollToSearchMatch();
+        } else {
+            this.state.inChatSearchIndex = -1;
+        }
+    }
+
+    searchMatchUp() {
+        if (this.state.inChatSearchMatches && this.state.inChatSearchMatches.length > 0) {
+            this.state.inChatSearchIndex--;
+            if (this.state.inChatSearchIndex < 0) {
+                this.state.inChatSearchIndex = this.state.inChatSearchMatches.length - 1; // wrap around
+            }
+            this.scrollToSearchMatch();
+        }
+    }
+
+    searchMatchDown() {
+        if (this.state.inChatSearchMatches && this.state.inChatSearchMatches.length > 0) {
+            this.state.inChatSearchIndex++;
+            if (this.state.inChatSearchIndex >= this.state.inChatSearchMatches.length) {
+                this.state.inChatSearchIndex = 0; // wrap around
+            }
+            this.scrollToSearchMatch();
+        }
+    }
+
+    scrollToSearchMatch() {
+        if (this.state.inChatSearchIndex >= 0 && this.state.inChatSearchIndex < this.state.inChatSearchMatches.length) {
+            const match = this.state.inChatSearchMatches[this.state.inChatSearchIndex];
+            setTimeout(() => {
+                if (this.messagesContainer.el) {
+                    const msgEl = this.messagesContainer.el.querySelector(`#message-${match.id}`);
+                    if (msgEl) {
+                        msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }, 50);
         }
     }
 
@@ -763,11 +823,6 @@ export class WhatsAppChatsAction extends Component {
     get groupedMessages() {
         if (!this.state.messages || this.state.messages.length === 0) return [];
         let msgs = this.state.messages;
-        if (this.state.inChatSearchQuery) {
-            const q = this.state.inChatSearchQuery.toLowerCase();
-            msgs = msgs.filter(m => (m.bodyText || '').toLowerCase().includes(q));
-        }
-        
         const groups = [];
         let currentGroup = null;
         let lastDateText = '';

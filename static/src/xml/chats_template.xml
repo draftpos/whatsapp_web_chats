@@ -323,10 +323,20 @@
                         <i class="fa fa-search" style="color: #8696a0; font-size: 14px;"/>
                         <input type="text" 
                                t-model="state.inChatSearchQuery"
-                               t-on-input="(ev) => this.state.inChatSearchQuery = ev.target.value"
+                               t-on-input="(ev) => this.handleInChatSearchInput(ev)"
                                placeholder="Search messages..."
                                style="border: none; outline: none; background: transparent; flex: 1; font-size: 14px; color: #111b21;"/>
-                        <i class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 16px;" t-on-click="() => this.toggleInChatSearch()" title="Close search"/>
+                        <t t-if="state.inChatSearchMatches and state.inChatSearchMatches.length > 0">
+                            <span style="font-size: 12px; color: #8696a0; margin-right: 5px;">
+                                <t t-esc="state.inChatSearchMatches.length - state.inChatSearchIndex"/> of <t t-esc="state.inChatSearchMatches.length"/>
+                            </span>
+                            <i class="fa fa-chevron-up" style="color: #8696a0; cursor: pointer; font-size: 14px; padding: 4px;" t-on-click="() => this.searchMatchUp()" title="Previous match"/>
+                            <i class="fa fa-chevron-down" style="color: #8696a0; cursor: pointer; font-size: 14px; padding: 4px;" t-on-click="() => this.searchMatchDown()" title="Next match"/>
+                        </t>
+                        <t t-elif="state.inChatSearchQuery and (!state.inChatSearchMatches or state.inChatSearchMatches.length == 0)">
+                            <span style="font-size: 12px; color: #8696a0; margin-right: 5px;">No matches</span>
+                        </t>
+                        <i class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 16px; margin-left: 10px;" t-on-click="() => this.toggleInChatSearch()" title="Close search"/>
                     </div>
                     <div class="whatsapp-messages" t-ref="messagesContainer">
                         <!-- Pinned Messages Banner -->
@@ -355,7 +365,7 @@
                             </t>
                             <t t-elif="!group.isAlbum">
                                 <t t-set="msg" t-value="group.message"/>
-                                <div t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }}">
+                                <div t-attf-id="message-{{msg.id}}" t-attf-class="message-row {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }} {{ (state.inChatSearchMatches and state.inChatSearchMatches[state.inChatSearchIndex]?.id == msg.id) ? 'search-match-active' : '' }}">
                                 <div class="message-selection" t-on-click="(ev) => this.toggleMessageSelection(msg.id, ev)" t-if="!msg.isSystem">
                                     <t t-if="state.selectedMessages.includes(msg.id)">
                                         <i class="fa fa-check-circle" style="color: #1976D2; font-size: 18px;"></i>
@@ -583,7 +593,7 @@
                                 </div>
                             </t>
                             <t t-else="">
-                                <div t-attf-class="message-row {{ group.isMe ? 'message-me' : 'message-other' }}">
+                                <div t-attf-id="message-{{group.messages[0].id}}" t-attf-class="message-row {{ group.isMe ? 'message-me' : 'message-other' }}">
                                     <div class="message-bubble album-bubble" style="padding: 4px; background: transparent; box-shadow: none;">
                                         <div t-attf-class="whatsapp-album-grid count-{{ group.messages.length > 4 ? 4 : group.messages.length }}">
                                             <t t-foreach="group.messages.slice(0, 4)" t-as="albumMsg" t-key="albumMsg.id">
