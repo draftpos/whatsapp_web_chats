@@ -2143,6 +2143,9 @@ export class WhatsAppChatsAction extends Component {
             };
             this._mediaRecorder.onstop = () => {
                 let mimeType = this._mediaRecorder.mimeType || 'audio/webm';
+                if (mimeType.includes('video/')) {
+                    mimeType = mimeType.replace('video/', 'audio/');
+                }
                 const blob = new Blob(this._audioChunks, { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 this.state.recordingBlob = blob;

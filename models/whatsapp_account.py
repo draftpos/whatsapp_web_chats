@@ -1201,7 +1201,7 @@ class WhatsAppAccount(models.Model):
             # This prevents the native Odoo module from sending uncompressed files to the API
             for att_id in attachment_ids:
                 att = self.env['ir.attachment'].sudo().browse(int(att_id))
-                if att.exists() and att.mimetype in ('audio/ogg', 'audio/webm', 'audio/mp4'):
+                if att.exists() and att.mimetype in ('audio/ogg', 'audio/webm', 'audio/mp4', 'video/webm'):
                     # The audio was spoofed as audio/ogg by the frontend, but it's actually WebM
                     self._compress_audio_attachment(att)
                         
