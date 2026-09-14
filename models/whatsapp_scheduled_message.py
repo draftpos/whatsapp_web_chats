@@ -51,7 +51,7 @@ class WhatsAppScheduledMessage(models.Model):
                     msg.channel_id.wa_account_id.post_whatsapp_message(
                         msg.channel_id.id,
                         body=msg.quick_reply_id.body,
-                        message_type='comment',
+                        message_type='whatsapp_message',
                         subtype_xmlid='mail.mt_comment'
                     )
                 elif msg.message_type == 'custom' and msg.custom_body:
@@ -59,7 +59,7 @@ class WhatsAppScheduledMessage(models.Model):
                     msg.channel_id.wa_account_id.post_whatsapp_message(
                         msg.channel_id.id,
                         body=msg.custom_body,
-                        message_type='comment',
+                        message_type='whatsapp_message',
                         subtype_xmlid='mail.mt_comment'
                     )
                 

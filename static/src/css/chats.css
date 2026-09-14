@@ -865,13 +865,13 @@
     flex-shrink: 0;
     width: 3px;
     border-radius: 2px;
-    background: #c8d3d8;
+    background: #8696a0;
     transition: background 0.1s;
     min-height: 4px;
     max-height: 20px;
 }
 .wa-audio-bar-played {
-    background: #00a884;
+    background: #54656f;
 }
 
 /* Duration label */
@@ -902,10 +902,11 @@
     color: white;
 }
 
-/* Mine bubble – avatar shows sender's color */
+/* Mine bubble - avatar shows sender's color */
 .wa-audio-mine .wa-audio-avatar {
-    background: #25d366;
-    color: white;
+    background: transparent;
+    color: #8696a0;
+    font-size: 18px;
 }
 
 /* ─── Recording live indicator & preview bar (dark WhatsApp style) ──────── */
