@@ -1222,9 +1222,16 @@ class WhatsAppAccount(models.Model):
                     wa_msg.write({'state': 'cancel'})
                 
                 def _bg_compress_video(dbname, att_ids, wa_msg_id):
-                    from odoo import registry, api, SUPERUSER_ID
-                    with registry(dbname).cursor() as cr:
-                        env = api.Environment(cr, SUPERUSER_ID, {})
+                    import time
+                    # Wait for the main transaction to commit so we can find the wa_msg_id
+                    time.sleep(2)
+                    
+                    from odoo.modules.registry import Registry
+                    from odoo.api import Environment
+                    from odoo import SUPERUSER_ID
+                    
+                    with Registry(dbname).cursor() as cr:
+                        env = Environment(cr, SUPERUSER_ID, {})
                         for att in env['ir.attachment'].browse(att_ids):
                             env['whatsapp.account']._compress_video_attachment(att)
                             
@@ -1239,7 +1246,7 @@ class WhatsAppAccount(models.Model):
                     t = threading.Thread(target=_bg_compress_video, args=(self.env.cr.dbname, videos_to_compress, wa_msg.id if wa_msg else False))
                     t.start()
                 
-                self.env.cr.after_commit(_start_video_thread)
+                _start_video_thread()
                 
             return msg_id
         return False
