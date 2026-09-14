@@ -116,11 +116,13 @@ export class WhatsAppChatsAction extends Component {
         this.isAdmin = session.is_admin || session.is_superuser || false;
 
         onWillStart(async () => {
-            await this.loadChannels();
-            await this.loadProducts();
-            await this.loadTemplates();
-            await this.loadTags();
-            await this.loadQuickReplies();
+            await Promise.all([
+                this.loadChannels(),
+                this.loadProducts(),
+                this.loadTemplates(),
+                this.loadTags(),
+                this.loadQuickReplies()
+            ]);
         });
         
         onMounted(() => {
