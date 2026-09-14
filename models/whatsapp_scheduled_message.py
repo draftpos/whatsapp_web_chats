@@ -33,6 +33,32 @@ class WhatsAppScheduledMessage(models.Model):
     current_rule_id = fields.Many2one('whatsapp.followup.rule', string='Current Rule')
     created_by_id = fields.Many2one('res.users', string='Created By', default=lambda self: self.env.user)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.state == 'pending' and rec.scheduled_at:
+                try:
+                    cron = self.env.ref('whatsapp_web_chats.ir_cron_send_scheduled_messages', raise_if_not_found=False)
+                    if cron:
+                        cron._trigger(at=rec.scheduled_at)
+                except Exception as e:
+                    _logger.warning("Failed to trigger scheduled message cron: %s", str(e))
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'scheduled_at' in vals or 'state' in vals:
+            for rec in self:
+                if rec.state == 'pending' and rec.scheduled_at:
+                    try:
+                        cron = self.env.ref('whatsapp_web_chats.ir_cron_send_scheduled_messages', raise_if_not_found=False)
+                        if cron:
+                            cron._trigger(at=rec.scheduled_at)
+                    except Exception as e:
+                        pass
+        return res
+
     @api.model
     def _cron_send_scheduled_messages(self):
         now = fields.Datetime.now()
@@ -88,3 +114,10 @@ class WhatsAppScheduledMessage(models.Model):
             except Exception as e:
                 _logger.error(f"Failed to send scheduled message {msg.id}: {str(e)}")
                 msg.write({'state': 'failed'})
+                
+        # Trigger the WhatsApp queue immediately so it doesn't wait for its own hourly cron
+        if messages:
+            try:
+                self.env.ref('whatsapp.ir_cron_send_whatsapp_queue')._trigger()
+            except Exception:
+                pass
