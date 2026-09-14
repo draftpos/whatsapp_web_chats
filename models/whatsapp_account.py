@@ -1196,52 +1196,19 @@ class WhatsAppAccount(models.Model):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         if channel.exists():
             attachment_ids = kwargs.get('attachment_ids', [])
-            has_uncompressed_videos = False
-            attachments_to_compress = []
             
-            if attachment_ids:
-                attachments = self.env['ir.attachment'].sudo().browse(attachment_ids)
-                for att in attachments:
-                    if att.mimetype and att.mimetype.startswith('video/'):
-                        has_uncompressed_videos = True
-                        attachments_to_compress.append(att.id)
-                    elif att.mimetype and att.mimetype.startswith('audio/'):
-                        has_uncompressed_videos = True
-                        attachments_to_compress.append(att.id)
+            # Synchronously compress audio attachments before creating the message
+            # This prevents the native Odoo module from sending uncompressed files to the API
+            for att_id in attachment_ids:
+                att = self.env['ir.attachment'].sudo().browse(int(att_id))
+                if att.exists() and att.mimetype in ('audio/ogg', 'audio/webm', 'audio/mp4'):
+                    # The audio was spoofed as audio/ogg by the frontend, but it's actually WebM
+                    self._compress_audio_attachment(att)
                         
             # Force author_id to the current user, unless explicitly provided (e.g., scheduled messages)
             if 'author_id' not in kwargs:
                 kwargs['author_id'] = self.env.user.partner_id.id
             msg_id = channel.message_post(**kwargs).id
-            
-            if has_uncompressed_videos:
-                wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', msg_id)])
-                if wa_msg:
-                    wa_msg.write({'state': 'cancel'})
-                
-                def _bg_compress(dbname, att_ids, wa_msg_id):
-                    import odoo
-                    with odoo.registry(dbname).cursor() as cr:
-                        env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
-                        for att in env['ir.attachment'].browse(att_ids):
-                            if att.mimetype and att.mimetype.startswith('video/'):
-                                env['whatsapp.account']._compress_video_attachment(att)
-                            elif att.mimetype and att.mimetype.startswith('audio/'):
-                                env['whatsapp.account']._compress_audio_attachment(att)
-                            
-                        if wa_msg_id:
-                            msg = env['whatsapp.message'].browse(wa_msg_id)
-                            if msg.exists():
-                                msg.write({'state': 'outgoing'})
-                                env.ref('whatsapp.ir_cron_send_whatsapp_queue')._trigger()
-                                
-                    def _start_thread():
-                        import threading
-                        t = threading.Thread(target=_bg_compress, args=(self.env.cr.dbname, attachments_to_compress, wa_msg.id if wa_msg else False))
-                        t.start()
-                    
-                    self.env.cr.after_commit(_start_thread)
-                    
             return msg_id
         return False
 

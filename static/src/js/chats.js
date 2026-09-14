@@ -2142,15 +2142,7 @@ export class WhatsAppChatsAction extends Component {
                 }
             };
             this._mediaRecorder.onstop = () => {
-                // Chrome records audio/webm;codecs=opus but WhatsApp API only accepts audio/ogg.
-                // Since both formats use the Opus codec, we can safely re-label the blob
-                // as audio/ogg;codecs=opus without transcoding — this is the standard approach.
                 let mimeType = this._mediaRecorder.mimeType || 'audio/webm';
-                if (mimeType.includes('webm') && mimeType.includes('opus')) {
-                    mimeType = 'audio/ogg; codecs=opus';
-                } else if (mimeType.includes('webm')) {
-                    mimeType = 'audio/ogg; codecs=opus';
-                }
                 const blob = new Blob(this._audioChunks, { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 this.state.recordingBlob = blob;
@@ -2237,6 +2229,12 @@ export class WhatsAppChatsAction extends Component {
         this.state.recordingBlobUrl = null;
         this.state.recordingSeconds = 0;
 
+        let ext = 'webm';
+        if (blob.type.includes('mp4') || blob.type.includes('m4a')) ext = 'm4a';
+        else if (blob.type.includes('mpeg')) ext = 'mp3';
+        else if (blob.type.includes('ogg')) ext = 'ogg';
+        const filename = `voice_${Date.now()}.${ext}`;
+
         // ── Show audio bubble in chat INSTANTLY (optimistic UI) ───────────────
         const tempAttId = 'temp_audio_' + Date.now();
         const tempMsg = {
@@ -2248,20 +2246,13 @@ export class WhatsAppChatsAction extends Component {
             wa_state: 'pending',
             attachment_ids: [{
                 id: tempAttId,
-                mimetype: blob.type || 'audio/ogg',
-                name: 'voice_message.ogg',
+                mimetype: blob.type || 'audio/webm',
+                name: filename,
                 localBlobUrl: blobUrl,  // plays immediately from blob, no server needed yet
             }]
         };
         this.state.messages.push(tempMsg);
         this.scrollToBottom();
-
-        // Always use .ogg extension — the blob is already labelled audio/ogg above
-        // so the server will store it with the correct mimetype that WhatsApp accepts
-        let ext = 'ogg';
-        if (blob.type.includes('mp4') || blob.type.includes('m4a')) ext = 'm4a';
-        else if (blob.type.includes('mpeg')) ext = 'mp3';
-        const filename = `voice_${Date.now()}.${ext}`;
 
         try {
             const formData = new window.FormData();
