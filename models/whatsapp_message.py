@@ -54,3 +54,29 @@ class WhatsAppMessage(models.Model):
                         copied_msg.sudo().write({'author_id': new_author_id})
 
         return records
+
+    @api.model
+    def _send_cron(self):
+        """ Send all outgoing messages. 
+        Overridden to add FOR UPDATE SKIP LOCKED to prevent database locking issues 
+        and duplicate message sending when multiple cron threads run.
+        """
+        # Lock outgoing messages to prevent concurrent crons from picking the same messages
+        self.env.cr.execute("""
+            SELECT id FROM whatsapp_message 
+            WHERE state = 'outgoing'
+            ORDER BY wa_template_id DESC 
+            LIMIT 500
+            FOR UPDATE SKIP LOCKED
+        """)
+        locked_ids = [row[0] for row in self.env.cr.fetchall()]
+        
+        if not locked_ids:
+            return
+
+        records = self.browse(locked_ids)
+        # Call the core _send_message logic
+        records._send_message(with_commit=not self.env.registry.in_test_mode())
+        
+        if len(records) == 500:
+            self.env.ref('whatsapp.ir_cron_send_whatsapp_queue')._trigger()
