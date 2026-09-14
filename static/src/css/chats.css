@@ -1072,3 +1072,19 @@
     font-style: italic;
     display: inline-block;
 }
+
+/* Hide Odoo core messaging and activity systray items */
+.o_MessagingMenu,
+.o_ActivityMenuView,
+.o-mail-MessagingMenu,
+.o-mail-ActivityMenu,
+.o_menu_systray .o_MessagingMenu,
+.o_menu_systray .o_ActivityMenuView,
+.o_menu_systray .o-mail-MessagingMenu,
+.o_menu_systray .o-mail-ActivityMenu,
+.o_NavBar_systrayItem:has(i.fa-comments),
+.o_NavBar_systrayItem:has(i.fa-clock-o),
+.o_menu_systray_item:has(i.fa-comments),
+.o_menu_systray_item:has(i.fa-clock-o) {
+    display: none !important;
+}
