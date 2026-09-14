@@ -35,9 +35,8 @@
                             <i class="fa fa-trash"/>
                             Delete <t t-esc="state.selectedChannels.length"/> Chat<t t-if="state.selectedChannels.length > 1">s</t>
                         </button>
-                    </t>
-                    <i class="fa fa-shopping-bag" t-on-click="openCatalogueModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="Catalogue"></i>
-                    <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-right: 15px; font-size: 18px; cursor: pointer; color: #54656f;" title="New Chat"></i>
+                    <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: white;" title="New Chat"></i>
+                    <i class="fa fa-ellipsis-v" t-on-click="toggleSidebarDropdown" style="font-size: 20px; cursor: pointer; color: white; position: relative;" title="Menu"></i>
                 </div>
             </div>
             <!-- Search bar -->
@@ -225,11 +224,9 @@
                                         </t>
                                         <div class="chat-dropdown-divider" style="height:1px; background:#f0f2f5; margin:4px 0;"></div>
                                     </t>
-                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Block</div>
-                                    <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">View contact</div>
                                     
                                     <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
-                                    <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Odoo Actions</div>
+                                    <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Havano Actions</div>
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.setChatState(channel.id, 'wa_is_favourite', !channel.wa_is_favourite, ev)">
                                         <t t-esc="channel.wa_is_favourite ? 'Remove Favourite' : 'Add to Favourites'"/>
                                     </div>
@@ -250,11 +247,11 @@
                 <t t-if="state.selectedChannel">
                     <div class="whatsapp-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; cursor: pointer;" t-on-click="toggleContactInfo" title="Contact Info">
-                            <i class="fa fa-arrow-left" t-on-click.stop="closeChat" style="font-size: 20px; color: #54656f; cursor: pointer; margin-right: 15px;" title="Back to chats"></i>
+                            <i class="fa fa-arrow-left" t-on-click.stop="closeChat" style="font-size: 20px; color: white; cursor: pointer; margin-right: 15px;" title="Back to chats"></i>
                             <div class="chat-avatar"><t t-esc="(state.selectedChannel.name and state.selectedChannel.name?.length > 0) ? state.selectedChannel.name[0].toUpperCase() : '?'"/></div>
                             <div style="display:flex; flex-direction:column;">
-                                <span class="chat-header-name"><t t-esc="state.selectedChannel.name || 'Unknown'"/></span>
-                                <span t-if="state.selectedChannel.wa_agent_id" style="font-size: 11px; color: #1976D2;">
+                                <span class="chat-header-name" style="color: white;"><t t-esc="state.selectedChannel.name || 'Unknown'"/></span>
+                                <span t-if="state.selectedChannel.wa_agent_id" style="font-size: 11px; color: #e0f2f1;">
                                     <i class="fa fa-user-circle"></i> 
                                     <t t-if="this.isWithin24hWindow">Assisting: </t>
                                     <t t-else="">Last User: </t>
@@ -279,22 +276,18 @@
                                 </t>
                             </t>
 
-                            <button class="whatsapp-header-btn" title="Video Call" t-on-click="callCustomer" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
-                                <i class="fa fa-video-camera"/>
-                            </button>
-                            <button class="whatsapp-header-btn" title="Voice Call" t-on-click="callCustomer" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
-                                <i class="fa fa-phone"/>
-                            </button>
-                            <button class="whatsapp-header-btn" title="Search" t-on-click="notImplemented" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
+                            <button class="whatsapp-header-btn" title="Search" t-on-click="toggleInChatSearch" style="background: transparent; border: none; cursor: pointer; color: white; font-size: 20px; padding: 10px;">
                                 <i class="fa fa-search"/>
                             </button>
                             <div style="position: relative;">
-                                <button class="whatsapp-header-btn header-dropdown-btn" title="Menu" t-on-click="toggleHeaderDropdown" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 20px; padding: 10px;">
+                                <button class="whatsapp-header-btn header-dropdown-btn" title="Menu" t-on-click="toggleHeaderDropdown" style="background: transparent; border: none; cursor: pointer; color: white; font-size: 20px; padding: 10px;">
                                     <i class="fa fa-ellipsis-v"/>
                                 </button>
                                 <t t-if="state.showHeaderDropdown">
                                     <div class="header-dropdown-menu" t-attf-style="position: absolute; right: 0; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26),0 2px 10px 0 rgba(11,20,26,.16); width: 220px; padding: 9px 0; max-height: 250px; overflow-y: auto; z-index: 1000; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 10px;' }}" t-on-click.stop="() => {}">
                                         <div class="chat-dropdown-item" t-on-click="toggleContactInfo">Contact info</div>
+                                        <div class="chat-dropdown-item" t-on-click="() => this.openTransferModal(state.selectedChannel.id)">Transfer Chat</div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => { Object.assign(this.state, {showMediaTabsView: true, showContactInfo: true}); this.toggleHeaderDropdown(ev); }">Media, links and docs</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => this.startSelectingMessages(ev)">Select messages</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.closeChat(ev); this.toggleHeaderDropdown(ev); }">Close chat</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMuteChat(ev)">
@@ -309,7 +302,7 @@
                                         </div>
                                         
                                         <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
-                                        <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Odoo Actions</div>
+                                        <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Havano Actions</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_favourite', !state.selectedChannel.wa_is_favourite, ev); this.toggleHeaderDropdown(ev); }">
                                             <t t-esc="state.selectedChannel.wa_is_favourite ? 'Remove Favourite' : 'Add to favourites'"/>
                                         </div>
@@ -323,6 +316,15 @@
                                 </t>
                             </div>
                         </div>
+                    </div>
+                    <!-- In-Chat Search Bar -->
+                    <div t-if="state.showInChatSearch" style="padding: 10px 16px; background: #f0f2f5; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                        <i class="fa fa-search" style="color: #8696a0; font-size: 14px;"/>
+                        <input type="text" 
+                               t-model="state.inChatSearchQuery"
+                               placeholder="Search messages..."
+                               style="border: none; outline: none; background: transparent; flex: 1; font-size: 14px; color: #111b21;"/>
+                        <i class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 16px;" t-on-click="toggleInChatSearch" title="Close search"/>
                     </div>
                     <div class="whatsapp-messages" t-ref="messagesContainer">
                         <!-- Pinned Messages Banner -->
@@ -558,25 +560,21 @@
                                     <t t-if="state.showMessageDropdownId === msg.id">
                                         <div class="msg-dropdown-menu" t-attf-style="position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 250px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 5px;' }}" t-on-click.stop="() => {}">
                                             <div class="chat-dropdown-item" t-on-click="() => this.openReply(msg)">Reply</div>
-                                            <t t-if="msg.isMe and msg.bodyText and (!msg.attachment_ids or msg.attachment_ids.length === 0)">
-                                                <div class="chat-dropdown-item" t-on-click="() => this.startEditMessage(msg)">Edit</div>
-                                            </t>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.openEmojiPicker(msg.id, ev)">React</div>
-                                            <div class="chat-dropdown-item" t-on-click="() => this.openForwardModal(msg.id)">Forward</div>
+                                            <div class="chat-dropdown-item" t-on-click="() => this.openForwardModal(msg.id)">Forward message</div>
+                                            <div class="chat-dropdown-item" t-on-click="() => this.toggleContactInfo()">Message info</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessageStar(msg.id, ev)">
                                                 <t t-esc="msg.wa_is_starred ? 'Unstar' : 'Star'"/>
                                             </div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessagePin(msg.id, ev)">
                                                 <t t-esc="msg.wa_is_pinned ? 'Unpin' : 'Pin'"/>
                                             </div>
-                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.reportContact(state.selectedChannel, ev)">Report</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                             <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                             <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
                                             <t t-if="msg.wa_error or msg.wa_state === 'error'">
                                                 <div class="chat-dropdown-item" style="color: #f24a4a;" t-on-click="() => this.resendMessage(msg)">Resend</div>
                                             </t>
-                                            <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Message info</div>
                                         </div>
                                     </t>
                                 </div>
@@ -641,21 +639,20 @@
                                             <div class="msg-dropdown-menu" t-attf-style="position: absolute; right: 10px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26); z-index: 1000; min-width: 150px; padding: 10px 0; max-height: 250px; overflow-y: auto; {{ state.dropdownUpwards ? 'bottom: 100%; top: auto; margin-bottom: 5px;' : 'top: 100%; margin-top: 5px;' }}" t-on-click.stop="() => {}">
                                                 <div class="chat-dropdown-item" t-on-click="() => this.openReply(msg)">Reply</div>
                                                 <div class="chat-dropdown-item" t-on-click="(ev) => this.openEmojiPicker(msg.id, ev)">React</div>
-                                                <div class="chat-dropdown-item" t-on-click="() => this.openForwardModal(msg.id)">Forward</div>
+                                                <div class="chat-dropdown-item" t-on-click="() => this.openForwardModal(msg.id)">Forward message</div>
+                                                <div class="chat-dropdown-item" t-on-click="() => this.toggleContactInfo()">Message info</div>
                                                 <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessageStar(msg.id, ev)">
                                                     <t t-esc="msg.wa_is_starred ? 'Unstar' : 'Star'"/>
                                                 </div>
                                                 <div class="chat-dropdown-item" t-on-click="(ev) => this.toggleMessagePin(msg.id, ev)">
                                                     <t t-esc="msg.wa_is_pinned ? 'Unpin' : 'Pin'"/>
                                                 </div>
-                                                <div class="chat-dropdown-item" t-on-click="(ev) => this.reportContact(state.selectedChannel, ev)">Report</div>
                                                 <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                                 <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
                                                 <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
                                                 <t t-if="msg.wa_error or msg.wa_state === 'error'">
                                                     <div class="chat-dropdown-item" style="color: #f24a4a;" t-on-click="() => this.resendMessage(msg)">Resend</div>
                                                 </t>
-                                                <div class="chat-dropdown-item" t-on-click="(ev) => this.comingSoon(ev)">Message info</div>
                                             </div>
                                         </t>
                                     </div>
@@ -837,11 +834,11 @@
                                         
                                         <t t-if="state.showPlusMenu">
                                             <div class="attach-dropdown-menu" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1000; min-width: 220px; padding: 12px 0; display: flex; flex-direction: column; gap: 5px;">
-                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #7F66FF; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                        <i class="fa fa-file-text" style="font-size: 18px;"/>
+                                                <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #FF2E74; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-bolt" style="font-size: 18px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Document</span>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
                                                 </div>
                                                 
                                                 <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/*,video/*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
@@ -851,25 +848,25 @@
                                                     <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Photos &amp; Videos</span>
                                                 </div>
 
-                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/webp,image/png,image/jpeg', 'sticker')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #00A884; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                        <i class="fa fa-sticky-note" style="font-size: 18px;"/>
-                                                    </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Sticker</span>
-                                                </div>
-
-                                                <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #FF2E74; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                        <i class="fa fa-bolt" style="font-size: 18px;"/>
-                                                    </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
-                                                </div>
-
                                                 <div class="attach-menu-item" t-on-click="() => this.openTemplatesModal('templates')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
                                                     <div style="background: #00A884; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
                                                         <i class="fa fa-file-text-o" style="font-size: 18px;"/>
                                                     </div>
                                                     <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Templates</span>
+                                                </div>
+                                                
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #7F66FF; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-file-text" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Document</span>
+                                                </div>
+
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/webp,image/png,image/jpeg', 'sticker')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #00A884; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-sticky-note" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Sticker</span>
                                                 </div>
 
                                                 <div class="attach-menu-item" t-on-click="openSendPhoneModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
@@ -962,14 +959,14 @@
             <!-- Contact Info Panel -->
             <t t-if="state.showContactInfo">
                 <div class="whatsapp-contact-info" style="width: 350px; min-width: 350px; background: #f0f2f5; border-left: 1px solid #d1d7db; display: flex; flex-direction: column; overflow-y: auto;">
-                    <div class="whatsapp-header" style="display: flex; align-items: center; background: #f0f2f5; min-height: 60px;">
+                    <div class="whatsapp-header" style="display: flex; align-items: center; background: #008069; color: white; min-height: 60px;">
                         <t t-if="state.showMediaTabsView">
-                            <i class="fa fa-arrow-left" style="font-size: 20px; color: #54656f; cursor: pointer; margin-right: 20px; padding-left: 10px;" t-on-click="() => Object.assign(this.state, {showMediaTabsView: false})"></i>
-                            <span style="font-size: 16px; color: #111b21;">Media, links and docs</span>
+                            <i class="fa fa-arrow-left" style="font-size: 20px; color: white; cursor: pointer; margin-right: 20px; padding-left: 10px;" t-on-click="() => Object.assign(this.state, {showMediaTabsView: false})"></i>
+                            <span style="font-size: 16px; color: white;">Media, links and docs</span>
                         </t>
                         <t t-else="">
-                            <i class="fa fa-times" style="font-size: 20px; color: #54656f; cursor: pointer; margin-right: 20px; padding-left: 10px;" t-on-click="toggleContactInfo"></i>
-                            <span style="font-size: 16px; color: #111b21;">Contact info</span>
+                            <i class="fa fa-times" style="font-size: 20px; color: white; cursor: pointer; margin-right: 20px; padding-left: 10px;" t-on-click="toggleContactInfo"></i>
+                            <span style="font-size: 16px; color: white;">Contact info</span>
                         </t>
                     </div>
 
@@ -1453,101 +1450,6 @@
             </div>
         </t>
 
-        <!-- Add Product Modal -->
-        <t t-if="state.showAddProductModal">
-            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-                <div class="modal-content" style="background: white; width: 450px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <div class="modal-header" style="background: #128C7E; color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-size: 16px; font-weight: 500;">Add Product</span>
-                        <i class="fa fa-times" style="cursor: pointer;" t-on-click="closeAddProductModal"></i>
-                    </div>
-                    <div class="modal-body" style="padding: 20px; overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 15px;">
-                        <div>
-                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Image</label>
-                            <input type="file" accept="image/*" t-on-change="handleProductImageUpload" style="font-size: 13px;"/>
-                            <t t-if="state.newProduct.imagePreview">
-                                <img t-att-src="state.newProduct.imagePreview" style="max-width: 100px; margin-top: 10px; border-radius: 4px;"/>
-                            </t>
-                        </div>
-                        <div>
-                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Item Name *</label>
-                            <input type="text" t-model="state.newProduct.name" class="form-control" placeholder="e.g. Vintage Leather Bag" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
-                        </div>
-                        <div>
-                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Price</label>
-                            <input type="number" t-model="state.newProduct.list_price" class="form-control" placeholder="0.00" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
-                        </div>
-                        <div>
-                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Description</label>
-                            <textarea t-model="state.newProduct.description" class="form-control" rows="3" placeholder="Describe the product..." style="width: 100%; box-sizing: border-box; resize: vertical; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea>
-                        </div>
-                        <div>
-                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Link</label>
-                            <input type="url" t-model="state.newProduct.url" class="form-control" placeholder="https://..." style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
-                        </div>
-                        <div>
-                            <label style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 5px; display: block;">Item Code</label>
-                            <input type="text" t-model="state.newProduct.item_code" class="form-control" placeholder="e.g. SKU-123" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
-                        </div>
-                    </div>
-                    <div class="modal-footer" style="padding: 15px 20px; border-top: 1px solid #ddd; display: flex; justify-content: flex-end; gap: 10px; background: #f6f6f6;">
-                        <button class="btn btn-secondary" t-on-click="closeAddProductModal" style="border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer;">Cancel</button>
-                        <button class="btn btn-primary" t-on-click="saveCatalogueProduct" style="background: #128C7E; color: white; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-weight: bold;">Save</button>
-                    </div>
-                </div>
-            </div>
-        </t>
-
-        <t t-if="state.showCatalogueModal">
-            <div class="catalogue-modal">
-                <div class="catalogue-content" style="max-width: 620px;">
-                    <div class="catalogue-header" style="background: #128C7E; color: white; display:flex; align-items:center; justify-content:space-between;">
-                        <h3 style="color: white; margin:0;"><i class="fa fa-shopping-bag" style="margin-right: 8px;"/> WhatsApp Catalogue</h3>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <button t-on-click="openAddProductModal" style="background:white; color:#128C7E; border:none; border-radius:20px; padding:6px 16px; font-weight:600; cursor:pointer; font-size:13px;">
-                                <i class="fa fa-plus"/> Add Product
-                            </button>
-                            <button class="preview-close" t-on-click="closeCatalogueModal" style="position: static; color: white; background:transparent; border:none; font-size:18px; cursor:pointer;"><i class="fa fa-times"/></button>
-                        </div>
-                    </div>
-                    <div style="padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; max-height: 500px; overflow-y: auto; background: #f0f2f5;">
-                        <t t-if="state.products?.length === 0">
-                            <div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px;">
-                                <i class="fa fa-shopping-bag" style="font-size:48px; color:#ccc; margin-bottom:16px; display:block;"/>
-                                <div style="font-size:16px; font-weight:500; margin-bottom:8px;">Your catalogue is empty</div>
-                                <div style="font-size:13px; color:#aaa;">Click "Add Product" to add items</div>
-                            </div>
-                        </t>
-                        <t t-foreach="state.products || []" t-as="prod" t-key="prod.id">
-                            <div style="position:relative; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
-                                <!-- Remove button -->
-                                <button t-if="this.isAdmin" t-on-click="(ev) => this.removeCatalogueProduct(prod.id, ev)"
-                                    style="position:absolute; top:4px; right:4px; background:rgba(255,255,255,0.9); border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; color:#f24a4a; font-size:11px; display:flex; align-items:center; justify-content:center; z-index:2;"
-                                    title="Remove from catalogue">
-                                    <i class="fa fa-times"/>
-                                </button>
-                                <!-- Product image -->
-                                <div style="height: 140px; background: #fff; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #eee; cursor:pointer;" t-on-click="() => this.sendProduct(prod)">
-                                    <t t-if="prod.image_128">
-                                        <img t-attf-src="data:image/jpeg;base64,{{prod.image_128}}" style="max-width: 100%; max-height: 100%; object-fit: contain;"/>
-                                    </t>
-                                    <t t-else="">
-                                        <i class="fa fa-image" style="font-size: 40px; color: #ccc;"/>
-                                    </t>
-                                </div>
-                                <div style="padding: 8px 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; cursor:pointer;" t-on-click="() => this.sendProduct(prod)">
-                                    <div style="font-size: 13px; font-weight: 500; color: #111b21; margin-bottom: 4px; line-height: 1.2;"><t t-esc="prod.name"/></div>
-                                    <t t-if="prod.description">
-                                        <div style="font-size: 11px; color: #667781; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><t t-esc="prod.description"/></div>
-                                    </t>
-                                    <div style="font-size: 13px; color: #25D366; font-weight: bold;"><t t-esc="prod.list_price.toFixed ? prod.list_price.toFixed(2) : prod.list_price"/></div>
-                                </div>
-                            </div>
-                        </t>
-                    </div>
-                </div>
-            </div>
-        </t>
         
         <!-- New Chat Modal -->
         <t t-if="state.isNewChatModalOpen">
@@ -1660,7 +1562,7 @@
                     </div>
                     <!-- Warning box -->
                     <div style="background: #fff8e1; border-left: 3px solid #f59e0b; border-radius: 4px; padding: 10px 14px; margin-bottom: 20px; font-size: 13px; color: #78350f; line-height: 1.5;">
-                        ⚠️ <strong>Warning:</strong> All messages in this chat will be permanently deleted from Odoo.
+                        ⚠️ <strong>Warning:</strong> All messages in this chat will be permanently deleted from Havano.
                         The contact record and phone number will <strong>not</strong> be deleted — only the conversation history.
                     </div>
                     <!-- Actions -->

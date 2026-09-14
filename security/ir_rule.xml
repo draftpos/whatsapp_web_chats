@@ -26,7 +26,7 @@
         <record id="whatsapp_template_tenant_rule" model="ir.rule">
             <field name="name">WhatsApp Template Tenant Rule</field>
             <field name="model_id" ref="whatsapp.model_whatsapp_template"/>
-            <field name="domain_force">['|', ('tenant_id', '=', False), ('tenant_id', 'in', company_ids)]</field>
+            <field name="domain_force">[('tenant_id', 'in', company_ids)]</field>
         </record>
 
         <!-- Res Users Tenant Rule -->

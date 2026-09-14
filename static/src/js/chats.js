@@ -27,6 +27,8 @@ export class WhatsAppChatsAction extends Component {
             newProduct: null,
             wa_templates: [],
             showTemplatesModal: false,
+            showInChatSearch: false,
+            inChatSearchQuery: "",
             isAccountDropdownOpen: false,
             isNewChatModalOpen: false,
             contacts: [],
@@ -680,6 +682,13 @@ export class WhatsAppChatsAction extends Component {
         this.state.chatSearch = '';
     }
 
+    toggleInChatSearch() {
+        this.state.showInChatSearch = !this.state.showInChatSearch;
+        if (!this.state.showInChatSearch) {
+            this.state.inChatSearchQuery = '';
+        }
+    }
+
     get totalUnreadChannels() {
         const selectedId = this.state.selectedChannel?.id;
         return (this.state.channels || []).filter(c =>
@@ -739,12 +748,18 @@ export class WhatsAppChatsAction extends Component {
 
     get groupedMessages() {
         if (!this.state.messages || this.state.messages.length === 0) return [];
+        let msgs = this.state.messages;
+        if (this.state.inChatSearchQuery) {
+            const q = this.state.inChatSearchQuery.toLowerCase();
+            msgs = msgs.filter(m => (m.bodyText || '').toLowerCase().includes(q));
+        }
+        
         const groups = [];
         let currentGroup = null;
         let lastDateText = '';
 
-        for (let i = 0; i < this.state.messages.length; i++) {
-            const msg = this.state.messages[i];
+        for (let i = 0; i < msgs.length; i++) {
+            const msg = msgs[i];
             
             if (msg.dateText && msg.dateText !== lastDateText) {
                 if (currentGroup) {
@@ -1118,6 +1133,7 @@ export class WhatsAppChatsAction extends Component {
         this.state.selectedMessages = [];
         this.state.chatSearch = '';
         this.state.messages = this.messageCache[channel.id] || [];
+        this.state.isSending = false;
 
         const loadId = Symbol();
         this.currentLoadId = loadId;
@@ -2264,77 +2280,43 @@ export class WhatsAppChatsAction extends Component {
         if ((!this.state.newMessage.trim() && this.state.pendingFiles.length === 0) || !this.state.selectedChannel) return;
         
         this.state.isSending = true;
-        const messageBody = this.state.newMessage;
-        const pendingFiles = [...this.state.pendingFiles];
-        this.state.newMessage = "";
-        this.state.pendingFiles = [];
-        const replyingToMessageId = this.state.replyingToMessage ? this.state.replyingToMessage.id : null;
-        let replyingToMessageBody = null;
-        let replyingToAttachment = null;
-        let replyingToAuthor = null;
-        if (this.state.replyingToMessage) {
-            replyingToAuthor = this.state.replyingToMessage.isMe ? 'You' : (this.state.replyingToMessage.authorName || 'Customer');
-            replyingToMessageBody = this.state.replyingToMessage.bodyText || 'document';
-            if (!this.state.replyingToMessage.bodyText && this.state.replyingToMessage.attachment_ids && this.state.replyingToMessage.attachment_ids.length > 0) {
-                replyingToAttachment = this.state.replyingToMessage.attachment_ids[0];
-                const mime = replyingToAttachment.mimetype || '';
-                if (mime.startsWith('image/')) replyingToMessageBody = 'image';
-                else if (mime.startsWith('video/')) replyingToMessageBody = 'video';
-                else if (mime.startsWith('audio/')) replyingToMessageBody = 'audio';
-                else replyingToMessageBody = 'document';
+        
+        try {
+            const messageBody = this.state.newMessage;
+            const pendingFiles = [...this.state.pendingFiles];
+            this.state.newMessage = "";
+            this.state.pendingFiles = [];
+            const replyingToMessageId = this.state.replyingToMessage ? this.state.replyingToMessage.id : null;
+            let replyingToMessageBody = null;
+            let replyingToAttachment = null;
+            let replyingToAuthor = null;
+            if (this.state.replyingToMessage) {
+                replyingToAuthor = this.state.replyingToMessage.isMe ? 'You' : (this.state.replyingToMessage.authorName || 'Customer');
+                replyingToMessageBody = this.state.replyingToMessage.bodyText || 'document';
+                if (!this.state.replyingToMessage.bodyText && this.state.replyingToMessage.attachment_ids && this.state.replyingToMessage.attachment_ids.length > 0) {
+                    replyingToAttachment = this.state.replyingToMessage.attachment_ids[0];
+                    const mime = replyingToAttachment.mimetype || '';
+                    if (mime.startsWith('image/')) replyingToMessageBody = 'image';
+                    else if (mime.startsWith('video/')) replyingToMessageBody = 'video';
+                    else if (mime.startsWith('audio/')) replyingToMessageBody = 'audio';
+                    else replyingToMessageBody = 'document';
+                }
             }
-        }
-        this.state.replyingToMessage = null;
+            this.state.replyingToMessage = null;
 
-        const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
+            const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
 
-        if (pendingFiles.length === 0) {
-            // Text only
-            const tempMsgId = 'temp_' + Date.now();
-            const tempMsg = {
-                id: tempMsgId,
-                bodyText: messageBody,
-                isMe: true,
-                isSystem: false,
-                timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                wa_state: 'pending',
-                attachment_ids: [],
-                quoted_message_id: replyingToMessageId,
-                quoted_message_body: replyingToMessageBody,
-                quoted_attachment: replyingToAttachment,
-                quoted_author: replyingToAuthor
-            };
-            this.state.messages.push(tempMsg);
-            
-            offlineQueue.push({
-                tempId: tempMsgId,
-                channelId: this.state.selectedChannel.id,
-                body: messageBody,
-                replyingToMessageId: replyingToMessageId,
-                files: [],
-                timestamp: Date.now()
-            });
-        } else {
-            // One or more files, split into separate messages because WhatsApp API allows only 1 media per message
-            for (let i = 0; i < pendingFiles.length; i++) {
-                const pendingFile = pendingFiles[i];
-                const isFirst = (i === 0);
-                const body = isFirst && messageBody.trim() ? messageBody : ' ';
-                const tempMsgId = 'temp_' + Date.now() + '_' + i;
-                
+            if (pendingFiles.length === 0) {
+                // Text only
+                const tempMsgId = 'temp_' + Date.now();
                 const tempMsg = {
                     id: tempMsgId,
-                    bodyText: body,
+                    bodyText: messageBody,
                     isMe: true,
                     isSystem: false,
                     timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     wa_state: 'pending',
-                    attachment_ids: [{
-                        id: 'temp_att_' + Math.random().toString(36).substr(2, 9),
-                        name: pendingFile.name,
-                        mimetype: pendingFile.type,
-                        dataUrl: pendingFile.dataUrl || null
-                    }],
+                    attachment_ids: [],
                     quoted_message_id: replyingToMessageId,
                     quoted_message_body: replyingToMessageBody,
                     quoted_attachment: replyingToAttachment,
@@ -2345,21 +2327,59 @@ export class WhatsAppChatsAction extends Component {
                 offlineQueue.push({
                     tempId: tempMsgId,
                     channelId: this.state.selectedChannel.id,
-                    body: body,
+                    body: messageBody,
                     replyingToMessageId: replyingToMessageId,
-                    files: [{
-                        name: pendingFile.name,
-                        type: pendingFile.type,
-                        dataUrl: pendingFile.dataUrl
-                    }],
-                    timestamp: Date.now() + i
+                    files: [],
+                    timestamp: Date.now()
                 });
+            } else {
+                // One or more files, split into separate messages because WhatsApp API allows only 1 media per message
+                for (let i = 0; i < pendingFiles.length; i++) {
+                    const pendingFile = pendingFiles[i];
+                    const isFirst = (i === 0);
+                    const body = isFirst && messageBody.trim() ? messageBody : ' ';
+                    const tempMsgId = 'temp_' + Date.now() + '_' + i;
+                    
+                    const tempMsg = {
+                        id: tempMsgId,
+                        bodyText: body,
+                        isMe: true,
+                        isSystem: false,
+                        timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        wa_state: 'pending',
+                        attachment_ids: [{
+                            id: 'temp_att_' + Math.random().toString(36).substr(2, 9),
+                            name: pendingFile.name,
+                            mimetype: pendingFile.type,
+                            dataUrl: pendingFile.dataUrl || null
+                        }],
+                        quoted_message_id: replyingToMessageId,
+                        quoted_message_body: replyingToMessageBody,
+                        quoted_attachment: replyingToAttachment,
+                        quoted_author: replyingToAuthor
+                    };
+                    this.state.messages.push(tempMsg);
+                    
+                    offlineQueue.push({
+                        tempId: tempMsgId,
+                        channelId: this.state.selectedChannel.id,
+                        body: body,
+                        replyingToMessageId: replyingToMessageId,
+                        files: [{
+                            name: pendingFile.name,
+                            type: pendingFile.type,
+                            dataUrl: pendingFile.dataUrl
+                        }],
+                        timestamp: Date.now() + i
+                    });
+                }
             }
+            
+            this.scrollToBottom();
+            localStorage.setItem('wa_offline_queue', JSON.stringify(offlineQueue));
+        } finally {
+            this.state.isSending = false;
         }
-        
-        this.scrollToBottom();
-        localStorage.setItem('wa_offline_queue', JSON.stringify(offlineQueue));
-        this.state.isSending = false;
         
         // Trigger background flush
         this.flushOfflineQueue();

@@ -296,6 +296,17 @@
 }
 
 
+.whatsapp-header {
+    height: 65px;
+    background-color: #008069;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
 .whatsapp-input-area {
     height: 70px;
     background-color: #ffffff;

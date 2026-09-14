@@ -265,7 +265,12 @@ class WhatsAppAccount(models.Model):
             # OR condition: author is either False (unlinked customer) or NOT in excluded (not an agent)
             domain_unread = ['|', ('author_id', '=', False), ('author_id', 'not in', excluded)] + domain_unread
 
-            unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
+            if not c.wa_is_unread_global or last_msg_is_me:
+                unread_count = 0
+                if c.wa_is_unread_global:
+                    c.sudo().write({'wa_is_unread_global': False})
+            else:
+                unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
             
             import logging
             _logger = logging.getLogger(__name__)
@@ -972,7 +977,7 @@ class WhatsAppAccount(models.Model):
     @api.model
     def clear_whatsapp_chat(self, channel_id):
         """ Clears all messages from a whatsapp chat but keeps the chat itself. """
-        if not self.env.is_admin():
+        if not (self.env.is_admin() or self.env.user.has_group('whatsapp.group_whatsapp_admin')):
             return {'success': False, 'error': 'Only administrators can clear chats.'}
         try:
             channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
@@ -990,7 +995,7 @@ class WhatsAppAccount(models.Model):
     @api.model
     def delete_whatsapp_chat(self, channel_id):
         """ Deletes a whatsapp chat (discuss.channel) but preserves the contact (res.partner). """
-        if not self.env.is_admin():
+        if not (self.env.is_admin() or self.env.user.has_group('whatsapp.group_whatsapp_admin')):
             return {'success': False, 'error': 'Only administrators can delete chats.'}
         try:
             channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
@@ -1015,7 +1020,7 @@ class WhatsAppAccount(models.Model):
     @api.model
     def delete_whatsapp_message(self, message_id):
         """ Deletes a specific mail.message """
-        if not self.env.is_admin():
+        if not (self.env.is_admin() or self.env.user.has_group('whatsapp.group_whatsapp_admin')):
             return {'success': False, 'error': 'Only administrators can delete messages.'}
         try:
             message = self.env['mail.message'].sudo().browse(int(message_id))
@@ -1029,7 +1034,7 @@ class WhatsAppAccount(models.Model):
     @api.model
     def delete_message_for_everyone(self, message_id):
         """ Deletes a message in Odoo AND attempts to retract it via WhatsApp Cloud API """
-        if not self.env.is_admin():
+        if not (self.env.is_admin() or self.env.user.has_group('whatsapp.group_whatsapp_admin')):
             return {'success': False, 'error': 'Only administrators can delete messages.'}
         try:
             message = self.env['mail.message'].sudo().browse(int(message_id))
@@ -1058,14 +1063,106 @@ class WhatsAppAccount(models.Model):
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+    def _compress_video_attachment(self, attachment):
+        import subprocess
+        import tempfile
+        import os
+        import base64
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        try:
+            subprocess.run(['ffmpeg', '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        except Exception:
+            _logger.error("ffmpeg is not installed. Cannot compress video.")
+            return
+
+        try:
+            raw_data = base64.b64decode(attachment.datas)
+            is_mp4 = attachment.mimetype == 'video/mp4'
+            is_large = len(raw_data) > 15728640
+            
+            if is_mp4 and not is_large:
+                return
+                
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mov') as temp_in:
+                temp_in.write(raw_data)
+                temp_in_path = temp_in.name
+                
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_out:
+                temp_out_path = temp_out.name
+                
+            cmd = [
+                'ffmpeg', '-y', '-i', temp_in_path,
+                '-vcodec', 'libx264', '-acodec', 'aac',
+                '-crf', '28', '-preset', 'fast',
+                temp_out_path
+            ]
+            
+            _logger.info("Running ffmpeg conversion: %s", " ".join(cmd))
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            
+            with open(temp_out_path, 'rb') as f:
+                compressed_data = f.read()
+            
+            name = attachment.name or 'video'
+            if not name.endswith('.mp4'):
+                name += '.mp4'
+                
+            attachment.sudo().write({
+                'datas': base64.b64encode(compressed_data),
+                'mimetype': 'video/mp4',
+                'name': name
+            })
+            
+            os.unlink(temp_in_path)
+            os.unlink(temp_out_path)
+        except Exception as e:
+            _logger.error("Failed to compress video attachment %s: %s", attachment.id, str(e))
+
     @api.model
     def post_whatsapp_message(self, channel_id, **kwargs):
         """ Wrapper to allow standard users to post messages without discuss.channel record rules blocking them """
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         if channel.exists():
+            attachment_ids = kwargs.get('attachment_ids', [])
+            has_uncompressed_videos = False
+            attachments_to_compress = []
+            
+            if attachment_ids:
+                attachments = self.env['ir.attachment'].sudo().browse(attachment_ids)
+                for att in attachments:
+                    if att.mimetype and att.mimetype.startswith('video/'):
+                        has_uncompressed_videos = True
+                        attachments_to_compress.append(att.id)
+                        
             # Force author_id to the current user
             kwargs['author_id'] = self.env.user.partner_id.id
-            return channel.message_post(**kwargs).id
+            msg_id = channel.message_post(**kwargs).id
+            
+            if has_uncompressed_videos:
+                wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', msg_id)])
+                if wa_msg:
+                    wa_msg.write({'state': 'cancel'})
+                
+                def _bg_compress(dbname, att_ids, wa_msg_id):
+                    import odoo
+                    with odoo.registry(dbname).cursor() as cr:
+                        env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+                        for att in env['ir.attachment'].browse(att_ids):
+                            env['whatsapp.account']._compress_video_attachment(att)
+                            
+                        if wa_msg_id:
+                            msg = env['whatsapp.message'].browse(wa_msg_id)
+                            if msg.exists():
+                                msg.write({'state': 'outgoing'})
+                                env.ref('whatsapp.ir_cron_send_whatsapp_queue')._trigger()
+                                
+                import threading
+                t = threading.Thread(target=_bg_compress, args=(self.env.cr.dbname, attachments_to_compress, wa_msg.id if wa_msg else False))
+                t.start()
+                
+            return msg_id
         return False
 
     @api.model
