@@ -1223,10 +1223,13 @@ class WhatsAppAccount(models.Model):
                                 msg.write({'state': 'outgoing'})
                                 env.ref('whatsapp.ir_cron_send_whatsapp_queue')._trigger()
                                 
-                import threading
-                t = threading.Thread(target=_bg_compress, args=(self.env.cr.dbname, attachments_to_compress, wa_msg.id if wa_msg else False))
-                t.start()
-                
+                    def _start_thread():
+                        import threading
+                        t = threading.Thread(target=_bg_compress, args=(self.env.cr.dbname, attachments_to_compress, wa_msg.id if wa_msg else False))
+                        t.start()
+                    
+                    self.env.cr.after_commit(_start_thread)
+                    
             return msg_id
         return False
 
