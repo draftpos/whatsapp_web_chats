@@ -2303,7 +2303,7 @@ export class WhatsAppChatsAction extends Component {
             await this.pollMessages();
         } catch (e) {
             console.error('Failed to send audio message:', e);
-            let errMsg = e.message || (e.data && e.data.message) || JSON.stringify(e) || String(e);
+            let errMsg = (e.data && e.data.message) || e.message || JSON.stringify(e) || String(e);
             alert('Failed to send voice message: ' + errMsg);
         } finally {
             this._isSendingAudio = false;
