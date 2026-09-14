@@ -1208,6 +1208,8 @@ class WhatsAppAccount(models.Model):
                     elif att.mimetype and att.mimetype.startswith('video/'):
                         has_uncompressed_videos = True
                         videos_to_compress.append(att.id)
+                        # Spoof the mimetype to mp4 so Odoo's native WhatsApp module doesn't throw an exception during message_post
+                        att.sudo().write({'mimetype': 'video/mp4'})
                         
             # Force author_id to the current user, unless explicitly provided (e.g., scheduled messages)
             if 'author_id' not in kwargs:
