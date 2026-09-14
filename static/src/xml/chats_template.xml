@@ -852,12 +852,7 @@
                                                     </div>
                                                     <span style="font-size: 15px; font-weight: 500; color: #3b4a54;">Scheduled Message</span>
                                                 </div>
-                                                <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #FF2E74; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                        <i class="fa fa-bolt" style="font-size: 18px;"/>
-                                                    </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
-                                                </div>
+
                                                 
                                                 <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/*,video/*')" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
                                                     <div style="background: #007DFC; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
@@ -894,7 +889,12 @@
                                                     <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Contact / Phone</span>
                                                 </div>
 
-
+                                                <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #FF2E74; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-bolt" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
+                                                </div>
                                             </div>
                                         </t>
                                     </div>
