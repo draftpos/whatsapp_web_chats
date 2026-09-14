@@ -1151,12 +1151,12 @@ class WhatsAppAccount(models.Model):
                 temp_in.write(raw_data)
                 temp_in_path = temp_in.name
                 
-            temp_out_path = temp_in_path + '_out.ogg'
+            temp_out_path = temp_in_path + '_out.m4a'
             
-            # WhatsApp Cloud API requires OGG format with OPUS codec
+            # WhatsApp Cloud API and Odoo both support MP4/AAC audio
             subprocess.run([
                 ffmpeg_exe, '-y', '-i', temp_in_path,
-                '-c:a', 'libopus', '-b:a', '32k',
+                '-c:a', 'aac', '-b:a', '64k',
                 temp_out_path
             ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
@@ -1165,13 +1165,13 @@ class WhatsAppAccount(models.Model):
                 
             name = attachment.name or 'audio'
             if '.' in name:
-                name = name.rsplit('.', 1)[0] + '.ogg'
+                name = name.rsplit('.', 1)[0] + '.m4a'
             else:
-                name += '.ogg'
+                name += '.m4a'
 
             attachment.sudo().write({
                 'datas': base64.b64encode(compressed_data),
-                'mimetype': 'audio/ogg',
+                'mimetype': 'audio/mp4',
                 'name': name
             })
             os.unlink(temp_in_path)
