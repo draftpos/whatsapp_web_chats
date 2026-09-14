@@ -20,10 +20,15 @@ def post_migrate(env, version):
     except ImportError:
         _logger.info("imageio-ffmpeg not found, attempting to auto-install via pip...")
         try:
-            subprocess.run([sys.executable, '-m', 'pip', 'install', 'imageio-ffmpeg'], check=True)
+            subprocess.run([sys.executable, '-m', 'pip', 'install', 'imageio-ffmpeg', '--break-system-packages'], check=True)
             _logger.info("Successfully installed imageio-ffmpeg.")
         except Exception as e:
-            _logger.error("Failed to auto-install imageio-ffmpeg: %s", str(e))
+            _logger.error("Failed to auto-install imageio-ffmpeg globally: %s", str(e))
+            try:
+                subprocess.run([sys.executable, '-m', 'pip', 'install', '--user', 'imageio-ffmpeg', '--break-system-packages'], check=True)
+                _logger.info("Successfully installed imageio-ffmpeg for user.")
+            except Exception as e2:
+                _logger.error("Failed to auto-install imageio-ffmpeg for user: %s", str(e2))
             
     import shutil
     import platform
