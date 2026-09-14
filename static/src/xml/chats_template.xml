@@ -35,6 +35,7 @@
                             <i class="fa fa-trash"/>
                             Delete <t t-esc="state.selectedChannels.length"/> Chat<t t-if="state.selectedChannels.length > 1">s</t>
                         </button>
+                    </t>
                     <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: white;" title="New Chat"></i>
                     <i class="fa fa-ellipsis-v" t-on-click="toggleSidebarDropdown" style="font-size: 20px; cursor: pointer; color: white; position: relative;" title="Menu"></i>
                 </div>
