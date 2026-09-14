@@ -1178,6 +1178,17 @@ class WhatsAppAccount(models.Model):
             os.unlink(temp_out_path)
         except Exception as e:
             _logger.error("Failed to compress audio attachment %s: %s", attachment.id, str(e))
+            # Send an error message to the channel so the user knows what happened
+            try:
+                error_msg = str(e)
+                import subprocess
+                if isinstance(e, subprocess.CalledProcessError) and e.stderr:
+                    error_msg += "\nFFMPEG STDERR: " + e.stderr.decode('utf-8', errors='ignore')
+                channel = self.env['discuss.channel'].sudo().search([('message_ids.attachment_ids', 'in', [attachment.id])], limit=1)
+                if channel:
+                    channel.message_post(body=f"⚠️ System Error: Failed to compress audio for WhatsApp. Error details:\n{error_msg}", message_type='notification')
+            except Exception:
+                pass
 
     @api.model
     def post_whatsapp_message(self, channel_id, **kwargs):
