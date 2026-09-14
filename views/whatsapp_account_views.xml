@@ -31,12 +31,12 @@
                 <notebook>
                     <page string="Auto Follow-ups" name="auto_follow_ups">
                         <field name="followup_rule_ids">
-                            <tree editable="bottom">
+                            <list editable="bottom">
                                 <field name="sequence" widget="handle"/>
                                 <field name="delay_condition"/>
-                                <field name="delay_value" attrs="{'invisible': [('delay_condition', 'in', ['23_hours', '24_hours'])]}"/>
+                                <field name="delay_value" invisible="delay_condition in ('23_hours', '24_hours')"/>
                                 <field name="template_id"/>
-                            </tree>
+                            </list>
                         </field>
                     </page>
                 </notebook>
