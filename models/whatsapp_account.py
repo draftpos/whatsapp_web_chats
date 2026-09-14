@@ -1080,9 +1080,10 @@ class WhatsAppAccount(models.Model):
         _logger = logging.getLogger(__name__)
         
         try:
-            subprocess.run(['ffmpeg', '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        except Exception:
-            _logger.error("ffmpeg is not installed. Cannot compress video.")
+            import imageio_ffmpeg
+            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        except ImportError:
+            _logger.error("imageio-ffmpeg is not installed. Cannot compress video.")
             return
 
         try:
@@ -1101,7 +1102,7 @@ class WhatsAppAccount(models.Model):
                 temp_out_path = temp_out.name
                 
             cmd = [
-                'ffmpeg', '-y', '-i', temp_in_path,
+                ffmpeg_exe, '-y', '-i', temp_in_path,
                 '-vcodec', 'libx264', '-acodec', 'aac',
                 '-crf', '28', '-preset', 'fast',
                 temp_out_path
@@ -1137,9 +1138,10 @@ class WhatsAppAccount(models.Model):
         _logger = logging.getLogger(__name__)
         
         try:
-            subprocess.run(['ffmpeg', '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        except Exception:
-            _logger.error("ffmpeg is not installed. Cannot compress audio.")
+            import imageio_ffmpeg
+            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        except ImportError:
+            _logger.error("imageio-ffmpeg is not installed. Cannot compress audio.")
             return
 
         try:
@@ -1152,7 +1154,7 @@ class WhatsAppAccount(models.Model):
             
             # WhatsApp Cloud API requires OGG format with OPUS codec
             subprocess.run([
-                'ffmpeg', '-y', '-i', temp_in_path,
+                ffmpeg_exe, '-y', '-i', temp_in_path,
                 '-c:a', 'libopus', '-b:a', '32k',
                 temp_out_path
             ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
