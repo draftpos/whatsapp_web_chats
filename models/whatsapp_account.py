@@ -1103,8 +1103,9 @@ class WhatsAppAccount(models.Model):
                 
             cmd = [
                 ffmpeg_exe, '-y', '-i', temp_in_path,
-                '-vcodec', 'libx264', '-acodec', 'aac',
+                '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
                 '-crf', '28', '-preset', 'fast',
+                '-c:a', 'aac', '-b:a', '128k',
                 temp_out_path
             ]
             
