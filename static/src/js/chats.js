@@ -116,6 +116,20 @@ export class WhatsAppChatsAction extends Component {
         });
         
         onMounted(() => {
+            // Force hide the Odoo core messaging and activity systray icons
+            setTimeout(() => {
+                const messageIcons = document.querySelectorAll('.o_menu_systray i.fa-comments, .o_NavBar_systrayItem i.fa-comments, .o_menu_systray_item i.fa-comments');
+                messageIcons.forEach(icon => {
+                    const parent = icon.closest('.o_menu_systray_item, .o_NavBar_systrayItem') || icon;
+                    if (parent && parent.style) parent.style.setProperty('display', 'none', 'important');
+                });
+                const activityIcons = document.querySelectorAll('.o_menu_systray i.fa-clock-o, .o_NavBar_systrayItem i.fa-clock-o, .o_menu_systray_item i.fa-clock-o');
+                activityIcons.forEach(icon => {
+                    const parent = icon.closest('.o_menu_systray_item, .o_NavBar_systrayItem') || icon;
+                    if (parent && parent.style) parent.style.setProperty('display', 'none', 'important');
+                });
+            }, 500);
+
             this.pollInterval = setInterval(() => {
                 this.pollMessages();
             }, 5000);

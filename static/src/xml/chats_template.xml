@@ -319,7 +319,7 @@
                         </div>
                     </div>
                     <!-- In-Chat Search Bar -->
-                    <div t-if="state.showInChatSearch" style="padding: 10px 16px; background: #f0f2f5; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                    <div t-if="state.showInChatSearch" style="padding: 10px 16px; background: #f0f2f5; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 10px; flex-shrink: 0; position: relative; z-index: 100;">
                         <i class="fa fa-search" style="color: #8696a0; font-size: 14px;"/>
                         <input type="text" 
                                t-model="state.inChatSearchQuery"
