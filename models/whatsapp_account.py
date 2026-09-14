@@ -1222,9 +1222,9 @@ class WhatsAppAccount(models.Model):
                     wa_msg.write({'state': 'cancel'})
                 
                 def _bg_compress_video(dbname, att_ids, wa_msg_id):
-                    import odoo
-                    with odoo.registry(dbname).cursor() as cr:
-                        env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+                    from odoo import registry, api, SUPERUSER_ID
+                    with registry(dbname).cursor() as cr:
+                        env = api.Environment(cr, SUPERUSER_ID, {})
                         for att in env['ir.attachment'].browse(att_ids):
                             env['whatsapp.account']._compress_video_attachment(att)
                             
