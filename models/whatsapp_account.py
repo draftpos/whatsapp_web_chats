@@ -1083,8 +1083,8 @@ class WhatsAppAccount(models.Model):
             import imageio_ffmpeg
             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         except ImportError:
-            _logger.error("imageio-ffmpeg is not installed. Cannot compress video.")
-            return
+            _logger.info("imageio-ffmpeg not installed. Falling back to system ffmpeg.")
+            ffmpeg_exe = 'ffmpeg'
 
         try:
             raw_data = base64.b64decode(attachment.datas)
@@ -1142,8 +1142,8 @@ class WhatsAppAccount(models.Model):
             import imageio_ffmpeg
             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         except ImportError:
-            _logger.error("imageio-ffmpeg is not installed. Cannot compress audio.")
-            return
+            _logger.info("imageio-ffmpeg not installed. Falling back to system ffmpeg.")
+            ffmpeg_exe = 'ffmpeg'
 
         try:
             raw_data = base64.b64decode(attachment.datas)

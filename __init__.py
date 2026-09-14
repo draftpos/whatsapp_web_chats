@@ -24,6 +24,19 @@ def post_migrate(env, version):
             _logger.info("Successfully installed imageio-ffmpeg.")
         except Exception as e:
             _logger.error("Failed to auto-install imageio-ffmpeg: %s", str(e))
+            
+    import shutil
+    import platform
+    if not shutil.which('ffmpeg'):
+        _logger.info("system ffmpeg not found, attempting to auto-install...")
+        try:
+            if platform.system() == 'Linux':
+                subprocess.run(['apt-get', 'update'], check=False)
+                subprocess.run(['apt-get', 'install', '-y', 'ffmpeg'], check=True)
+            elif platform.system() == 'Windows':
+                subprocess.run(['choco', 'install', 'ffmpeg', '-y'], check=True)
+        except Exception as e:
+            _logger.error("Failed to auto-install system ffmpeg: %s", str(e))
 
     try:
         env['whatsapp.account'].sudo().update_tenant_data()
