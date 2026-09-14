@@ -1198,8 +1198,9 @@ class WhatsAppAccount(models.Model):
                         has_uncompressed_videos = True
                         attachments_to_compress.append(att.id)
                         
-            # Force author_id to the current user
-            kwargs['author_id'] = self.env.user.partner_id.id
+            # Force author_id to the current user, unless explicitly provided (e.g., scheduled messages)
+            if 'author_id' not in kwargs:
+                kwargs['author_id'] = self.env.user.partner_id.id
             msg_id = channel.message_post(**kwargs).id
             
             if has_uncompressed_videos:

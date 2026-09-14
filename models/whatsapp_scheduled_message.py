@@ -52,7 +52,8 @@ class WhatsAppScheduledMessage(models.Model):
                         msg.channel_id.id,
                         body=msg.quick_reply_id.body,
                         message_type='whatsapp_message',
-                        subtype_xmlid='mail.mt_comment'
+                        subtype_xmlid='mail.mt_comment',
+                        author_id=msg.created_by_id.partner_id.id
                     )
                 elif msg.message_type == 'custom' and msg.custom_body:
                     # Send custom message
@@ -60,7 +61,8 @@ class WhatsAppScheduledMessage(models.Model):
                         msg.channel_id.id,
                         body=msg.custom_body,
                         message_type='whatsapp_message',
-                        subtype_xmlid='mail.mt_comment'
+                        subtype_xmlid='mail.mt_comment',
+                        author_id=msg.created_by_id.partner_id.id
                     )
                 
                 msg.write({'state': 'sent'})
