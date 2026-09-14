@@ -846,6 +846,12 @@
                                         
                                         <t t-if="state.showPlusMenu">
                                             <div class="attach-dropdown-menu" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1000; min-width: 220px; padding: 12px 0; display: flex; flex-direction: column; gap: 5px;">
+                                                <div class="attach-menu-item" t-on-click="openScheduledMsgModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #009688; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                                        <i class="fa fa-clock-o" style="font-size: 18px;"/>
+                                                    </div>
+                                                    <span style="font-size: 15px; font-weight: 500; color: #3b4a54;">Scheduled Message</span>
+                                                </div>
                                                 <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 10px 20px; cursor: pointer; transition: background 0.2s;">
                                                     <div style="background: #FF2E74; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
                                                         <i class="fa fa-bolt" style="font-size: 18px;"/>
@@ -1692,6 +1698,71 @@
                     <t t-if="state.fullscreenMedia.type === 'image'">
                         Scroll to zoom · Drag to pan when zoomed · Double-click to reset
                     </t>
+                </div>
+            </div>
+        </t>
+
+        <!-- Scheduled Message Modal -->
+        <t t-if="state.showScheduledMsgModal">
+            <div class="wa-modal-overlay" t-on-click="closeScheduledMsgModal">
+                <div class="wa-modal" style="width: 500px; max-height: 80vh; display: flex; flex-direction: column;" t-on-click.stop="() => {}">
+                    <div class="wa-modal-header" style="background: #008069; color: white; padding: 15px 20px;">
+                        <h4 style="margin: 0; font-size: 16px;">Schedule Message</h4>
+                        <i class="fa fa-times" style="cursor: pointer;" t-on-click="closeScheduledMsgModal"/>
+                    </div>
+                    
+                    <div class="wa-modal-body" style="padding: 20px; overflow-y: auto;">
+                        <!-- Step 1: Date & Time -->
+                        <div t-if="state.scheduledMsgStep === 1">
+                            <h5 style="margin-top: 0; color: #3b4a54; font-size: 15px;">1. Select Date and Time</h5>
+                            <input type="datetime-local" class="wa-input" style="width: 100%; margin-top: 10px;" t-model="state.scheduledMsgDate"/>
+                        </div>
+
+                        <!-- Step 2: Message Type -->
+                        <div t-if="state.scheduledMsgStep === 2">
+                            <h5 style="margin-top: 0; color: #3b4a54; font-size: 15px;">2. Select Message Type</h5>
+                            <div style="display: flex; gap: 15px; margin-top: 15px;">
+                                <div class="wa-action-card" t-on-click="() => this.selectScheduledMsgType('quick_reply')" t-attf-style="flex: 1; padding: 20px; border: 2px solid {{ state.scheduledMsgType === 'quick_reply' ? '#008069' : '#e9edef' }}; border-radius: 8px; cursor: pointer; text-align: center;">
+                                    <i class="fa fa-bolt" style="font-size: 24px; color: #008069; margin-bottom: 10px;"/>
+                                    <div>Quick Reply</div>
+                                </div>
+                                <div class="wa-action-card" t-on-click="() => this.selectScheduledMsgType('custom')" t-attf-style="flex: 1; padding: 20px; border: 2px solid {{ state.scheduledMsgType === 'custom' ? '#008069' : '#e9edef' }}; border-radius: 8px; cursor: pointer; text-align: center;">
+                                    <i class="fa fa-pencil" style="font-size: 24px; color: #008069; margin-bottom: 10px;"/>
+                                    <div>Custom Message</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3a: Quick Reply -->
+                        <div t-if="state.scheduledMsgStep === 3 and state.scheduledMsgType === 'quick_reply'">
+                            <h5 style="margin-top: 0; color: #3b4a54; font-size: 15px;">3. Select Quick Reply</h5>
+                            <div class="quick-replies-list" style="margin-top: 15px;">
+                                <t t-foreach="state.wa_quick_replies" t-as="qr" t-key="qr.id">
+                                    <div class="qr-item" t-on-click="() => { state.scheduledMsgQuickReplyId = qr.id; }" t-attf-style="padding: 10px; border-bottom: 1px solid #f0f2f5; cursor: pointer; background: {{ state.scheduledMsgQuickReplyId === qr.id ? '#f0f2f5' : 'white' }};">
+                                        <div t-if="qr.shortcut" style="font-weight: 500; color: #111b21;">/<t t-esc="qr.shortcut"/></div>
+                                        <div style="color: #667781; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;"><t t-esc="qr.body"/></div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Step 3b: Custom Message -->
+                        <div t-if="state.scheduledMsgStep === 3 and state.scheduledMsgType === 'custom'">
+                            <h5 style="margin-top: 0; color: #3b4a54; font-size: 15px;">3. Write Custom Message</h5>
+                            <textarea class="wa-input" style="width: 100%; min-height: 120px; margin-top: 10px; resize: vertical;" t-model="state.scheduledMsgCustomBody" placeholder="Type your message here..."/>
+                        </div>
+                    </div>
+
+                    <div class="wa-modal-footer" style="padding: 15px 20px; background: #f0f2f5; display: flex; justify-content: space-between;">
+                        <button class="wa-btn-secondary" t-on-click="scheduledMsgPrevStep" t-att-disabled="state.scheduledMsgStep === 1 ? 'disabled' : undefined" t-att-style="state.scheduledMsgStep === 1 ? 'opacity: 0.5' : ''">Back</button>
+                        
+                        <t t-if="state.scheduledMsgStep &lt; 3">
+                            <button class="wa-btn-primary" t-on-click="scheduledMsgNextStep" t-att-disabled="(state.scheduledMsgStep === 1 and !state.scheduledMsgDate) or (state.scheduledMsgStep === 2 and !state.scheduledMsgType) ? 'disabled' : undefined">Next</button>
+                        </t>
+                        <t t-else="">
+                            <button class="wa-btn-primary" t-on-click="submitScheduledMessage" t-att-disabled="(state.scheduledMsgType === 'quick_reply' and !state.scheduledMsgQuickReplyId) or (state.scheduledMsgType === 'custom' and !state.scheduledMsgCustomBody) ? 'disabled' : undefined">Schedule Message</button>
+                        </t>
+                    </div>
                 </div>
             </div>
         </t>

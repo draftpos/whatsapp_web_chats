@@ -41,6 +41,7 @@ class WhatsAppAccount(models.Model):
     image_1920 = fields.Image(string="Profile Picture", max_width=1920, max_height=1920)
     wa_bot_active = fields.Boolean(string="Automated Bot Responses", default=True)
     wa_department_routing_active = fields.Boolean(string="Auto Response for Departments", default=True)
+    followup_rule_ids = fields.One2many('whatsapp.followup.rule', 'account_id', string='Auto Follow-up Sequence')
 
     @api.model
     def toggle_account_bot(self, wa_account_id, active):
@@ -691,6 +692,13 @@ class WhatsAppAccount(models.Model):
                             channel.sudo().write({'whatsapp_number': clean_phone})
                         channel.wa_is_unread_global = True
                         channel.wa_is_done = False
+                        
+                        # Cancel any pending auto follow-ups since the customer replied
+                        self.env['whatsapp.scheduled.message'].sudo().search([
+                            ('channel_id', '=', channel.id),
+                            ('is_auto_followup', '=', True),
+                            ('state', '=', 'pending')
+                        ]).write({'state': 'cancelled'})
 
                 # Convert order type messages to text
                 if message.get('type') == 'order':
@@ -1482,6 +1490,20 @@ class WhatsAppAccount(models.Model):
                 sent_date = chan_msg.date.strftime('%Y-%m-%d %H:%M:%S') if chan_msg.date else False
             except Exception:
                 sent_date = False
+
+            # Queue first auto follow-up rule if configured
+            first_rule = wa_account.followup_rule_ids.sorted('sequence')
+            if first_rule:
+                first_rule = first_rule[0]
+                self.env['whatsapp.scheduled.message'].sudo().create({
+                    'channel_id': channel.id,
+                    'scheduled_at': first_rule.get_scheduled_datetime(fields.Datetime.now()),
+                    'message_type': 'template',
+                    'template_id': first_rule.template_id.id,
+                    'is_auto_followup': True,
+                    'current_rule_id': first_rule.id,
+                    'state': 'pending',
+                })
 
             return {'success': True, 'body': rendered_body, 'sent_date': sent_date}
         except Exception as e:

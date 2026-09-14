@@ -27,6 +27,12 @@ export class WhatsAppChatsAction extends Component {
             newProduct: null,
             wa_templates: [],
             showTemplatesModal: false,
+            showScheduledMsgModal: false,
+            scheduledMsgStep: 1,
+            scheduledMsgDate: "",
+            scheduledMsgType: "",
+            scheduledMsgQuickReplyId: false,
+            scheduledMsgCustomBody: "",
             showInChatSearch: false,
             inChatSearchQuery: "",
             inChatSearchMatches: [],
@@ -2689,6 +2695,60 @@ export class WhatsAppChatsAction extends Component {
 
     closeTemplatesModal() {
         this.state.showTemplatesModal = false;
+    }
+
+    openScheduledMsgModal() {
+        this.state.showPlusMenu = false;
+        this.state.showScheduledMsgModal = true;
+        this.state.scheduledMsgStep = 1;
+        this.state.scheduledMsgDate = "";
+        this.state.scheduledMsgType = "";
+        this.state.scheduledMsgQuickReplyId = false;
+        this.state.scheduledMsgCustomBody = "";
+        this.loadQuickReplies();
+    }
+
+    closeScheduledMsgModal() {
+        this.state.showScheduledMsgModal = false;
+    }
+
+    scheduledMsgNextStep() {
+        if (this.state.scheduledMsgStep < 3) {
+            this.state.scheduledMsgStep++;
+        }
+    }
+
+    scheduledMsgPrevStep() {
+        if (this.state.scheduledMsgStep > 1) {
+            this.state.scheduledMsgStep--;
+        }
+    }
+
+    selectScheduledMsgType(type) {
+        this.state.scheduledMsgType = type;
+        this.scheduledMsgNextStep();
+    }
+
+    async submitScheduledMessage() {
+        if (!this.state.selectedChannel) return;
+        
+        try {
+            const localDate = new Date(this.state.scheduledMsgDate);
+            const utcString = localDate.toISOString().replace('T', ' ').substring(0, 19);
+            
+            await this.orm.create("whatsapp.scheduled.message", [{
+                channel_id: this.state.selectedChannel.id,
+                scheduled_at: utcString,
+                message_type: this.state.scheduledMsgType,
+                quick_reply_id: this.state.scheduledMsgType === 'quick_reply' ? this.state.scheduledMsgQuickReplyId : false,
+                custom_body: this.state.scheduledMsgType === 'custom' ? this.state.scheduledMsgCustomBody : "",
+                state: 'pending'
+            }]);
+            
+            this.closeScheduledMsgModal();
+        } catch (e) {
+            console.error("Failed to schedule message", e);
+        }
     }
 
     // ─── Quick Replies ────────────────────────────────────────────────────────
