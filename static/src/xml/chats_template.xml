@@ -277,7 +277,7 @@
                                 </t>
                             </t>
 
-                            <button class="whatsapp-header-btn" title="Search" t-on-click="toggleInChatSearch" style="background: transparent; border: none; cursor: pointer; color: white; font-size: 20px; padding: 10px;">
+                            <button class="whatsapp-header-btn" title="Search" t-on-click="() => this.toggleInChatSearch()" style="background: transparent; border: none; cursor: pointer; color: white; font-size: 20px; padding: 10px;">
                                 <i class="fa fa-search"/>
                             </button>
                             <div style="position: relative;">
@@ -323,9 +323,10 @@
                         <i class="fa fa-search" style="color: #8696a0; font-size: 14px;"/>
                         <input type="text" 
                                t-model="state.inChatSearchQuery"
+                               t-on-input="(ev) => this.state.inChatSearchQuery = ev.target.value"
                                placeholder="Search messages..."
                                style="border: none; outline: none; background: transparent; flex: 1; font-size: 14px; color: #111b21;"/>
-                        <i class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 16px;" t-on-click="toggleInChatSearch" title="Close search"/>
+                        <i class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 16px;" t-on-click="() => this.toggleInChatSearch()" title="Close search"/>
                     </div>
                     <div class="whatsapp-messages" t-ref="messagesContainer">
                         <!-- Pinned Messages Banner -->
