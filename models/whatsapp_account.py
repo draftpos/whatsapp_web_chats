@@ -1203,9 +1203,14 @@ class WhatsAppAccount(models.Model):
             for att_id in attachment_ids:
                 att = self.env['ir.attachment'].sudo().browse(int(att_id))
                 if att.exists():
-                    if att.mimetype in ('audio/ogg', 'audio/webm', 'audio/mp4'):
+                    # python-magic often forces WebM audio files to 'video/webm'. Check the name to disambiguate.
+                    is_audio = att.mimetype in ('audio/ogg', 'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/aac')
+                    if att.mimetype == 'video/webm' and att.name and 'audio_message' in att.name:
+                        is_audio = True
+                        
+                    if is_audio:
                         self._compress_audio_attachment(att)
-                    elif att.mimetype and att.mimetype.startswith('video/'):
+                    elif att.mimetype in ('video/webm', 'video/mp4', 'video/quicktime'):
                         has_uncompressed_videos = True
                         videos_to_compress.append(att.id)
                         # Spoof the mimetype to mp4 so Odoo's native WhatsApp module doesn't throw an exception during message_post
