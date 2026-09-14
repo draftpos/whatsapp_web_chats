@@ -1128,6 +1128,54 @@ class WhatsAppAccount(models.Model):
         except Exception as e:
             _logger.error("Failed to compress video attachment %s: %s", attachment.id, str(e))
 
+    def _compress_audio_attachment(self, attachment):
+        import subprocess
+        import tempfile
+        import os
+        import base64
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        try:
+            subprocess.run(['ffmpeg', '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        except Exception:
+            _logger.error("ffmpeg is not installed. Cannot compress audio.")
+            return
+
+        try:
+            raw_data = base64.b64decode(attachment.datas)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as temp_in:
+                temp_in.write(raw_data)
+                temp_in_path = temp_in.name
+                
+            temp_out_path = temp_in_path + '_out.ogg'
+            
+            # WhatsApp Cloud API requires OGG format with OPUS codec
+            subprocess.run([
+                'ffmpeg', '-y', '-i', temp_in_path,
+                '-c:a', 'libopus', '-b:a', '32k',
+                temp_out_path
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            with open(temp_out_path, 'rb') as f:
+                compressed_data = f.read()
+                
+            name = attachment.name or 'audio'
+            if '.' in name:
+                name = name.rsplit('.', 1)[0] + '.ogg'
+            else:
+                name += '.ogg'
+
+            attachment.sudo().write({
+                'datas': base64.b64encode(compressed_data),
+                'mimetype': 'audio/ogg',
+                'name': name
+            })
+            os.unlink(temp_in_path)
+            os.unlink(temp_out_path)
+        except Exception as e:
+            _logger.error("Failed to compress audio attachment %s: %s", attachment.id, str(e))
+
     @api.model
     def post_whatsapp_message(self, channel_id, **kwargs):
         """ Wrapper to allow standard users to post messages without discuss.channel record rules blocking them """
@@ -1141,6 +1189,9 @@ class WhatsAppAccount(models.Model):
                 attachments = self.env['ir.attachment'].sudo().browse(attachment_ids)
                 for att in attachments:
                     if att.mimetype and att.mimetype.startswith('video/'):
+                        has_uncompressed_videos = True
+                        attachments_to_compress.append(att.id)
+                    elif att.mimetype and att.mimetype.startswith('audio/'):
                         has_uncompressed_videos = True
                         attachments_to_compress.append(att.id)
                         
@@ -1158,7 +1209,10 @@ class WhatsAppAccount(models.Model):
                     with odoo.registry(dbname).cursor() as cr:
                         env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
                         for att in env['ir.attachment'].browse(att_ids):
-                            env['whatsapp.account']._compress_video_attachment(att)
+                            if att.mimetype and att.mimetype.startswith('video/'):
+                                env['whatsapp.account']._compress_video_attachment(att)
+                            elif att.mimetype and att.mimetype.startswith('audio/'):
+                                env['whatsapp.account']._compress_audio_attachment(att)
                             
                         if wa_msg_id:
                             msg = env['whatsapp.message'].browse(wa_msg_id)

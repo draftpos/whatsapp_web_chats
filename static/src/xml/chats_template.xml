@@ -385,32 +385,34 @@
                                             <t t-foreach="msg.attachment_ids || []" t-as="att" t-key="att.id">
                                                 <t t-if="att.mimetype and att.mimetype.startsWith('audio/')">
                                                     <!-- WhatsApp-style audio player -->
-                                                    <div t-attf-class="wa-audio-bubble {{ msg.isMe ? 'wa-audio-mine' : 'wa-audio-theirs' }}">
+                                                    <div t-attf-class="wa-audio-bubble {{ msg.isMe ? 'wa-audio-mine' : 'wa-audio-theirs' }}" style="display: flex; align-items: center; gap: 8px;">
+                                                        <!-- Mic icon (Avatar equivalent) -->
+                                                        <div class="wa-audio-avatar">
+                                                            <i class="fa fa-microphone"/>
+                                                        </div>
                                                         <!-- Play / Pause button -->
-                                                        <button class="wa-audio-play-btn"
+                                                        <button class="wa-audio-play-btn" style="background: transparent; color: #54656f; font-size: 20px; padding: 0;"
                                                                 t-on-click="(ev) => { ev.stopPropagation(); this.toggleAudioPlay(att.id, att.localBlobUrl || ('/web/content/' + att.id + (att.access_token ? '?access_token=' + att.access_token : '')), att.mimetype); }">
                                                             <i t-attf-class="fa {{ state.activeAudioId == att.id.toString() ? 'fa-pause' : 'fa-play' }}"/>
                                                         </button>
-                                                        <!-- Waveform + progress -->
-                                                        <div class="wa-audio-waveform" t-on-click="(ev) => this.seekAudio(att.id, ev)">
-                                                            <!-- Static waveform bars -->
-                                                            <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
-                                                                <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress(att.id) ? 'wa-audio-bar-played' : '' }}"
-                                                                     t-attf-style="height: {{ h * 2 + 4 }}px;"/>
-                                                            </t>
-                                                        </div>
-                                                        <!-- Duration / elapsed -->
-                                                        <span class="wa-audio-time">
-                                                            <t t-if="state.activeAudioId == att.id.toString()">
-                                                                <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].current or 0)"/>
-                                                            </t>
-                                                            <t t-else="">
-                                                                <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].duration or 0)"/>
-                                                            </t>
-                                                        </span>
-                                                        <!-- Mic icon -->
-                                                        <div class="wa-audio-avatar">
-                                                            <i class="fa fa-microphone"/>
+                                                        <!-- Waveform and time column -->
+                                                        <div style="display: flex; flex-direction: column; flex: 1;">
+                                                            <!-- Waveform -->
+                                                            <div class="wa-audio-waveform" t-on-click="(ev) => this.seekAudio(att.id, ev)">
+                                                                <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
+                                                                    <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress(att.id) ? 'wa-audio-bar-played' : '' }}"
+                                                                         t-attf-style="height: {{ h * 2 + 4 }}px;"/>
+                                                                </t>
+                                                            </div>
+                                                            <!-- Duration / elapsed -->
+                                                            <span class="wa-audio-time" style="align-self: flex-start; margin-top: 2px;">
+                                                                <t t-if="state.activeAudioId == att.id.toString()">
+                                                                    <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].current or 0)"/>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].duration or 0)"/>
+                                                                </t>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </t>
