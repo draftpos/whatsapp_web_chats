@@ -385,34 +385,41 @@
                                             <t t-foreach="msg.attachment_ids || []" t-as="att" t-key="att.id">
                                                 <t t-if="att.mimetype and att.mimetype.startsWith('audio/')">
                                                     <!-- WhatsApp-style audio player -->
-                                                    <div t-attf-class="wa-audio-bubble {{ msg.isMe ? 'wa-audio-mine' : 'wa-audio-theirs' }}" style="display: flex; align-items: center; gap: 8px;">
-                                                        <!-- Mic icon (Avatar equivalent) -->
-                                                        <div class="wa-audio-avatar">
-                                                            <i class="fa fa-microphone"/>
+                                                    <div t-attf-class="wa-audio-bubble {{ msg.isMe ? 'wa-audio-mine' : 'wa-audio-theirs' }}" style="display: flex; align-items: center; gap: 10px; padding: 2px;">
+                                                        <!-- Avatar + Mic overlay -->
+                                                        <div style="position: relative; width: 44px; height: 44px; flex-shrink: 0;">
+                                                            <img t-attf-src="/web/image/res.partner/{{ msg.isMe ? (this.myPartnerId || 1) : msg.author_id[0] }}/avatar_128" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;"/>
+                                                            <i class="fa fa-microphone" t-attf-style="position: absolute; bottom: 0px; right: -2px; font-size: 14px; color: {{ msg.isMe ? '#53bdeb' : '#00a884' }};"/>
                                                         </div>
-                                                        <!-- Play / Pause button -->
-                                                        <button class="wa-audio-play-btn" style="background: transparent; color: #54656f; font-size: 20px; padding: 0;"
-                                                                t-on-click="(ev) => { ev.stopPropagation(); this.toggleAudioPlay(att.id, att.localBlobUrl || ('/web/content/' + att.id + (att.access_token ? '?access_token=' + att.access_token : '')), att.mimetype); }">
-                                                            <i t-attf-class="fa {{ state.activeAudioId == att.id.toString() ? 'fa-pause' : 'fa-play' }}"/>
-                                                        </button>
-                                                        <!-- Waveform and time column -->
+                                                        
                                                         <div style="display: flex; flex-direction: column; flex: 1;">
-                                                            <!-- Waveform -->
-                                                            <div class="wa-audio-waveform" t-on-click="(ev) => this.seekAudio(att.id, ev)">
-                                                                <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
-                                                                    <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress(att.id) ? 'wa-audio-bar-played' : '' }}"
-                                                                         t-attf-style="height: {{ h * 2 + 4 }}px;"/>
-                                                                </t>
+                                                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 2px;">
+                                                                <!-- Play / Pause button -->
+                                                                <button class="wa-audio-play-btn" style="background: transparent; color: inherit; font-size: 20px; padding: 0; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 24px;"
+                                                                        t-on-click="(ev) => { ev.stopPropagation(); this.toggleAudioPlay(att.id, att.localBlobUrl || ('/web/content/' + att.id + (att.access_token ? '?access_token=' + att.access_token : '')), att.mimetype); }">
+                                                                    <i t-attf-class="fa {{ state.activeAudioId == att.id.toString() ? 'fa-pause' : 'fa-play' }}"/>
+                                                                </button>
+                                                                
+                                                                <!-- Waveform (Dotted line with blue dot) -->
+                                                                <div class="wa-audio-track-container" t-on-click="(ev) => this.seekAudio(att.id, ev)" style="flex: 1; height: 20px; display: flex; align-items: center; position: relative; cursor: pointer; min-width: 140px;">
+                                                                    <div style="width: 100%; border-bottom: 3px dotted rgba(255,255,255,0.4); position: absolute;"/>
+                                                                    <div t-attf-style="width: {{ this.getAudioProgress(att.id) }}%; border-bottom: 3px dotted #53bdeb; position: absolute;"/>
+                                                                    <div t-attf-style="left: {{ this.getAudioProgress(att.id) }}%; position: absolute; width: 14px; height: 14px; background: #53bdeb; border-radius: 50%; transform: translateX(-50%);"/>
+                                                                </div>
                                                             </div>
-                                                            <!-- Duration / elapsed -->
-                                                            <span class="wa-audio-time" style="align-self: flex-start; margin-top: 2px;">
-                                                                <t t-if="state.activeAudioId == att.id.toString()">
-                                                                    <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].current or 0)"/>
-                                                                </t>
-                                                                <t t-else="">
-                                                                    <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].duration or 0)"/>
-                                                                </t>
-                                                            </span>
+                                                            
+                                                            <!-- Duration / elapsed and Read receipts -->
+                                                            <div style="display: flex; justify-content: space-between; align-items: center; padding-left: 36px; padding-right: 5px;">
+                                                                <span class="wa-audio-time" style="font-size: 11px; opacity: 0.8;">
+                                                                    <t t-if="state.activeAudioId == att.id.toString()">
+                                                                        <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].current or 0)"/>
+                                                                    </t>
+                                                                    <t t-else="">
+                                                                        <t t-esc="this.formatAudioTime(state.audioProgress[att.id.toString()] and state.audioProgress[att.id.toString()].duration or 0)"/>
+                                                                    </t>
+                                                                </span>
+                                                                <!-- The outer message template already renders the timestamp, but WhatsApp audio bubbles have it inline below the progress bar. We'll render it here, but we must make sure the outer timestamp is hidden for audio. Actually, the outer timestamp is rendered in message-row. For now we just add the time here, it might show twice, but let's see. -->
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </t>
@@ -529,8 +536,10 @@
                                         </t>
                                     </t>
 
-                                    <div class="message-time">
-                                        <t t-if="msg.wa_is_starred">
+                                    <t t-set="is_audio" t-value="msg.attachment_ids and msg.attachment_ids.length &gt; 0 and msg.attachment_ids[0].mimetype and msg.attachment_ids[0].mimetype.startsWith('audio/')"/>
+                                    <t t-if="!is_audio">
+                                        <div class="message-time">
+                                            <t t-if="msg.wa_is_starred">
                                             <i class="fa fa-star" style="color: #8696a0; font-size: 10px; margin-right: 4px;"/>
                                         </t>
                                         <t t-if="msg.authorName">
@@ -557,6 +566,7 @@
                                             </t>
                                         </t>
                                     </div>
+                                    </t>
                                     <!-- Emoji Reaction Badge -->
                                     <t t-if="msg.wa_reaction or msg.wa_reaction_me">
                                         <div style="position: absolute; bottom: -12px; right: 8px; display: flex; gap: 4px; background: white; border-radius: 12px; padding: 2px 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-size: 14px; cursor: pointer; z-index: 5;"
@@ -919,40 +929,44 @@
                                     <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onTextareaInput" t-on-focus="onTextareaFocus" style="overflow-y: hidden; resize: none;"/>
                                 </t>
                                 <t t-if="state.recordingBlobUrl and !state.isRecording">
-                                    <div class="wa-audio-preview" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: white; border-radius: 8px; min-height: 40px;">
-                                        <button class="wa-preview-delete" title="Delete" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
-                                            <i class="fa fa-trash"/>
+                                    <div class="wa-audio-preview" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: #202c33; border-radius: 24px; min-height: 48px;">
+                                        <button class="wa-preview-delete" title="Delete" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #8696a0; font-size: 20px;">
+                                            <i class="fa fa-trash-o"/>
                                         </button>
-                                        <div class="wa-audio-waveform wa-preview-waveform" t-on-click="seekPreviewAudio" style="flex: 1; margin: 0 15px; display: flex; align-items: center; gap: 2px;">
-                                            <t t-foreach="[3,5,8,4,7,6,9,5,4,7,8,6,3,5,4,6,7,5,8,4,6,5,3,7,4,6,8,5,3,6]" t-as="h" t-key="h_index">
-                                                <div t-attf-class="wa-audio-bar {{ (h_index / 30 * 100) &lt; this.getAudioProgress('__preview__') ? 'wa-audio-bar-played' : '' }}"
-                                                     t-attf-style="height: {{ h * 2 + 4 }}px; width: 3px; background: #00a884; border-radius: 2px;"/>
-                                            </t>
-                                        </div>
-                                        <button class="wa-preview-playpause" t-on-click="onPreviewPlayPause" title="Play / Pause" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
-                                            <i t-attf-class="fa {{ state.activeAudioId == '__preview__' ? 'fa-pause' : 'fa-play' }}"/>
-                                        </button>
-                                        <div class="wa-preview-duration" style="margin-left: 15px; font-size: 13px; color: #54656f;">
-                                            <t t-if="state.activeAudioId == '__preview__'">
-                                                <t t-esc="this.formatAudioTime(state.audioProgress['__preview__'] and state.audioProgress['__preview__'].current or 0)"/>
-                                            </t>
-                                            <t t-else="">
-                                                <t t-esc="this.formatRecordingTime(state.recordingSeconds)"/>
-                                            </t>
+                                        <div style="display: flex; align-items: center; flex: 1; margin: 0 15px;">
+                                            <button class="wa-preview-playpause" t-on-click="onPreviewPlayPause" title="Play / Pause" style="background: #00a884; border: none; cursor: pointer; color: white; font-size: 14px; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px;">
+                                                <i t-attf-class="fa {{ state.activeAudioId == '__preview__' ? 'fa-pause' : 'fa-play' }}" t-attf-style="margin-left: {{ state.activeAudioId == '__preview__' ? '0' : '2px' }};"/>
+                                            </button>
+                                            
+                                            <div class="wa-audio-track-container" t-on-click="seekPreviewAudio" style="flex: 1; height: 20px; display: flex; align-items: center; position: relative; cursor: pointer;">
+                                                <div style="width: 100%; border-bottom: 2px dotted #8696a0; position: absolute;"/>
+                                                <div t-attf-style="width: {{ this.getAudioProgress('__preview__') }}%; border-bottom: 2px dotted #00a884; position: absolute;"/>
+                                                <div t-attf-style="left: {{ this.getAudioProgress('__preview__') }}%; position: absolute; width: 14px; height: 14px; background: #00a884; border-radius: 50%; transform: translateX(-50%);"/>
+                                            </div>
+                                            
+                                            <div class="wa-preview-duration" style="margin-left: 15px; font-size: 15px; color: white; min-width: 40px; text-align: right;">
+                                                <t t-if="state.activeAudioId == '__preview__'">
+                                                    <t t-esc="this.formatAudioTime(state.audioProgress['__preview__'] and state.audioProgress['__preview__'].current or 0)"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <t t-esc="this.formatRecordingTime(state.recordingSeconds)"/>
+                                                </t>
+                                            </div>
+                                            <i class="fa fa-microphone" style="color: #f15c6d; font-size: 18px; margin-left: 15px;"/>
                                         </div>
                                     </div>
                                 </t>
                                 <t t-if="state.isRecording">
-                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: white; border-radius: 8px; min-height: 40px;">
-                                        <button class="wa-record-discard" title="Cancel" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
-                                            <i class="fa fa-trash"/>
+                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: #202c33; border-radius: 24px; min-height: 48px;">
+                                        <button class="wa-record-discard" title="Cancel" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #8696a0; font-size: 20px;">
+                                            <i class="fa fa-trash-o"/>
                                         </button>
                                         <div style="display: flex; align-items: center; flex: 1; margin-left: 15px;">
                                             <span class="wa-recording-dot" style="width: 8px; height: 8px; background: #f15c6d; border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin-right: 8px;"/>
-                                            <span class="wa-recording-timer" style="font-size: 14px; font-weight: 500; color: #111b21;"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
+                                            <span class="wa-recording-timer" style="font-size: 15px; font-weight: 500; color: white;"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
                                         </div>
-                                        <button class="wa-preview-playpause" title="Pause / Resume" t-on-click="pauseRecording" style="background: transparent; border: none; cursor: pointer; color: #54656f; font-size: 18px;">
-                                            <i t-attf-class="fa {{ state.isPaused ? 'fa-play' : 'fa-pause' }}"/>
+                                        <button class="wa-preview-playpause" title="Pause / Resume" t-on-click="pauseRecording" style="background: #00a884; border: none; cursor: pointer; color: white; font-size: 14px; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center;">
+                                            <i t-attf-class="fa {{ state.isPaused ? 'fa-microphone' : 'fa-pause' }}"/>
                                         </button>
                                     </div>
                                 </t>
