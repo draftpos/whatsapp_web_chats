@@ -1178,6 +1178,11 @@ class WhatsAppAccount(models.Model):
             os.unlink(temp_out_path)
         except Exception as e:
             _logger.error("Failed to compress audio attachment %s: %s", attachment.id, str(e))
+            # Fallback: spoof the mimetype so Odoo's WhatsApp module doesn't block it.
+            # The browser's WebM (Opus) might be accepted by WhatsApp Cloud API if labelled as audio/ogg.
+            attachment.sudo().write({
+                'mimetype': 'audio/ogg'
+            })
             # Send an error message to the channel so the user knows what happened
             try:
                 error_msg = str(e)
@@ -1186,7 +1191,7 @@ class WhatsAppAccount(models.Model):
                     error_msg += "\nFFMPEG STDERR: " + e.stderr.decode('utf-8', errors='ignore')
                 channel = self.env['discuss.channel'].sudo().search([('message_ids.attachment_ids', 'in', [attachment.id])], limit=1)
                 if channel:
-                    channel.message_post(body=f"⚠️ System Error: Failed to compress audio for WhatsApp. Error details:\n{error_msg}", message_type='notification')
+                    channel.message_post(body=f"⚠️ System Warning: Audio compression (ffmpeg) failed, attempting to send original file. Error details:\n{error_msg}", message_type='notification')
             except Exception:
                 pass
 
