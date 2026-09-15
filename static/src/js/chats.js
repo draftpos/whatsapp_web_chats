@@ -1589,7 +1589,8 @@ export class WhatsAppChatsAction extends Component {
                         id: 'temp_att',
                         name: q.file.name,
                         mimetype: q.file.type,
-                        dataUrl: q.file.dataUrl
+                        dataUrl: q.file.dataUrl || null,
+                        localBlobUrl: q.file.localBlobUrl || null
                     }] : []
                 };
             });
@@ -2089,18 +2090,26 @@ export class WhatsAppChatsAction extends Component {
                 }
             }
 
-            const dataUrl = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.readAsDataURL(file);
-            });
+            let dataUrl = null;
+            let localBlobUrl = null;
+
+            if (file.type.startsWith('image/')) {
+                dataUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                localBlobUrl = URL.createObjectURL(file);
+            }
 
             this.state.pendingFiles = [...this.state.pendingFiles, {
                 name: file.name,
                 type: file.type,
                 size: file.size,
                 file: file,
-                dataUrl: dataUrl
+                dataUrl: dataUrl,
+                localBlobUrl: localBlobUrl
             }];
         }
         if (ev.target) ev.target.value = "";
@@ -2425,7 +2434,8 @@ export class WhatsAppChatsAction extends Component {
                             id: 'temp_att_' + Math.random().toString(36).substr(2, 9),
                             name: pendingFile.name,
                             mimetype: pendingFile.type,
-                            dataUrl: pendingFile.dataUrl || null
+                            dataUrl: pendingFile.dataUrl || null,
+                            localBlobUrl: pendingFile.localBlobUrl || null
                         }],
                         quoted_message_id: replyingToMessageId,
                         quoted_message_body: replyingToMessageBody,
@@ -2442,7 +2452,8 @@ export class WhatsAppChatsAction extends Component {
                         files: [{
                             name: pendingFile.name,
                             type: pendingFile.type,
-                            dataUrl: pendingFile.dataUrl
+                            dataUrl: pendingFile.dataUrl || null,
+                            localBlobUrl: pendingFile.localBlobUrl || null
                         }],
                         timestamp: Date.now() + i
                     });
