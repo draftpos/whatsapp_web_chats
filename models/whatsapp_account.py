@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.exceptions import UserError
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -1218,8 +1219,6 @@ class WhatsAppAccount(models.Model):
             except:
                 pass
             raise UserError(f"Failed to process audio for WhatsApp: {str(e)}. Please check your ffmpeg installation.")
-            except Exception:
-                pass
 
     @api.model
     def post_whatsapp_message(self, channel_id, **kwargs):
