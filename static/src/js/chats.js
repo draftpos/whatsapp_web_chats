@@ -1519,10 +1519,17 @@ export class WhatsAppChatsAction extends Component {
                     if (!serverMsg.isMe) continue;
                     if (!serverMsg.attachment_ids || serverMsg.attachment_ids.length === 0) continue;
                     const serverAtt = serverMsg.attachment_ids[0];
-                    // Match against a temp media message (unmerged, same body if any)
+                    // Match against a temp media message (unmerged, matching attachment name)
                     const matchingTemp = tempMediaMsgs.find(t => {
-                        return !t._merged && 
-                               (t.bodyText === serverMsg.bodyText || (!t.bodyText && !serverMsg.bodyText));
+                        if (t._merged) return false;
+                        if (t.attachment_ids && t.attachment_ids.length > 0) {
+                            const tName = t.attachment_ids[0].name;
+                            const sName = serverAtt.name;
+                            if (tName && sName) {
+                                return tName.split('.')[0] === sName.split('.')[0];
+                            }
+                        }
+                        return (t.bodyText === serverMsg.bodyText || (!t.bodyText && !serverMsg.bodyText));
                     });
                     if (matchingTemp) {
                         matchingTemp._merged = true;
