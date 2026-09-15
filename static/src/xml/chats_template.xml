@@ -929,7 +929,7 @@
                                     <textarea class="whatsapp-input" t-model="state.newMessage" placeholder="Type a message" t-on-keydown="onKeydown" rows="1" t-on-input="onTextareaInput" t-on-focus="onTextareaFocus" style="overflow-y: hidden; resize: none;"/>
                                 </t>
                                 <t t-if="state.recordingBlobUrl and !state.isRecording">
-                                    <div class="wa-audio-preview" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: #202c33; border-radius: 24px; min-height: 48px;">
+                                    <div class="wa-audio-preview" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: transparent; border-radius: 24px; min-height: 48px;">
                                         <button class="wa-preview-delete" title="Delete" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #8696a0; font-size: 20px;">
                                             <i class="fa fa-trash-o"/>
                                         </button>
@@ -957,7 +957,7 @@
                                     </div>
                                 </t>
                                 <t t-if="state.isRecording">
-                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: #202c33; border-radius: 24px; min-height: 48px;">
+                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; margin-right: 10px; background: transparent; border-radius: 24px; min-height: 48px;">
                                         <button class="wa-record-discard" title="Cancel" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #8696a0; font-size: 20px;">
                                             <i class="fa fa-trash-o"/>
                                         </button>
