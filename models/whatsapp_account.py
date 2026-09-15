@@ -1161,49 +1161,23 @@ class WhatsAppAccount(models.Model):
             ext = '.ogg'
 
             try:
-                # ── Attempt 1: libopus (best quality, official WhatsApp voice note standard) ──
-                try:
-                    subprocess.run([
-                        ffmpeg_exe, '-y', '-i', temp_in_path,
-                        '-vn', '-c:a', 'libopus', '-b:a', '16k',
-                        '-vbr', 'on', '-compression_level', '10',
-                        '-frame_duration', '20', '-application', 'voip',
-                        '-ar', '16000', '-ac', '1',
-                        temp_out_path
-                    ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    _logger.info("Audio compressed with libopus successfully.")
-                except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                    # ── Attempt 2: native opus encoder ───────────────────────────────
-                    _logger.warning("libopus failed, trying native opus encoder: %s", str(e))
-                    try:
-                        subprocess.run([
-                            ffmpeg_exe, '-y', '-i', temp_in_path,
-                            '-vn', '-c:a', 'opus', '-strict', '-2', '-b:a', '16k',
-                            '-vbr', 'on', '-compression_level', '10',
-                            '-frame_duration', '20', '-application', 'voip',
-                            '-ar', '16000', '-ac', '1',
-                            temp_out_path
-                        ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        _logger.info("Audio compressed with native opus encoder successfully.")
-                    except (subprocess.CalledProcessError, FileNotFoundError) as inner_e:
-                        # ── Attempt 3: AAC/m4a fallback (supported audio format in WhatsApp API) ─
-                        _logger.warning("native opus failed, trying aac: %s", str(inner_e))
-                        temp_out_m4a = temp_in_path + '_out.m4a'
-                        try:
-                            subprocess.run([
-                                ffmpeg_exe, '-y', '-i', temp_in_path,
-                                '-vn', '-c:a', 'aac', '-b:a', '64k',
-                                temp_out_m4a
-                            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                            temp_out_path = temp_out_m4a
-                            mimetype = 'audio/mp4'
-                            ext = '.m4a'
-                            _logger.info("Audio compressed with aac successfully.")
-                        except Exception as aac_e:
-                            error_details = f"libopus: {e}\nopus: {inner_e}\naac: {aac_e}\nffmpeg: {ffmpeg_exe}"
-                            with open('/tmp/ffmpeg_error.log', 'w') as log_f:
-                                log_f.write(error_details)
-                            raise Exception(error_details)
+            try:
+                # ── Force AAC/m4a (Supported general audio format, bypasses strict Opus Voice Note rules) ──
+                temp_out_m4a = temp_in_path + '_out.m4a'
+                subprocess.run([
+                    ffmpeg_exe, '-y', '-i', temp_in_path,
+                    '-vn', '-c:a', 'aac', '-b:a', '64k',
+                    temp_out_m4a
+                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                temp_out_path = temp_out_m4a
+                mimetype = 'audio/mp4'
+                ext = '.m4a'
+                _logger.info("Audio compressed with aac successfully to avoid Opus rejection.")
+            except Exception as e:
+                error_details = f"aac compression failed: {e}\nffmpeg: {ffmpeg_exe}"
+                with open('/tmp/ffmpeg_error.log', 'w') as log_f:
+                    log_f.write(error_details)
+                raise Exception(error_details)
 
                 # ── Read the compressed file and update attachment ───────────────────
                 with open(temp_out_path, 'rb') as f:
