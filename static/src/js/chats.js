@@ -971,18 +971,8 @@ export class WhatsAppChatsAction extends Component {
         }
 
         let playableUrl = url;
-        // Fix for Chrome rejecting WebM files disguised as Ogg (which we do for WhatsApp API support)
-        if (url.startsWith('/web/content')) {
-            try {
-                const response = await fetch(url);
-                const buffer = await response.arrayBuffer();
-                // We cast the blob to audio/webm so the browser correctly identifies and decodes the container.
-                const blob = new Blob([buffer], { type: 'audio/webm' });
-                playableUrl = URL.createObjectURL(blob);
-            } catch (err) {
-                console.error("Failed to fetch audio for playback fix:", err);
-            }
-        }
+        // If url is a local blob (optimistic UI) or direct Odoo attachment URL, Audio element plays it directly
+        // Do NOT forcibly cast to audio/webm, as that breaks Chrome decoding for real Ogg Opus / AAC / MP4 files!
 
         // Create a new Audio element
         const audio = new Audio(playableUrl);
@@ -1561,15 +1551,25 @@ export class WhatsAppChatsAction extends Component {
                     const parts = m.id.toString().split('_');
                     // Find the timestamp (e.g. temp_17000, temp_17000_0, temp_audio_17000)
                     const tempTime = parseInt(parts[1]) || parseInt(parts[2]) || 0;
-                    // Keep if it was created less than 15 seconds ago
-                    if (now - tempTime < 15000) {
-                        // Check if the server already returned a message with the same body sent by me
-                        // (Fallback for non-media messages)
-                        const alreadyReceived = this.state.messages.some(serverMsg => 
-                            serverMsg.isMe === true && 
-                            serverMsg.bodyText === m.bodyText
-                        );
-                        return !alreadyReceived;
+                    // Keep if pending or created less than 60 seconds ago
+                    if (m.wa_state === 'pending' || (tempTime && now - tempTime < 60000)) {
+                        // For audio / media messages, check by attachment name
+                        if (m.attachment_ids && m.attachment_ids.length > 0) {
+                            const attName = m.attachment_ids[0].name;
+                            const alreadyReceived = this.state.messages.some(serverMsg => 
+                                serverMsg.isMe === true && 
+                                serverMsg.attachment_ids &&
+                                serverMsg.attachment_ids.some(att => att.name === attName)
+                            );
+                            return !alreadyReceived;
+                        } else if (m.bodyText) {
+                            const alreadyReceived = this.state.messages.some(serverMsg => 
+                                serverMsg.isMe === true && 
+                                serverMsg.bodyText === m.bodyText
+                            );
+                            return !alreadyReceived;
+                        }
+                        return true;
                     }
                 }
                 return false;
@@ -2280,29 +2280,38 @@ export class WhatsAppChatsAction extends Component {
         }
         const rms = Math.sqrt(sum / this._dataArray.length);
         
-        // Map RMS (0 to 1) to a bar height (minimum 2px, max HEIGHT)
-        let newHeight = Math.max(2, rms * HEIGHT * 3);
-        if (newHeight > HEIGHT) newHeight = HEIGHT;
+        // Map RMS to a dynamic bar height with minimum 3px and rounded aesthetic
+        let newHeight = Math.max(3, rms * HEIGHT * 5.5);
+        if (newHeight > HEIGHT - 2) newHeight = HEIGHT - 2;
         
         // Add to history and remove oldest
         this._volumeHistory.push(newHeight);
-        if (this._volumeHistory.length > 40) {
+        const maxBars = Math.floor(WIDTH / 4);
+        if (this._volumeHistory.length > maxBars) {
             this._volumeHistory.shift();
         }
         
         canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
         
-        // Draw scrolling bars
+        // Draw scrolling bars with rounded pill shape like WhatsApp
         const barWidth = 2.5;
         const gap = 1.5;
         let x = WIDTH - (this._volumeHistory.length * (barWidth + gap));
         if (x < 0) x = 0;
         
+        const barColor = this.state.isPaused ? '#8696a0' : '#00a884';
+        canvasCtx.fillStyle = barColor;
+        
         for(let i = 0; i < this._volumeHistory.length; i++) {
             const h = this._volumeHistory[i];
-            canvasCtx.fillStyle = '#00a884'; // WhatsApp green
-            // Draw symmetric bar from the vertical center
-            canvasCtx.fillRect(x, (HEIGHT - h) / 2, barWidth, h);
+            const y = (HEIGHT - h) / 2;
+            if (canvasCtx.roundRect) {
+                canvasCtx.beginPath();
+                canvasCtx.roundRect(x, y, barWidth, h, 1.5);
+                canvasCtx.fill();
+            } else {
+                canvasCtx.fillRect(x, y, barWidth, h);
+            }
             x += barWidth + gap;
         }
     }
