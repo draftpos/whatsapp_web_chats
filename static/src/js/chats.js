@@ -2413,8 +2413,19 @@ export class WhatsAppChatsAction extends Component {
             await this.pollMessages();
         } catch (e) {
             console.error('Failed to send audio message:', e);
-            let errMsg = (e.data && e.data.message) || e.message || JSON.stringify(e) || String(e);
-            alert('Failed to send voice message: ' + errMsg);
+            let errMsg = (e.data && e.data.message) || e.message || String(e);
+            // Show a soft notification instead of a blocking alert
+            // The message bubble stays in chat for the user's awareness
+            const banner = document.createElement('div');
+            banner.textContent = '⚠️ Audio send failed: ' + errMsg;
+            Object.assign(banner.style, {
+                position: 'fixed', bottom: '70px', left: '50%', transform: 'translateX(-50%)',
+                background: '#f15c6d', color: 'white', padding: '10px 18px', borderRadius: '8px',
+                fontSize: '13px', zIndex: '9999', maxWidth: '80%', textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            });
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 6000);
         } finally {
             this._isSendingAudio = false;
         }

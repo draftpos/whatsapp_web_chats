@@ -1136,75 +1136,95 @@ class WhatsAppAccount(models.Model):
         import tempfile
         import os
         import base64
+        import shutil
         import logging
         _logger = logging.getLogger(__name__)
-        
-        try:
-            import imageio_ffmpeg
-            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-        except ImportError:
-            _logger.info("imageio-ffmpeg not installed. Falling back to system ffmpeg.")
-            ffmpeg_exe = 'ffmpeg'
 
         try:
+            # ── Resolve ffmpeg path ─────────────────────────────────────────────────
+            ffmpeg_exe = shutil.which('ffmpeg') or '/usr/bin/ffmpeg'
+            try:
+                import imageio_ffmpeg
+                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+            except ImportError:
+                pass
+            _logger.info("Audio compression: using ffmpeg at %s", ffmpeg_exe)
+
+            # ── Write raw audio to a temp file ──────────────────────────────────────
             raw_data = base64.b64decode(attachment.datas)
             with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as temp_in:
                 temp_in.write(raw_data)
                 temp_in_path = temp_in.name
-                
-            import shutil
-            ffmpeg_exe = shutil.which('ffmpeg') or '/usr/bin/ffmpeg'
-            
+
             temp_out_path = temp_in_path + '_out.ogg'
             mimetype = 'audio/ogg'
             ext = '.ogg'
-            
+
             try:
-                # WhatsApp officially uses Ogg Opus for Voice Notes. 
-                # We MUST use libopus to re-encode because direct stream copy from WebM to Ogg corrupts the Opus headers!
-                subprocess.run([
-                    ffmpeg_exe, '-y', '-i', temp_in_path,
-                    '-c:a', 'libopus', '-b:a', '32k',
-                    temp_out_path
-                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                # If libopus is missing from this ffmpeg build, fallback to the native experimental opus encoder
+                # ── Attempt 1: libopus (best quality, preferred by WhatsApp) ─────────
                 try:
                     subprocess.run([
                         ffmpeg_exe, '-y', '-i', temp_in_path,
-                        '-c:a', 'opus', '-strict', '-2', '-b:a', '32k',
+                        '-c:a', 'libopus', '-b:a', '32k',
                         temp_out_path
                     ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                except Exception as inner_e:
-                    # Write the error to a file so we can see it!
-                    error_details = str(e) + "\nInner: " + str(inner_e)
+                    _logger.info("Audio compressed with libopus successfully.")
+                except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                    # ── Attempt 2: native opus encoder (fallback) ────────────────────
+                    _logger.warning("libopus failed, trying native opus encoder. Error: %s", str(e))
                     if isinstance(e, subprocess.CalledProcessError) and e.stderr:
-                        error_details += "\nSTDERR: " + e.stderr.decode('utf-8', errors='ignore')
-                    with open('/tmp/ffmpeg_error.log', 'w') as log_f:
-                        log_f.write(error_details)
-                    raise Exception(error_details)
-            
-            with open(temp_out_path, 'rb') as f:
-                compressed_data = f.read()
-                
-            name = attachment.name or 'audio'
-            if '.' in name:
-                name = name.rsplit('.', 1)[0] + ext
-            else:
-                name += ext
+                        _logger.warning("libopus STDERR: %s", e.stderr.decode('utf-8', errors='ignore'))
+                    try:
+                        subprocess.run([
+                            ffmpeg_exe, '-y', '-i', temp_in_path,
+                            '-c:a', 'opus', '-strict', '-2', '-b:a', '32k',
+                            temp_out_path
+                        ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        _logger.info("Audio compressed with native opus encoder successfully.")
+                    except subprocess.CalledProcessError as inner_e:
+                        # Both attempts failed — write full diagnostics to log file
+                        error_details = "=== Primary (libopus) Error ===\n" + str(e)
+                        if isinstance(e, subprocess.CalledProcessError) and e.stderr:
+                            error_details += "\nSTDERR: " + e.stderr.decode('utf-8', errors='ignore')
+                        error_details += "\n\n=== Fallback (opus) Error ===\n" + str(inner_e)
+                        if inner_e.stderr:
+                            error_details += "\nSTDERR: " + inner_e.stderr.decode('utf-8', errors='ignore')
+                        error_details += "\n\nffmpeg path used: " + str(ffmpeg_exe)
+                        with open('/tmp/ffmpeg_error.log', 'w') as log_f:
+                            log_f.write(error_details)
+                        _logger.error("All ffmpeg attempts failed. Diagnostics at /tmp/ffmpeg_error.log")
+                        raise Exception(error_details)
 
-            attachment.sudo().write({
-                'datas': base64.b64encode(compressed_data),
-                'mimetype': mimetype,
-                'name': name
-            })
-            os.unlink(temp_in_path)
-            os.unlink(temp_out_path)
+                # ── Read the compressed file and update attachment ───────────────────
+                with open(temp_out_path, 'rb') as f:
+                    compressed_data = f.read()
+
+                name = attachment.name or 'audio'
+                if '.' in name:
+                    name = name.rsplit('.', 1)[0] + ext
+                else:
+                    name += ext
+
+                attachment.sudo().write({
+                    'datas': base64.b64encode(compressed_data),
+                    'mimetype': mimetype,
+                    'name': name
+                })
+
+            finally:
+                # ── Always clean up temp files ───────────────────────────────────────
+                try:
+                    if 'temp_in_path' in locals() and os.path.exists(temp_in_path):
+                        os.unlink(temp_in_path)
+                except Exception:
+                    pass
+                try:
+                    if 'temp_out_path' in locals() and os.path.exists(temp_out_path):
+                        os.unlink(temp_out_path)
+                except Exception:
+                    pass
         except Exception as e:
             _logger.error("Failed to compress audio attachment %s: %s", attachment.id, str(e))
-            # If ffmpeg failed to encode the file, do NOT spoof the mimetype!
-            # Sending a raw WebM file as 'audio/ogg' causes WhatsApp to accept the upload but the recipient's phone will fail to play it ("audio no longer available").
-            # Instead, we will send an error message to the channel so the user knows what happened.
             try:
                 error_msg = str(e)
                 self.env['mail.message'].create({
