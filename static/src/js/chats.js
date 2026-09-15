@@ -1513,37 +1513,43 @@ export class WhatsAppChatsAction extends Component {
             // --- Merge pending/recently sent messages ---
             const now = Date.now();
 
-            // ── Audio-specific: carry over localBlobUrl from temp audio attachment ──
-            // When the server message arrives, preserve the blob URL so the player
-            // keeps working without any disruption to the UI.
-            const tempAudioMsgs = oldMessages.filter(m =>
-                m.id && m.id.toString().startsWith('temp_audio_') &&
-                m.attachment_ids && m.attachment_ids.some(a => a.localBlobUrl)
+            // ── Media-specific: carry over localBlobUrl and dataUrl from temp attachments ──
+            // When the server message arrives, preserve the blob/data URL so the UI
+            // doesn't flicker or reload while processing.
+            const tempMediaMsgs = oldMessages.filter(m =>
+                m.id && m.id.toString().startsWith('temp_') &&
+                m.attachment_ids && m.attachment_ids.some(a => a.localBlobUrl || a.dataUrl)
             );
-            if (tempAudioMsgs.length > 0) {
+            if (tempMediaMsgs.length > 0) {
                 for (const serverMsg of this.state.messages) {
                     if (!serverMsg.isMe) continue;
                     if (!serverMsg.attachment_ids || serverMsg.attachment_ids.length === 0) continue;
-                    const serverAtt = serverMsg.attachment_ids.find(a => a.mimetype && a.mimetype.startsWith('audio/'));
-                    if (!serverAtt) continue;
-                    // Match against a temp audio message (same channel, recent, audio attachment)
-                    const matchingTemp = tempAudioMsgs.find(t => {
-                        const tAtt = t.attachment_ids.find(a => a.localBlobUrl);
-                        return tAtt && !serverAtt.localBlobUrl;
+                    const serverAtt = serverMsg.attachment_ids[0];
+                    // Match against a temp media message (unmerged, same body if any)
+                    const matchingTemp = tempMediaMsgs.find(t => {
+                        return !t._merged && 
+                               (t.bodyText === serverMsg.bodyText || (!t.bodyText && !serverMsg.bodyText));
                     });
                     if (matchingTemp) {
-                        const tempAtt = matchingTemp.attachment_ids.find(a => a.localBlobUrl);
-                        // Preserve localBlobUrl on the real server attachment
-                        serverAtt.localBlobUrl = tempAtt.localBlobUrl;
-                        // Migrate audio player state from temp ID to real server ID
-                        const tempId = String(tempAtt.id);
-                        const realId = String(serverAtt.id);
-                        if (this.state.activeAudioId === tempId) {
-                            this.state.activeAudioId = realId;
-                        }
-                        if (this.state.audioProgress[tempId]) {
-                            this.state.audioProgress[realId] = this.state.audioProgress[tempId];
-                            delete this.state.audioProgress[tempId];
+                        matchingTemp._merged = true;
+                        const tempAtt = matchingTemp.attachment_ids.find(a => a.localBlobUrl || a.dataUrl);
+                        if (tempAtt) {
+                            if (tempAtt.localBlobUrl) {
+                                serverAtt.localBlobUrl = tempAtt.localBlobUrl;
+                            }
+                            if (tempAtt.dataUrl) {
+                                serverAtt.dataUrl = tempAtt.dataUrl;
+                            }
+                            // Migrate audio player state from temp ID to real server ID
+                            const tempId = String(tempAtt.id);
+                            const realId = String(serverAtt.id);
+                            if (this.state.activeAudioId === tempId) {
+                                this.state.activeAudioId = realId;
+                            }
+                            if (this.state.audioProgress[tempId]) {
+                                this.state.audioProgress[realId] = this.state.audioProgress[tempId];
+                                delete this.state.audioProgress[tempId];
+                            }
                         }
                     }
                 }
@@ -1551,23 +1557,14 @@ export class WhatsAppChatsAction extends Component {
 
             const recentTempMsgs = oldMessages.filter(m => {
                 if (m.id && m.id.toString().startsWith('temp_')) {
+                    if (m._merged) return false;
                     const parts = m.id.toString().split('_');
                     // Find the timestamp (e.g. temp_17000, temp_17000_0, temp_audio_17000)
                     const tempTime = parseInt(parts[1]) || parseInt(parts[2]) || 0;
                     // Keep if it was created less than 15 seconds ago
                     if (now - tempTime < 15000) {
-                        // For audio temp messages: check if a server audio msg already exists
-                        const hasLocalAudio = m.attachment_ids && m.attachment_ids.some(a => a.localBlobUrl);
-                        if (hasLocalAudio) {
-                            // Audio already merged into server message above — discard temp
-                            const alreadyMerged = this.state.messages.some(serverMsg =>
-                                serverMsg.isMe &&
-                                serverMsg.attachment_ids &&
-                                serverMsg.attachment_ids.some(a => a.localBlobUrl)
-                            );
-                            return !alreadyMerged;
-                        }
                         // Check if the server already returned a message with the same body sent by me
+                        // (Fallback for non-media messages)
                         const alreadyReceived = this.state.messages.some(serverMsg => 
                             serverMsg.isMe === true && 
                             serverMsg.bodyText === m.bodyText
