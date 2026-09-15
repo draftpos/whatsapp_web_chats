@@ -1161,39 +1161,45 @@ class WhatsAppAccount(models.Model):
             ext = '.ogg'
 
             try:
-                # ── Attempt 1: libopus (best quality, preferred by WhatsApp) ─────────
+                # ── Attempt 1: libopus (best quality, official WhatsApp voice note standard) ──
                 try:
                     subprocess.run([
                         ffmpeg_exe, '-y', '-i', temp_in_path,
-                        '-c:a', 'libopus', '-b:a', '32k',
+                        '-vn', '-c:a', 'libopus', '-b:a', '32k',
+                        '-ar', '16000', '-ac', '1',
                         temp_out_path
                     ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     _logger.info("Audio compressed with libopus successfully.")
                 except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                    # ── Attempt 2: native opus encoder (fallback) ────────────────────
-                    _logger.warning("libopus failed, trying native opus encoder. Error: %s", str(e))
-                    if isinstance(e, subprocess.CalledProcessError) and e.stderr:
-                        _logger.warning("libopus STDERR: %s", e.stderr.decode('utf-8', errors='ignore'))
+                    # ── Attempt 2: native opus encoder ───────────────────────────────
+                    _logger.warning("libopus failed, trying native opus encoder: %s", str(e))
                     try:
                         subprocess.run([
                             ffmpeg_exe, '-y', '-i', temp_in_path,
-                            '-c:a', 'opus', '-strict', '-2', '-b:a', '32k',
+                            '-vn', '-c:a', 'opus', '-strict', '-2', '-b:a', '32k',
+                            '-ar', '16000', '-ac', '1',
                             temp_out_path
                         ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         _logger.info("Audio compressed with native opus encoder successfully.")
-                    except subprocess.CalledProcessError as inner_e:
-                        # Both attempts failed — write full diagnostics to log file
-                        error_details = "=== Primary (libopus) Error ===\n" + str(e)
-                        if isinstance(e, subprocess.CalledProcessError) and e.stderr:
-                            error_details += "\nSTDERR: " + e.stderr.decode('utf-8', errors='ignore')
-                        error_details += "\n\n=== Fallback (opus) Error ===\n" + str(inner_e)
-                        if inner_e.stderr:
-                            error_details += "\nSTDERR: " + inner_e.stderr.decode('utf-8', errors='ignore')
-                        error_details += "\n\nffmpeg path used: " + str(ffmpeg_exe)
-                        with open('/tmp/ffmpeg_error.log', 'w') as log_f:
-                            log_f.write(error_details)
-                        _logger.error("All ffmpeg attempts failed. Diagnostics at /tmp/ffmpeg_error.log")
-                        raise Exception(error_details)
+                    except (subprocess.CalledProcessError, FileNotFoundError) as inner_e:
+                        # ── Attempt 3: AAC/m4a fallback (supported audio format in WhatsApp API) ─
+                        _logger.warning("native opus failed, trying aac: %s", str(inner_e))
+                        temp_out_m4a = temp_in_path + '_out.m4a'
+                        try:
+                            subprocess.run([
+                                ffmpeg_exe, '-y', '-i', temp_in_path,
+                                '-vn', '-c:a', 'aac', '-b:a', '64k',
+                                temp_out_m4a
+                            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            temp_out_path = temp_out_m4a
+                            mimetype = 'audio/mp4'
+                            ext = '.m4a'
+                            _logger.info("Audio compressed with aac successfully.")
+                        except Exception as aac_e:
+                            error_details = f"libopus: {e}\nopus: {inner_e}\naac: {aac_e}\nffmpeg: {ffmpeg_exe}"
+                            with open('/tmp/ffmpeg_error.log', 'w') as log_f:
+                                log_f.write(error_details)
+                            raise Exception(error_details)
 
                 # ── Read the compressed file and update attachment ───────────────────
                 with open(temp_out_path, 'rb') as f:
@@ -1267,6 +1273,17 @@ class WhatsAppAccount(models.Model):
             if 'author_id' not in kwargs:
                 kwargs['author_id'] = self.env.user.partner_id.id
             msg_id = channel.message_post(**kwargs).id
+
+            # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
+            wa_msgs = self.env['whatsapp.message'].sudo().search([
+                ('mail_message_id', '=', msg_id),
+                ('state', '=', 'outgoing')
+            ])
+            for wa_msg in wa_msgs:
+                try:
+                    wa_msg._send(force_send_by_cron=False)
+                except Exception as send_err:
+                    _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
             
             if has_uncompressed_videos:
                 wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', msg_id)], limit=1)

@@ -2138,10 +2138,8 @@ export class WhatsAppChatsAction extends Component {
                     audioCtx.resume();
                 }
                 const analyser = audioCtx.createAnalyser();
-                // Clone stream so we don't interfere with MediaRecorder
-                const cloneStream = stream.clone();
-                this._visualizerStream = cloneStream;
-                const source = audioCtx.createMediaStreamSource(cloneStream);
+                // Connect stream directly - cloning can silence the track in Chromium
+                const source = audioCtx.createMediaStreamSource(stream);
                 source.connect(analyser);
                 analyser.fftSize = 256;
                 const bufferLength = analyser.frequencyBinCount;
@@ -2193,7 +2191,7 @@ export class WhatsAppChatsAction extends Component {
                 clearInterval(this._recordingTimer);
             };
 
-            this._mediaRecorder.start();
+            this._mediaRecorder.start(200);
             this.state.isRecording = true;
             this.state.isPaused = false;
             this.state.recordingSeconds = 0;
@@ -2229,6 +2227,7 @@ export class WhatsAppChatsAction extends Component {
 
     stopRecording() {
         if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
+            try { this._mediaRecorder.requestData(); } catch(e) {}
             this._mediaRecorder.stop();
         } else {
             this.cleanupAudioStream();
