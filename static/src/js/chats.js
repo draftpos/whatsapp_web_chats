@@ -1473,12 +1473,16 @@ export class WhatsAppChatsAction extends Component {
                 let dateText = '';
                 if (msg.date) {
                     try {
-                        const dt = new Date(msg.date);
+                        let dateStr = msg.date;
+                        if (typeof dateStr === 'string' && !dateStr.includes('T') && !dateStr.endsWith('Z')) {
+                            dateStr = dateStr.replace(' ', 'T') + 'Z';
+                        }
+                        const dt = new Date(dateStr);
                         if (isNaN(dt)) {
                             timeText = msg.date;
                         } else {
                             timeText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-                            dateText = this.formatChatTime(msg.date, true);
+                            dateText = this.formatChatTime(dateStr, true);
                         }
                     } catch (e) {
                         timeText = msg.date;
@@ -2132,28 +2136,8 @@ export class WhatsAppChatsAction extends Component {
             
             this._volumeHistory = new Array(40).fill(0);
             
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                const analyser = audioCtx.createAnalyser();
-                // Connect stream directly - cloning can silence the track in Chromium
-                const source = audioCtx.createMediaStreamSource(stream);
-                source.connect(analyser);
-                analyser.fftSize = 256;
-                const bufferLength = analyser.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
-                
-                this._audioCtx = audioCtx;
-                this._analyser = analyser;
-                this._dataArray = dataArray;
-                
-                // Give the DOM a moment to render the canvas, then start drawing
-                setTimeout(() => this._drawVisualizer(), 50);
-            } catch (e) {
-                console.warn("Audio visualizer not supported:", e);
-            }
+            // FAKE visualizer to prevent AudioContext from stealing stream and silencing MediaRecorder
+            setTimeout(() => this._drawVisualizer(), 50);
 
             let options = {};
             if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -2269,19 +2253,15 @@ export class WhatsAppChatsAction extends Component {
         const WIDTH = canvas.width;
         const HEIGHT = canvas.height;
         
-        // Use TimeDomainData to get actual waveform amplitude instead of Frequency
-        this._analyser.getByteTimeDomainData(this._dataArray);
-        
-        // Calculate average amplitude (RMS)
-        let sum = 0;
-        for (let i = 0; i < this._dataArray.length; i++) {
-            const val = (this._dataArray[i] - 128) / 128;
-            sum += val * val;
-        }
-        const rms = Math.sqrt(sum / this._dataArray.length);
+        // Fake RMS to make visualizer move without accessing microphone data
+        // Uses sine wave + some randomness for a realistic speaking effect
+        const time = Date.now() / 200;
+        const base = (Math.sin(time) * 0.5 + 0.5) * 0.4;
+        const noise = Math.random() * 0.3;
+        const rms = 0.1 + base + noise;
         
         // Map RMS to a dynamic bar height with minimum 3px and rounded aesthetic
-        let newHeight = Math.max(3, rms * HEIGHT * 5.5);
+        let newHeight = Math.max(3, rms * HEIGHT);
         if (newHeight > HEIGHT - 2) newHeight = HEIGHT - 2;
         
         // Add to history and remove oldest
@@ -2299,7 +2279,7 @@ export class WhatsAppChatsAction extends Component {
         let x = WIDTH - (this._volumeHistory.length * (barWidth + gap));
         if (x < 0) x = 0;
         
-        const barColor = this.state.isPaused ? '#8696a0' : '#00a884';
+        const barColor = this.state.isPaused ? '#8696a0' : '#25D366';
         canvasCtx.fillStyle = barColor;
         
         for(let i = 0; i < this._volumeHistory.length; i++) {
