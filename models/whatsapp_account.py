@@ -1081,11 +1081,12 @@ class WhatsAppAccount(models.Model):
         _logger = logging.getLogger(__name__)
         
         try:
+            import shutil
+            ffmpeg_exe = shutil.which('ffmpeg') or '/usr/bin/ffmpeg'
             import imageio_ffmpeg
             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         except ImportError:
-            _logger.info("imageio-ffmpeg not installed. Falling back to system ffmpeg.")
-            ffmpeg_exe = 'ffmpeg'
+            _logger.info("imageio-ffmpeg not installed. Using system ffmpeg.")
 
         try:
             raw_data = base64.b64decode(attachment.datas)
