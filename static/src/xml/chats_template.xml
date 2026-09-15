@@ -426,10 +426,10 @@
                                                 <t t-elif="att.mimetype and att.mimetype.includes('video')">
                                                     <div class="video-preview" style="position:relative; cursor:pointer;" t-on-click="(ev) => this.openMedia(att.id, ev, 'video', att.name, att.access_token || '', null, msg)">
                                                         <t t-if="att.dataUrl || att.localBlobUrl">
-                                                            <video class="message-video" t-attf-src="{{att.dataUrl || att.localBlobUrl}}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"/>
+                                                            <video class="message-video" preload="metadata" t-attf-src="{{att.dataUrl || att.localBlobUrl}}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"/>
                                                         </t>
                                                         <t t-else="">
-                                                            <video class="message-video" t-attf-src="/web/content/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"/>
+                                                            <video class="message-video" preload="metadata" t-attf-src="/web/content/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"/>
                                                         </t>
                                                         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.5); border-radius:50%; padding:10px; color:white;">
                                                             <i class="fa fa-play fa-2x"/>
