@@ -1151,12 +1151,13 @@ class WhatsAppAccount(models.Model):
                 temp_in.write(raw_data)
                 temp_in_path = temp_in.name
                 
-            temp_out_path = temp_in_path + '_out.m4a'
+            temp_out_path = temp_in_path + '_out.ogg'
             
-            # WhatsApp Cloud API and Odoo both support MP4/AAC audio
+            # WhatsApp officially uses Ogg Opus for Voice Notes. 
+            # Chrome records in WebM Opus. We can perfectly remux it to Ogg without re-encoding!
             subprocess.run([
                 ffmpeg_exe, '-y', '-i', temp_in_path,
-                '-c:a', 'aac', '-b:a', '64k',
+                '-c:a', 'copy',
                 temp_out_path
             ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
@@ -1165,13 +1166,13 @@ class WhatsAppAccount(models.Model):
                 
             name = attachment.name or 'audio'
             if '.' in name:
-                name = name.rsplit('.', 1)[0] + '.m4a'
+                name = name.rsplit('.', 1)[0] + '.ogg'
             else:
-                name += '.m4a'
+                name += '.ogg'
 
             attachment.sudo().write({
                 'datas': base64.b64encode(compressed_data),
-                'mimetype': 'audio/mp4',
+                'mimetype': 'audio/ogg',
                 'name': name
             })
             os.unlink(temp_in_path)
