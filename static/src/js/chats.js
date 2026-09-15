@@ -2130,12 +2130,20 @@ export class WhatsAppChatsAction extends Component {
             this._mediaStream = stream;
             this._audioChunks = [];
             
+            this._volumeHistory = new Array(40).fill(0);
+            
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
                 const analyser = audioCtx.createAnalyser();
-                const source = audioCtx.createMediaStreamSource(stream);
+                // Clone stream so we don't interfere with MediaRecorder
+                const cloneStream = stream.clone();
+                this._visualizerStream = cloneStream;
+                const source = audioCtx.createMediaStreamSource(cloneStream);
                 source.connect(analyser);
-                analyser.fftSize = 64;
+                analyser.fftSize = 256;
                 const bufferLength = analyser.frequencyBinCount;
                 const dataArray = new Uint8Array(bufferLength);
                 
@@ -2234,6 +2242,10 @@ export class WhatsAppChatsAction extends Component {
             try { this._audioCtx.close(); } catch(e) {}
             this._audioCtx = null;
         }
+        if (this._visualizerStream) {
+            this._visualizerStream.getTracks().forEach(t => t.stop());
+            this._visualizerStream = null;
+        }
         if (this._mediaStream) {
             this._mediaStream.getTracks().forEach(t => t.stop());
             this._mediaStream = null;
@@ -2258,24 +2270,41 @@ export class WhatsAppChatsAction extends Component {
         const WIDTH = canvas.width;
         const HEIGHT = canvas.height;
         
-        this._analyser.getByteFrequencyData(this._dataArray);
+        // Use TimeDomainData to get actual waveform amplitude instead of Frequency
+        this._analyser.getByteTimeDomainData(this._dataArray);
+        
+        // Calculate average amplitude (RMS)
+        let sum = 0;
+        for (let i = 0; i < this._dataArray.length; i++) {
+            const val = (this._dataArray[i] - 128) / 128;
+            sum += val * val;
+        }
+        const rms = Math.sqrt(sum / this._dataArray.length);
+        
+        // Map RMS (0 to 1) to a bar height (minimum 2px, max HEIGHT)
+        let newHeight = Math.max(2, rms * HEIGHT * 3);
+        if (newHeight > HEIGHT) newHeight = HEIGHT;
+        
+        // Add to history and remove oldest
+        this._volumeHistory.push(newHeight);
+        if (this._volumeHistory.length > 40) {
+            this._volumeHistory.shift();
+        }
         
         canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
         
-        // Draw bars
-        const barWidth = (WIDTH / this._dataArray.length) * 1.5;
-        let barHeight;
-        let x = 0;
+        // Draw scrolling bars
+        const barWidth = 2.5;
+        const gap = 1.5;
+        let x = WIDTH - (this._volumeHistory.length * (barWidth + gap));
+        if (x < 0) x = 0;
         
-        for(let i = 0; i < this._dataArray.length; i++) {
-            barHeight = this._dataArray[i] / 4;
-            // minimum height so it doesn't completely disappear
-            if (barHeight < 2) barHeight = 2;
-            
+        for(let i = 0; i < this._volumeHistory.length; i++) {
+            const h = this._volumeHistory[i];
             canvasCtx.fillStyle = '#00a884'; // WhatsApp green
-            canvasCtx.fillRect(x, (HEIGHT - barHeight) / 2, barWidth, barHeight);
-            
-            x += barWidth + 1;
+            // Draw symmetric bar from the vertical center
+            canvasCtx.fillRect(x, (HEIGHT - h) / 2, barWidth, h);
+            x += barWidth + gap;
         }
     }
 
@@ -2300,6 +2329,7 @@ export class WhatsAppChatsAction extends Component {
         // Capture blob before clearing state
         const blob = this.state.recordingBlob;
         const blobUrl = this.state.recordingBlobUrl;
+        const duration = this.state.recordingSeconds;
 
         // ── Clear recording UI INSTANTLY ──────────────────────────────────────
         this.state.recordingBlob = null;
@@ -2326,13 +2356,13 @@ export class WhatsAppChatsAction extends Component {
                 mimetype: blob.type || 'audio/webm',
                 name: filename,
                 localBlobUrl: blobUrl,  // plays immediately from blob, no server needed yet
-                duration: this.state.recordingSeconds
+                duration: duration
             }]
         };
         // Explicitly set the initial audio progress for the UI
         this.state.audioProgress[tempAttId] = {
             current: 0,
-            duration: this.state.recordingSeconds
+            duration: duration
         };
         this.state.messages.push(tempMsg);
         this.scrollToBottom();
