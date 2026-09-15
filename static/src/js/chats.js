@@ -1560,10 +1560,11 @@ export class WhatsAppChatsAction extends Component {
                         // For audio / media messages, check by attachment name
                         if (m.attachment_ids && m.attachment_ids.length > 0) {
                             const attName = m.attachment_ids[0].name;
+                            const attBase = attName ? attName.split('.')[0] : null;
                             const alreadyReceived = this.state.messages.some(serverMsg => 
                                 serverMsg.isMe === true && 
                                 serverMsg.attachment_ids &&
-                                serverMsg.attachment_ids.some(att => att.name === attName)
+                                serverMsg.attachment_ids.some(att => att.name && attBase && att.name.split('.')[0] === attBase)
                             );
                             return !alreadyReceived;
                         } else if (m.bodyText) {
@@ -2130,7 +2131,13 @@ export class WhatsAppChatsAction extends Component {
     async startRecording() {
         if (this.state.isRecording) return;
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                } 
+            });
             this._mediaStream = stream;
             this._audioChunks = [];
             
@@ -2175,7 +2182,7 @@ export class WhatsAppChatsAction extends Component {
                 clearInterval(this._recordingTimer);
             };
 
-            this._mediaRecorder.start(200);
+            this._mediaRecorder.start(); // Do NOT use timeslices, it breaks WebM in some Chrome versions
             this.state.isRecording = true;
             this.state.isPaused = false;
             this.state.recordingSeconds = 0;

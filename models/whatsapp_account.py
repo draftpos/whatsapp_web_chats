@@ -1165,7 +1165,9 @@ class WhatsAppAccount(models.Model):
                 try:
                     subprocess.run([
                         ffmpeg_exe, '-y', '-i', temp_in_path,
-                        '-vn', '-c:a', 'libopus', '-b:a', '32k',
+                        '-vn', '-c:a', 'libopus', '-b:a', '16k',
+                        '-vbr', 'on', '-compression_level', '10',
+                        '-frame_duration', '20', '-application', 'voip',
                         '-ar', '16000', '-ac', '1',
                         temp_out_path
                     ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1176,7 +1178,9 @@ class WhatsAppAccount(models.Model):
                     try:
                         subprocess.run([
                             ffmpeg_exe, '-y', '-i', temp_in_path,
-                            '-vn', '-c:a', 'opus', '-strict', '-2', '-b:a', '32k',
+                            '-vn', '-c:a', 'opus', '-strict', '-2', '-b:a', '16k',
+                            '-vbr', 'on', '-compression_level', '10',
+                            '-frame_duration', '20', '-application', 'voip',
                             '-ar', '16000', '-ac', '1',
                             temp_out_path
                         ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
