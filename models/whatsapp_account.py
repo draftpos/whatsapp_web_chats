@@ -1205,7 +1205,7 @@ class WhatsAppAccount(models.Model):
                 if att.exists():
                     # python-magic often forces WebM audio files to 'video/webm'. Check the name to disambiguate.
                     is_audio = att.mimetype and att.mimetype.startswith('audio/')
-                    if att.mimetype == 'video/webm' and att.name and 'audio_message' in att.name:
+                    if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
                         is_audio = True
                         
                     if is_audio:
