@@ -876,6 +876,13 @@
                                                     <span style="font-size: 13px; color: #3b4a54; font-weight: 500;">Document</span>
                                                 </div>
 
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('audio/*')" style="display: flex; align-items: center; padding: 4px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #F56056; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                                                        <i class="fa fa-headphones" style="font-size: 12px;"/>
+                                                    </div>
+                                                    <span style="font-size: 13px; color: #3b4a54; font-weight: 500;">Audio</span>
+                                                </div>
+
                                                 <div class="attach-menu-item" t-on-click="() => this.openTemplatesModal('templates')" style="display: flex; align-items: center; padding: 4px 16px; cursor: pointer; transition: background 0.2s;">
                                                     <div style="background: #00A884; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
                                                         <i class="fa fa-file-text-o" style="font-size: 12px;"/>
