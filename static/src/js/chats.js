@@ -2258,7 +2258,13 @@ export class WhatsAppChatsAction extends Component {
                 mimetype: blob.type || 'audio/webm',
                 name: filename,
                 localBlobUrl: blobUrl,  // plays immediately from blob, no server needed yet
+                duration: this.state.recordingSeconds
             }]
+        };
+        // Explicitly set the initial audio progress for the UI
+        this.state.audioProgress[tempAttId] = {
+            current: 0,
+            duration: this.state.recordingSeconds
         };
         this.state.messages.push(tempMsg);
         this.scrollToBottom();

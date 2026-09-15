@@ -1152,27 +1152,40 @@ class WhatsAppAccount(models.Model):
                 temp_in_path = temp_in.name
                 
             temp_out_path = temp_in_path + '_out.ogg'
+            mimetype = 'audio/ogg'
+            ext = '.ogg'
             
-            # WhatsApp officially uses Ogg Opus for Voice Notes. 
-            # Chrome records in WebM Opus. We can perfectly remux it to Ogg without re-encoding!
-            subprocess.run([
-                ffmpeg_exe, '-y', '-i', temp_in_path,
-                '-c:a', 'copy',
-                temp_out_path
-            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                # WhatsApp officially uses Ogg Opus for Voice Notes. 
+                # We MUST use libopus to re-encode because direct stream copy from WebM to Ogg corrupts the Opus headers!
+                subprocess.run([
+                    ffmpeg_exe, '-y', '-i', temp_in_path,
+                    '-c:a', 'libopus', '-b:a', '32k',
+                    temp_out_path
+                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except subprocess.CalledProcessError:
+                # If libopus is missing from this ffmpeg build, fallback to AAC which is natively supported
+                temp_out_path = temp_in_path + '_out.m4a'
+                subprocess.run([
+                    ffmpeg_exe, '-y', '-i', temp_in_path,
+                    '-c:a', 'aac', '-b:a', '64k',
+                    temp_out_path
+                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                mimetype = 'audio/mp4'
+                ext = '.m4a'
             
             with open(temp_out_path, 'rb') as f:
                 compressed_data = f.read()
                 
             name = attachment.name or 'audio'
             if '.' in name:
-                name = name.rsplit('.', 1)[0] + '.ogg'
+                name = name.rsplit('.', 1)[0] + ext
             else:
-                name += '.ogg'
+                name += ext
 
             attachment.sudo().write({
                 'datas': base64.b64encode(compressed_data),
-                'mimetype': 'audio/ogg',
+                'mimetype': mimetype,
                 'name': name
             })
             os.unlink(temp_in_path)
