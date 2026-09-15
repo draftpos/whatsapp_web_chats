@@ -1161,7 +1161,6 @@ class WhatsAppAccount(models.Model):
             ext = '.ogg'
 
             try:
-            try:
                 # ── Force AAC/m4a (Supported general audio format, bypasses strict Opus Voice Note rules) ──
                 temp_out_m4a = temp_in_path + '_out.m4a'
                 subprocess.run([
@@ -1173,12 +1172,7 @@ class WhatsAppAccount(models.Model):
                 mimetype = 'audio/mp4'
                 ext = '.m4a'
                 _logger.info("Audio compressed with aac successfully to avoid Opus rejection.")
-            except Exception as e:
-                error_details = f"aac compression failed: {e}\nffmpeg: {ffmpeg_exe}"
-                with open('/tmp/ffmpeg_error.log', 'w') as log_f:
-                    log_f.write(error_details)
-                raise Exception(error_details)
-
+                
                 # ── Read the compressed file and update attachment ───────────────────
                 with open(temp_out_path, 'rb') as f:
                     compressed_data = f.read()
@@ -1194,7 +1188,11 @@ class WhatsAppAccount(models.Model):
                     'mimetype': mimetype,
                     'name': name
                 })
-
+            except Exception as e:
+                error_details = f"aac compression failed: {e}\nffmpeg: {ffmpeg_exe}"
+                with open('/tmp/ffmpeg_error.log', 'w') as log_f:
+                    log_f.write(error_details)
+                raise Exception(error_details)
             finally:
                 # ── Always clean up temp files ───────────────────────────────────────
                 try:
