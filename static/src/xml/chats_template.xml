@@ -991,6 +991,7 @@
                                         <div style="display: flex; align-items: center; flex: 1; margin-left: 15px;">
                                             <span class="wa-recording-dot" style="width: 8px; height: 8px; background: #f15c6d; border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin-right: 8px;"/>
                                             <span class="wa-recording-timer" style="font-size: 15px; font-weight: 500; color: white;"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
+                                            <canvas class="wa-audio-visualizer" width="150" height="30" style="margin-left: 15px; flex: 1;"></canvas>
                                         </div>
                                         <button class="wa-preview-playpause" title="Pause / Resume" t-on-click="pauseRecording" style="background: #00a884; border: none; cursor: pointer; color: white; font-size: 14px; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center;">
                                             <i t-attf-class="fa {{ state.isPaused ? 'fa-microphone' : 'fa-pause' }}"/>

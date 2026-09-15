@@ -2129,6 +2129,25 @@ export class WhatsAppChatsAction extends Component {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             this._mediaStream = stream;
             this._audioChunks = [];
+            
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioCtx.createAnalyser();
+                const source = audioCtx.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 64;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                this._audioCtx = audioCtx;
+                this._analyser = analyser;
+                this._dataArray = dataArray;
+                
+                // Give the DOM a moment to render the canvas, then start drawing
+                setTimeout(() => this._drawVisualizer(), 50);
+            } catch (e) {
+                console.warn("Audio visualizer not supported:", e);
+            }
 
             let options = {};
             if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -2211,9 +2230,52 @@ export class WhatsAppChatsAction extends Component {
     }
     
     cleanupAudioStream() {
+        if (this._audioCtx) {
+            try { this._audioCtx.close(); } catch(e) {}
+            this._audioCtx = null;
+        }
         if (this._mediaStream) {
             this._mediaStream.getTracks().forEach(t => t.stop());
             this._mediaStream = null;
+        }
+    }
+    
+    _drawVisualizer() {
+        if (!this.state.isRecording || this.state.isPaused) {
+            if (this.state.isPaused) requestAnimationFrame(() => this._drawVisualizer());
+            return;
+        }
+        
+        const canvas = document.querySelector('.wa-audio-visualizer');
+        if (!canvas) {
+            requestAnimationFrame(() => this._drawVisualizer());
+            return;
+        }
+        
+        requestAnimationFrame(() => this._drawVisualizer());
+        
+        const canvasCtx = canvas.getContext('2d');
+        const WIDTH = canvas.width;
+        const HEIGHT = canvas.height;
+        
+        this._analyser.getByteFrequencyData(this._dataArray);
+        
+        canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+        
+        // Draw bars
+        const barWidth = (WIDTH / this._dataArray.length) * 1.5;
+        let barHeight;
+        let x = 0;
+        
+        for(let i = 0; i < this._dataArray.length; i++) {
+            barHeight = this._dataArray[i] / 4;
+            // minimum height so it doesn't completely disappear
+            if (barHeight < 2) barHeight = 2;
+            
+            canvasCtx.fillStyle = '#00a884'; // WhatsApp green
+            canvasCtx.fillRect(x, (HEIGHT - barHeight) / 2, barWidth, barHeight);
+            
+            x += barWidth + 1;
         }
     }
 
