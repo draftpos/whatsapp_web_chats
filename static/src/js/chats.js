@@ -2148,6 +2148,7 @@ export class WhatsAppChatsAction extends Component {
                 }
             };
             this._mediaRecorder.onstop = () => {
+                this.cleanupAudioStream();
                 let mimeType = this._mediaRecorder.mimeType || 'audio/webm';
                 if (mimeType.includes('video/')) {
                     mimeType = mimeType.replace('video/', 'audio/');
@@ -2202,13 +2203,18 @@ export class WhatsAppChatsAction extends Component {
     stopRecording() {
         if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
             this._mediaRecorder.stop();
+        } else {
+            this.cleanupAudioStream();
         }
+        clearInterval(this._recordingTimer);
+        this.state.isRecording = false;
+    }
+    
+    cleanupAudioStream() {
         if (this._mediaStream) {
             this._mediaStream.getTracks().forEach(t => t.stop());
             this._mediaStream = null;
         }
-        clearInterval(this._recordingTimer);
-        this.state.isRecording = false;
     }
 
     cancelRecording() {
