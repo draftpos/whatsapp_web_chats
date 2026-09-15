@@ -1168,16 +1168,13 @@ class WhatsAppAccount(models.Model):
                     temp_out_path
                 ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                # If libopus is missing from this ffmpeg build, fallback to AAC which is natively supported
-                temp_out_path = temp_in_path + '_out.m4a'
+                # If libopus is missing from this ffmpeg build, fallback to the native experimental opus encoder
                 try:
                     subprocess.run([
                         ffmpeg_exe, '-y', '-i', temp_in_path,
-                        '-c:a', 'aac', '-b:a', '64k',
+                        '-c:a', 'opus', '-strict', '-2', '-b:a', '32k',
                         temp_out_path
                     ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    mimetype = 'audio/mp4'
-                    ext = '.m4a'
                 except Exception as inner_e:
                     # Write the error to a file so we can see it!
                     error_details = str(e) + "\nInner: " + str(inner_e)
