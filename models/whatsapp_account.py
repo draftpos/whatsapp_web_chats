@@ -1151,6 +1151,9 @@ class WhatsAppAccount(models.Model):
                 temp_in.write(raw_data)
                 temp_in_path = temp_in.name
                 
+            import shutil
+            ffmpeg_exe = shutil.which('ffmpeg') or '/usr/bin/ffmpeg'
+            
             temp_out_path = temp_in_path + '_out.ogg'
             mimetype = 'audio/ogg'
             ext = '.ogg'
@@ -1163,16 +1166,25 @@ class WhatsAppAccount(models.Model):
                     '-c:a', 'libopus', '-b:a', '32k',
                     temp_out_path
                 ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            except subprocess.CalledProcessError:
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
                 # If libopus is missing from this ffmpeg build, fallback to AAC which is natively supported
                 temp_out_path = temp_in_path + '_out.m4a'
-                subprocess.run([
-                    ffmpeg_exe, '-y', '-i', temp_in_path,
-                    '-c:a', 'aac', '-b:a', '64k',
-                    temp_out_path
-                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                mimetype = 'audio/mp4'
-                ext = '.m4a'
+                try:
+                    subprocess.run([
+                        ffmpeg_exe, '-y', '-i', temp_in_path,
+                        '-c:a', 'aac', '-b:a', '64k',
+                        temp_out_path
+                    ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    mimetype = 'audio/mp4'
+                    ext = '.m4a'
+                except Exception as inner_e:
+                    # Write the error to a file so we can see it!
+                    error_details = str(e) + "\nInner: " + str(inner_e)
+                    if isinstance(e, subprocess.CalledProcessError) and e.stderr:
+                        error_details += "\nSTDERR: " + e.stderr.decode('utf-8', errors='ignore')
+                    with open('/tmp/ffmpeg_error.log', 'w') as log_f:
+                        log_f.write(error_details)
+                    raise Exception(error_details)
             
             with open(temp_out_path, 'rb') as f:
                 compressed_data = f.read()
@@ -1192,20 +1204,20 @@ class WhatsAppAccount(models.Model):
             os.unlink(temp_out_path)
         except Exception as e:
             _logger.error("Failed to compress audio attachment %s: %s", attachment.id, str(e))
-            # Fallback: spoof the mimetype so Odoo's WhatsApp module doesn't block it.
-            # The browser's WebM (Opus) might be accepted by WhatsApp Cloud API if labelled as audio/ogg.
-            attachment.sudo().write({
-                'mimetype': 'audio/ogg'
-            })
-            # Send an error message to the channel so the user knows what happened
+            # If ffmpeg failed to encode the file, do NOT spoof the mimetype!
+            # Sending a raw WebM file as 'audio/ogg' causes WhatsApp to accept the upload but the recipient's phone will fail to play it ("audio no longer available").
+            # Instead, we will send an error message to the channel so the user knows what happened.
             try:
                 error_msg = str(e)
-                import subprocess
-                if isinstance(e, subprocess.CalledProcessError) and e.stderr:
-                    error_msg += "\nFFMPEG STDERR: " + e.stderr.decode('utf-8', errors='ignore')
-                channel = self.env['discuss.channel'].sudo().search([('message_ids.attachment_ids', 'in', [attachment.id])], limit=1)
-                if channel:
-                    channel.message_post(body=f"⚠️ System Warning: Audio compression (ffmpeg) failed, attempting to send original file. Error details:\n{error_msg}", message_type='notification')
+                self.env['mail.message'].create({
+                    'body': '<p><b>Audio Processing Error:</b> %s</p>' % error_msg,
+                    'message_type': 'comment',
+                    'model': attachment.res_model,
+                    'res_id': attachment.res_id,
+                })
+            except:
+                pass
+            raise UserError(f"Failed to process audio for WhatsApp: {str(e)}. Please check your ffmpeg installation.")
             except Exception:
                 pass
 
