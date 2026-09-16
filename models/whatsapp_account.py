@@ -1261,7 +1261,7 @@ class WhatsAppAccount(models.Model):
                 if not attachment_ids:
                     kwargs['body'] = ' '
                 else:
-                    kwargs['body'] = 'Aud' if has_audio else ''
+                    kwargs['body'] = ''
                 
             msg_id = channel.message_post(**kwargs).id
 
