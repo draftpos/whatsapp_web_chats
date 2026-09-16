@@ -1132,6 +1132,8 @@ class WhatsAppAccount(models.Model):
             os.unlink(temp_out_path)
         except Exception as e:
             _logger.error("Failed to compress video attachment %s: %s", attachment.id, str(e))
+            from odoo.exceptions import UserError
+            raise UserError(f"Failed to process video for WhatsApp: {str(e)}. Please check your ffmpeg installation.")
 
     def _compress_audio_attachment(self, attachment):
         import subprocess
