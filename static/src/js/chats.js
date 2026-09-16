@@ -2269,18 +2269,18 @@ export class WhatsAppChatsAction extends Component {
         
         // Fake RMS to make visualizer move without accessing microphone data
         // Uses sine wave + some randomness for a realistic speaking effect
-        const time = Date.now() / 200;
-        const base = (Math.sin(time) * 0.5 + 0.5) * 0.4;
-        const noise = Math.random() * 0.3;
-        const rms = 0.1 + base + noise;
+        const time = Date.now() / 150;
+        const base = (Math.sin(time) * 0.5 + 0.5) * 0.15;
+        const noise = Math.random() * 0.15;
+        const rms = 0.08 + base + noise;
         
-        // Map RMS to a dynamic bar height with minimum 3px and rounded aesthetic
-        let newHeight = Math.max(3, rms * HEIGHT);
-        if (newHeight > HEIGHT - 2) newHeight = HEIGHT - 2;
+        // Map RMS to a dynamic bar height with minimum 2px and rounded aesthetic
+        let newHeight = Math.max(2, rms * HEIGHT);
+        if (newHeight > HEIGHT * 0.6) newHeight = HEIGHT * 0.6;
         
         // Add to history and remove oldest
         this._volumeHistory.push(newHeight);
-        const maxBars = Math.floor(WIDTH / 4);
+        const maxBars = Math.floor(WIDTH / 3.5);
         if (this._volumeHistory.length > maxBars) {
             this._volumeHistory.shift();
         }
@@ -2288,7 +2288,7 @@ export class WhatsAppChatsAction extends Component {
         canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
         
         // Draw scrolling bars with rounded pill shape like WhatsApp
-        const barWidth = 2.5;
+        const barWidth = 2;
         const gap = 1.5;
         let x = WIDTH - (this._volumeHistory.length * (barWidth + gap));
         if (x < 0) x = 0;
