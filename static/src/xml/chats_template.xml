@@ -121,13 +121,14 @@
                         <div style="padding: 20px; text-align: center; color: #8696a0; font-size: 14px;">No chats found</div>
                     </t>
                     <t t-foreach="this.filteredChannels || []" t-as="channel" t-key="channel.id">
-                        <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }} {{ state.selectedChannels?.length > 0 ? 'selection-mode' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)" t-attf-style="{{ state.showChatDropdownId === channel.id ? 'z-index: 100;' : '' }}">
+                        <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }} {{ state.selectedChannels?.length > 0 ? 'selection-mode' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)" t-attf-style="flex-direction: column; align-items: stretch; justify-content: center; {{ state.showChatDropdownId === channel.id ? 'z-index: 100;' : '' }}">
                             <t t-if="channel.wa_agent_id">
                                 <div class="chat-agent-row" style="font-size:11px; color:#1976D2; font-weight:bold; display:flex; align-items:center; margin-bottom: 4px; padding-left: 5px;">
                                     <i class="fa fa-user-circle" style="margin-right:4px;"></i>
                                     <t t-esc="channel.wa_agent_id[1]"/>
                                 </div>
                             </t>
+                            <div style="display: flex; align-items: center; width: 100%;">
                             <div class="chat-selection" t-on-click="(ev) => this.toggleChannelSelection(channel.id, ev)">
                                 <t t-if="state.selectedChannels.includes(channel.id)">
                                     <i class="fa fa-check-circle" style="color: #25D366; font-size: 20px;"></i>
@@ -212,6 +213,7 @@
                             
                             <div class="chat-dropdown-btn" t-on-click="(ev) => this.toggleChatDropdown(channel.id, ev)">
                                 <i class="fa fa-chevron-down"></i>
+                            </div>
                             </div>
                             <t t-if="state.showChatDropdownId === channel.id">
                                 <div class="chat-dropdown-menu" t-attf-style="max-height: 250px; overflow-y: auto; position: fixed; z-index: 1050; {{ state.dropdownStyle || '' }}" t-on-click.stop="() => {}">
