@@ -71,6 +71,9 @@ class WhatsAppMessage(models.Model):
                 clean_body = re.sub(r'<[^>]+>', '', str(msg.body or '')).strip()
                 if not clean_body or clean_body == 'False':
                     msg.write({'state': 'cancel'})
+            # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
+            elif msg.state == 'outgoing' and msg.message_type == 'audio' and msg.body:
+                msg.write({'body': False})
                     
         return super()._send(force_send_by_cron=force_send_by_cron, **kwargs)
         
@@ -85,6 +88,9 @@ class WhatsAppMessage(models.Model):
                 clean_body = re.sub(r'<[^>]+>', '', str(msg.body or '')).strip()
                 if not clean_body or clean_body == 'False':
                     msg.write({'state': 'cancel'})
+            # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
+            elif msg.state == 'outgoing' and msg.message_type == 'audio' and msg.body:
+                msg.write({'body': False})
                     
         return super()._send_message(**kwargs)
 
