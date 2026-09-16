@@ -59,6 +59,16 @@ class WhatsAppMessage(models.Model):
 
         return records
 
+    def _send(self, force_send_by_cron=False, **kwargs):
+        if self.env.context.get('is_compressing_video'):
+            return
+        return super()._send(force_send_by_cron=force_send_by_cron, **kwargs)
+        
+    def _send_message(self, **kwargs):
+        if self.env.context.get('is_compressing_video'):
+            return
+        return super()._send_message(**kwargs)
+
     @api.model
     def _send_cron(self):
         """ Send all outgoing messages. 
