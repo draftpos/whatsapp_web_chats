@@ -12,6 +12,7 @@ class DiscussChannel(models.Model):
     wa_is_urgent = fields.Boolean(string="WhatsApp Chat Urgent", default=False)
     wa_is_muted = fields.Boolean(string="WhatsApp Chat Muted", default=False)
     wa_is_blocked = fields.Boolean(string="WhatsApp Chat Blocked", default=False)
+    wa_group_invite_sent = fields.Boolean(string="Group Invite Sent", default=False)
     wa_disappearing_mode = fields.Selection([
         ('off', 'Off'),
         ('24h', '24 Hours'),
@@ -205,3 +206,45 @@ class DiscussChannel(models.Model):
             
             if messages_to_delete:
                 messages_to_delete.unlink()
+
+    def message_post(self, **kwargs):
+        message = super().message_post(**kwargs)
+        
+        # Auto-send group invite message exactly once per chat
+        # But only if this message is a regular chat message (not an internal notification)
+        # and if the feature is enabled for the account.
+        if (
+            self.channel_type == 'whatsapp' 
+            and not self.wa_group_invite_sent 
+            and self.wa_account_id
+            and self.wa_account_id.wa_group_auto_message_share
+        ):
+            # Check if this message was a real message (not a system notification)
+            message_type = kwargs.get('message_type') or message.message_type
+            if message_type in ['comment', 'whatsapp_message', 'inbound']:
+                self.sudo().write({'wa_group_invite_sent': True})
+                
+                # Construct message
+                text = self.wa_account_id.wa_group_auto_message_text or ""
+                link = self.wa_account_id.wa_group_auto_message_link or ""
+                full_text = f"{text} {link}".strip()
+                
+                if full_text:
+                    # Determine author (fallback to OdooBot if no valid user is available)
+                    author_id = self.wa_account_id.user_id.partner_id.id
+                    if not author_id:
+                        author_id = self.env.user.partner_id.id if self.env.user.partner_id else self.env.ref('base.partner_root').id
+                        
+                    try:
+                        self.env['whatsapp.account'].sudo().post_whatsapp_message(
+                            channel_id=self.id,
+                            body=full_text,
+                            message_type="whatsapp_message",
+                            subtype_xmlid="mail.mt_comment",
+                            author_id=author_id
+                        )
+                    except Exception as e:
+                        import logging
+                        logging.getLogger(__name__).error("Failed to send auto group invite to %s: %s", self.id, str(e))
+                        
+        return message

@@ -39,6 +39,13 @@
                             </list>
                         </field>
                     </page>
+                    <page string="Auto Message Share" name="auto_message_share">
+                        <group>
+                            <field name="wa_group_auto_message_share"/>
+                            <field name="wa_group_auto_message_text" invisible="not wa_group_auto_message_share"/>
+                            <field name="wa_group_auto_message_link" invisible="not wa_group_auto_message_share"/>
+                        </group>
+                    </page>
                 </notebook>
             </xpath>
         </field>

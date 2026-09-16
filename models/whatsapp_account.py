@@ -44,6 +44,10 @@ class WhatsAppAccount(models.Model):
     wa_department_routing_active = fields.Boolean(string="Auto Response for Departments", default=True)
     followup_rule_ids = fields.One2many('whatsapp.followup.rule', 'account_id', string='Auto Follow-up Sequence')
 
+    wa_group_auto_message_share = fields.Boolean("WhatsApp Group Auto Message Share", default=False)
+    wa_group_auto_message_text = fields.Text("Auto Message Text", default="Hi you can also joing our group for Fitted Kitchen Designs more vairables group link")
+    wa_group_auto_message_link = fields.Char("Auto Message Link")
+
     @api.model
     def toggle_account_bot(self, wa_account_id, active):
         account = self.browse(int(wa_account_id))
