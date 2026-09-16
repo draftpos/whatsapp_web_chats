@@ -110,6 +110,8 @@ export class WhatsAppChatsAction extends Component {
             phoneModalNumber: '',
             phoneModalSearch: '',
             phoneModalContacts: [],
+            // Mobile view
+            isMobile: window.innerWidth <= 768,
         });
         
         this.myPartnerId = null;
@@ -143,6 +145,20 @@ export class WhatsAppChatsAction extends Component {
             this.pollInterval = setInterval(() => {
                 this.pollMessages();
             }, 5000);
+
+            // Mobile view: toggle CSS class on the root container when viewport changes
+            this._updateMobileClass = () => {
+                this.state.isMobile = window.innerWidth <= 768;
+                const container = document.querySelector('.whatsapp-container');
+                if (!container) return;
+                if (this.state.isMobile && this.state.selectedChannel) {
+                    container.classList.add('mobile-chat-open');
+                } else {
+                    container.classList.remove('mobile-chat-open');
+                }
+            };
+            window.addEventListener('resize', this._updateMobileClass);
+            this._updateMobileClass();
 
             // Close dropdowns when clicking anywhere outside
             this._onDocumentClick = (ev) => {
@@ -233,6 +249,9 @@ export class WhatsAppChatsAction extends Component {
             }
             if (this._onChatListScroll && this.chatList.el) {
                 this.chatList.el.removeEventListener('scroll', this._onChatListScroll);
+            }
+            if (this._updateMobileClass) {
+                window.removeEventListener('resize', this._updateMobileClass);
             }
         });
     }
@@ -1195,6 +1214,15 @@ export class WhatsAppChatsAction extends Component {
         await this.deleteChat(channelId);
     }
 
+    goBackToChatList() {
+        // Mobile: slide back to the chat list panel
+        this.state.selectedChannel = null;
+        this.state.messages = [];
+        this.state.showContactInfo = false;
+        const container = document.querySelector('.whatsapp-container');
+        if (container) container.classList.remove('mobile-chat-open');
+    }
+
     selectChannel(channel, event) {
         if (event && this.state.selectedChannels.length > 0) {
             this.toggleChannelSelection(channel.id, event);
@@ -1247,6 +1275,12 @@ export class WhatsAppChatsAction extends Component {
         
         // Load messages asynchronously without blocking the UI
         this.loadMessages(channel.id, loadId).catch(e => console.warn("Failed to load messages:", e));
+
+        // Mobile: show the chat panel
+        if (this.state.isMobile) {
+            const container = document.querySelector('.whatsapp-container');
+            if (container) container.classList.add('mobile-chat-open');
+        }
     }
 
     toggleChannelSelection(channelId, event) {

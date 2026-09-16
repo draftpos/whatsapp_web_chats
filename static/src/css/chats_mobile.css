@@ -1,0 +1,171 @@
+/* =============================================================
+   WhatsApp Web Chats – Mobile Styles
+   All rules are scoped to max-width: 768px so the desktop
+   view (chats.css) is completely unaffected.
+   ============================================================= */
+
+/* Hide the mobile back button on desktop by default */
+.wa-mobile-back-btn {
+    display: none;
+}
+
+@media (max-width: 768px) {
+
+    /* Root container */
+    .whatsapp-container {
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Sidebar (chat list) - takes full width */
+    .whatsapp-sidebar {
+        width: 100% !important;
+        min-width: unset !important;
+        flex: none;
+        height: 100%;
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 10;
+        transition: transform 0.25s ease;
+    }
+
+    /* When a chat is open, slide sidebar off to the left */
+    .whatsapp-container.mobile-chat-open .whatsapp-sidebar {
+        transform: translateX(-100%);
+        pointer-events: none;
+    }
+
+    /* Main chat panel - slides in from the right */
+    .whatsapp-main {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 20;
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+    }
+
+    /* When a chat is open, bring in the main panel */
+    .whatsapp-container.mobile-chat-open .whatsapp-main {
+        transform: translateX(0);
+    }
+
+    /* Header sizing */
+    .whatsapp-header {
+        height: 56px;
+        padding: 0 8px 0 4px;
+        flex-shrink: 0;
+    }
+
+    .chat-header-name {
+        font-size: 15px;
+        margin-left: 6px;
+    }
+
+    /* Chat list scrollable */
+    .whatsapp-chat-list {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Chat item sizing */
+    .whatsapp-chat-item {
+        padding: 10px 14px;
+    }
+
+    .chat-avatar {
+        width: 48px;
+        height: 48px;
+        font-size: 22px;
+        margin-right: 12px;
+    }
+
+    .chat-name {
+        font-size: 15px;
+    }
+
+    .chat-preview {
+        max-width: calc(100vw - 130px) !important;
+    }
+
+    /* Messages area */
+    .whatsapp-messages {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px 10px;
+    }
+
+    /* Narrower bubbles on mobile */
+    .message-bubble {
+        max-width: 88vw !important;
+    }
+
+    /* Footer */
+    .whatsapp-footer {
+        flex-shrink: 0;
+        padding: 4px 6px;
+    }
+
+    .whatsapp-input-area {
+        padding: 4px 6px;
+        gap: 4px;
+    }
+
+    .whatsapp-message-input {
+        font-size: 15px;
+    }
+
+    /* Mobile back button - only visible on mobile */
+    .wa-mobile-back-btn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 8px 10px 8px 4px;
+        flex-shrink: 0;
+    }
+
+    /* Attach/plus menu - bottom sheet on mobile */
+    .attach-dropdown-menu {
+        max-height: calc(100vh - 160px) !important;
+        left: 0 !important;
+        right: 0 !important;
+        border-radius: 16px 16px 0 0 !important;
+    }
+
+    /* Filter pills scrollable row */
+    .whatsapp-chat-filters {
+        overflow-x: auto;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px 12px !important;
+    }
+
+    /* Audio bubble */
+    .wa-audio-bubble {
+        max-width: 85vw;
+    }
+
+    .wa-audio-track-container {
+        min-width: 100px !important;
+    }
+
+    /* Contact info - full screen */
+    .whatsapp-contact-info {
+        position: fixed !important;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 30;
+        width: 100% !important;
+    }
+
+    /* Desktop-only elements hidden on mobile */
+    .wa-desktop-only {
+        display: none !important;
+    }
+}

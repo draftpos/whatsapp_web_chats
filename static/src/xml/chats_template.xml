@@ -248,7 +248,11 @@
                 <t t-if="state.selectedChannel">
                     <div class="whatsapp-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; cursor: pointer;" t-on-click="toggleContactInfo" title="Contact Info">
-                            <i class="fa fa-arrow-left" t-on-click.stop="closeChat" style="font-size: 20px; color: white; cursor: pointer; margin-right: 15px;" title="Back to chats"></i>
+                            <!-- Mobile-only back button (CSS hides this on desktop) -->
+                            <button class="wa-mobile-back-btn" title="Back to chats" t-on-click.stop="goBackToChatList">
+                                <i class="fa fa-arrow-left"/>
+                            </button>
+                            <i class="fa fa-arrow-left wa-desktop-only" t-on-click.stop="closeChat" style="font-size: 20px; color: white; cursor: pointer; margin-right: 15px;" title="Back to chats"></i>
                             <div class="chat-avatar"><t t-esc="(state.selectedChannel.name and state.selectedChannel.name?.length > 0) ? state.selectedChannel.name[0].toUpperCase() : '?'"/></div>
                             <div style="display:flex; flex-direction:column;">
                                 <span class="chat-header-name" style="color: white;"><t t-esc="state.selectedChannel.name || 'Unknown'"/></span>
