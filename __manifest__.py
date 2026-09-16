@@ -27,6 +27,7 @@
             'whatsapp_web_chats/static/src/css/chats.css',
             'whatsapp_web_chats/static/src/css/chats_mobile.css',
             'whatsapp_web_chats/static/src/xml/chats_template.xml',
+            'whatsapp_web_chats/static/src/xml/chats_mobile_template.xml',
             'whatsapp_web_chats/static/src/js/chats.js',
         ],
     },

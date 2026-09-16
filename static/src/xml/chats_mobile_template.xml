@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    
+    <!-- Mobile Header Title -->
+    <t t-name="whatsapp_web_chats.MobileHeaderTitle">
+        <span class="wa-mobile-only wa-header-title">WhatsApp</span>
+    </t>
+
+    <!-- Mobile Header Icons (Pencil and 3 dots) -->
+    <t t-name="whatsapp_web_chats.MobileHeaderIcons">
+        <div class="wa-mobile-only" style="display: flex; align-items: center; gap: 4px; margin-left: auto;">
+            <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="New Chat" t-on-click="openNewChatModal">
+                <i class="fa fa-pencil"/>
+            </button>
+            <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="Menu" t-on-click="toggleSidebarDropdown">
+                <i class="fa fa-ellipsis-v"/>
+            </button>
+        </div>
+    </t>
+
+    <!-- Mobile Floating Action Button (FAB) -->
+    <t t-name="whatsapp_web_chats.MobileFAB">
+        <button class="wa-mobile-fab wa-mobile-only" t-on-click="openNewChatModal" title="New Chat">
+            <i class="fa fa-pencil"/>
+        </button>
+    </t>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <t t-name="whatsapp_web_chats.MobileBottomNav">
+        <div class="wa-mobile-bottom-nav wa-mobile-only">
+            <div class="wa-bottom-nav-item wa-bottom-nav-active">
+                <i class="fa fa-comments"/>
+                <span>Chats</span>
+            </div>
+            <div class="wa-bottom-nav-item">
+                <i class="fa fa-circle-o"/>
+                <span>Updates</span>
+            </div>
+            <div class="wa-bottom-nav-item">
+                <i class="fa fa-users"/>
+                <span>Communities</span>
+            </div>
+            <div class="wa-bottom-nav-item">
+                <i class="fa fa-phone"/>
+                <span>Calls</span>
+            </div>
+        </div>
+    </t>
+
+    <!-- Mobile Back Button -->
+    <t t-name="whatsapp_web_chats.MobileBackButton">
+        <button class="wa-mobile-back-btn" title="Back to chats" t-on-click.stop="goBackToChatList">
+            <i class="fa fa-arrow-left"/>
+        </button>
+    </t>
+
+</templates>

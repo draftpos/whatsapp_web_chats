@@ -272,24 +272,9 @@
                 </button>
 
                 <!-- Mobile-only Bottom Navigation Bar -->
-                <div class="wa-mobile-bottom-nav wa-mobile-only">
-                    <div class="wa-bottom-nav-item wa-bottom-nav-active">
-                        <i class="fa fa-comments"/>
-                        <span>Chats</span>
-                    </div>
-                    <div class="wa-bottom-nav-item">
-                        <i class="fa fa-circle-o"/>
-                        <span>Updates</span>
-                    </div>
-                    <div class="wa-bottom-nav-item">
-                        <i class="fa fa-users"/>
-                        <span>Communities</span>
-                    </div>
-                    <div class="wa-bottom-nav-item">
-                        <i class="fa fa-phone"/>
-                        <span>Calls</span>
-                    </div>
-                </div>
+                <t t-if="state.isMobile">
+                    <t t-call="whatsapp_web_chats.MobileBottomNav"/>
+                </t>
 
             </div>
             <div class="whatsapp-main">
@@ -297,9 +282,9 @@
                     <div class="whatsapp-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; cursor: pointer;" t-on-click="toggleContactInfo" title="Contact Info">
                             <!-- Mobile-only back button (CSS hides this on desktop) -->
-                            <button class="wa-mobile-back-btn" title="Back to chats" t-on-click.stop="goBackToChatList">
-                                <i class="fa fa-arrow-left"/>
-                            </button>
+                            <t t-if="state.isMobile">
+                                <t t-call="whatsapp_web_chats.MobileBackButton"/>
+                            </t>
                             <i class="fa fa-arrow-left wa-desktop-only" t-on-click.stop="closeChat" style="font-size: 20px; color: white; cursor: pointer; margin-right: 15px;" title="Back to chats"></i>
                             <div class="chat-avatar"><t t-esc="(state.selectedChannel.name and state.selectedChannel.name?.length > 0) ? state.selectedChannel.name[0].toUpperCase() : '?'"/></div>
                             <div style="display:flex; flex-direction:column;">
