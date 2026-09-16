@@ -2664,22 +2664,34 @@ export class WhatsAppChatsAction extends Component {
                                 method: 'POST',
                                 body: formData,
                             });
+                            if (!response.ok) {
+                                throw new Error(`Upload failed with status ${response.status}`);
+                            }
                             const responseText = await response.text();
                             const match = responseText.match(/\[.*?\]|\{.*?\}/);
                             if (match) {
                                 const result = JSON.parse(match[0]);
+                                if (result.error) {
+                                    throw new Error(result.error);
+                                }
                                 if (Array.isArray(result)) {
                                     attachment_ids.push(...result.map(a => a.id));
                                 } else if (result.id) {
                                     attachment_ids.push(result.id);
+                                } else {
+                                    throw new Error("Invalid attachment response format");
                                 }
+                            } else {
+                                throw new Error("Could not parse attachment ID from response");
                             }
                         }
                     } catch (e) {
-                        console.error("Offline attachment upload failed", e);
-                        // If attachment upload fails completely, we might need to abort this task or retry later.
-                        // For now, if we are offline, fetch will throw. We break the loop and try later.
-                        throw e;
+                        console.error("Failed to upload pending file:", e);
+                        alert("Failed to upload attachment: " + e.message);
+                        // Restore the pending message state or just mark as failed
+                        const msgInState = this.state.messages.find(m => m.id === task.tempId);
+                        if (msgInState) msgInState.wa_state = 'error';
+                        return;
                     }
                 }
 
