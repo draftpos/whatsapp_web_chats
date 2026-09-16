@@ -6,7 +6,6 @@
     'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup'],
     'external_dependencies': {
         'bin': ['ffmpeg'],
-        'python': ['imageio_ffmpeg'],
     },
     'data': [
         'security/ir.model.access.csv',
