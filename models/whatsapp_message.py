@@ -74,8 +74,12 @@ class WhatsAppMessage(models.Model):
             # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
             elif msg.state == 'outgoing' and msg.message_type == 'audio' and msg.body:
                 msg.write({'body': False})
+                
+        valid_messages = self.filtered(lambda m: m.state != 'cancel')
+        if not valid_messages:
+            return valid_messages
                     
-        return super()._send(force_send_by_cron=force_send_by_cron, **kwargs)
+        return super(WhatsAppMessage, valid_messages)._send(force_send_by_cron=force_send_by_cron, **kwargs)
         
     def _send_message(self, **kwargs):
         if self.env.context.get('is_compressing_video'):
@@ -91,8 +95,12 @@ class WhatsAppMessage(models.Model):
             # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
             elif msg.state == 'outgoing' and msg.message_type == 'audio' and msg.body:
                 msg.write({'body': False})
+                
+        valid_messages = self.filtered(lambda m: m.state != 'cancel')
+        if not valid_messages:
+            return valid_messages
                     
-        return super()._send_message(**kwargs)
+        return super(WhatsAppMessage, valid_messages)._send_message(**kwargs)
 
     @api.model
     def _send_cron(self):
