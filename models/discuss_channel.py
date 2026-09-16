@@ -210,6 +210,9 @@ class DiscussChannel(models.Model):
     def message_post(self, **kwargs):
         message = super().message_post(**kwargs)
         
+        if self.env.context.get('skip_auto_invite'):
+            return message
+            
         # Auto-send group invite message exactly once per chat
         # But only if this message is a regular chat message (not an internal notification)
         # and if the feature is enabled for the account.
@@ -243,7 +246,7 @@ class DiscussChannel(models.Model):
                         author_id = self.env.user.partner_id.id if self.env.user.partner_id else self.env.ref('base.partner_root').id
                         
                     try:
-                        self.env['whatsapp.account'].sudo().post_whatsapp_message(
+                        self.env['whatsapp.account'].with_context(skip_auto_invite=True).sudo().post_whatsapp_message(
                             channel_id=self.id,
                             body=full_text,
                             message_type="whatsapp_message",
