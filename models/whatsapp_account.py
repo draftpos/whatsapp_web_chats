@@ -1250,7 +1250,7 @@ class WhatsAppAccount(models.Model):
             # Clean empty bodies to avoid 'text.body is required' API errors from Meta
             body = kwargs.get('body', '')
             if body == '<p><br></p>' or not body.strip():
-                kwargs['body'] = ''
+                kwargs['body'] = ' '
                 
             msg_id = channel.message_post(**kwargs).id
 
