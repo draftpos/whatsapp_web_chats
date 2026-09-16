@@ -1249,18 +1249,25 @@ class WhatsAppAccount(models.Model):
             # Force author_id to the current user, unless explicitly provided (e.g., scheduled messages)
             if 'author_id' not in kwargs:
                 kwargs['author_id'] = self.env.user.partner_id.id
+            
+            # Clean empty bodies to avoid 'text.body is required' API errors from Meta
+            body = kwargs.get('body', '')
+            if body == '<p><br></p>' or not body.strip():
+                kwargs['body'] = ''
+                
             msg_id = channel.message_post(**kwargs).id
 
             # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
-            wa_msgs = self.env['whatsapp.message'].sudo().search([
-                ('mail_message_id', '=', msg_id),
-                ('state', '=', 'outgoing')
-            ])
-            for wa_msg in wa_msgs:
-                try:
-                    wa_msg._send(force_send_by_cron=False)
-                except Exception as send_err:
-                    _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
+            if not has_uncompressed_videos:
+                wa_msgs = self.env['whatsapp.message'].sudo().search([
+                    ('mail_message_id', '=', msg_id),
+                    ('state', '=', 'outgoing')
+                ])
+                for wa_msg in wa_msgs:
+                    try:
+                        wa_msg._send(force_send_by_cron=False)
+                    except Exception as send_err:
+                        _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
             
             if has_uncompressed_videos:
                 wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', msg_id)], limit=1)
