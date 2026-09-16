@@ -412,7 +412,7 @@ export class WhatsAppChatsAction extends Component {
         try {
             this.state.wa_templates = await this.orm.searchRead(
                 "whatsapp.template",
-                [], 
+                [["status", "=", "approved"]], 
                 ["id", "template_name", "body"]
             );
         } catch (e) {
