@@ -222,8 +222,6 @@ class DiscussChannel(models.Model):
             # Check if this message was a real message (not a system notification)
             message_type = kwargs.get('message_type') or message.message_type
             if message_type in ['comment', 'whatsapp_message', 'inbound']:
-                self.sudo().write({'wa_group_invite_sent': True})
-                
                 # Construct message
                 text = self.wa_account_id.wa_group_auto_message_text or ""
                 link = self.wa_account_id.wa_group_auto_message_link or ""
@@ -243,6 +241,7 @@ class DiscussChannel(models.Model):
                             subtype_xmlid="mail.mt_comment",
                             author_id=author_id
                         )
+                        self.sudo().write({'wa_group_invite_sent': True})
                     except Exception as e:
                         import logging
                         logging.getLogger(__name__).error("Failed to send auto group invite to %s: %s", self.id, str(e))
