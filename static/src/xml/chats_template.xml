@@ -243,6 +243,26 @@
                     </t>
                 </div>
 
+                <!-- Mobile-only Bottom Navigation Bar (hidden on desktop via CSS) -->
+                <div class="wa-mobile-bottom-nav wa-mobile-only">
+                    <div class="wa-bottom-nav-item wa-bottom-nav-active">
+                        <i class="fa fa-comments"/>
+                        <span>Chats</span>
+                    </div>
+                    <div class="wa-bottom-nav-item">
+                        <i class="fa fa-circle-o"/>
+                        <span>Updates</span>
+                    </div>
+                    <div class="wa-bottom-nav-item">
+                        <i class="fa fa-users"/>
+                        <span>Communities</span>
+                    </div>
+                    <div class="wa-bottom-nav-item">
+                        <i class="fa fa-phone"/>
+                        <span>Calls</span>
+                    </div>
+                </div>
+
             </div>
             <div class="whatsapp-main">
                 <t t-if="state.selectedChannel">
