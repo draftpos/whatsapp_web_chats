@@ -626,6 +626,10 @@ export class WhatsAppChatsAction extends Component {
         }
 
         let response = { channels: [], show_labels: false };
+        
+        const loadId = new Date().getTime();
+        this.currentChannelLoadId = loadId;
+        
         try {
             response = await this.orm.call(
                 "whatsapp.account",
@@ -637,6 +641,11 @@ export class WhatsAppChatsAction extends Component {
         } catch (e) {
             console.warn("Offline or failed to fetch channels", e);
         }
+        
+        if (this.currentChannelLoadId !== loadId) {
+            return;
+        }
+        
         const channels = response.channels || [];
         if (response.show_labels !== undefined) {
             this.state.showLabels = response.show_labels;
