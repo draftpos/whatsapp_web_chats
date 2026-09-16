@@ -165,49 +165,37 @@ export class WhatsAppChatsAction extends Component {
             this._onDocumentClick = (ev) => {
                 let changed = false;
                 if (this.state.showChatDropdownId !== null) {
-                    const menu = document.querySelector('.chat-dropdown-menu');
-                    const btn = document.querySelector('.chat-dropdown-btn');
-                    if ((menu && !menu.contains(ev.target) && btn && !btn.contains(ev.target)) || !menu) {
+                    if (!ev.target.closest('.chat-dropdown-menu') && !ev.target.closest('.chat-dropdown-btn')) {
                         this.state.showChatDropdownId = null;
                         changed = true;
                     }
                 }
                 if (this.state.showHeaderDropdown) {
-                    const headerMenu = document.querySelector('.header-dropdown-menu');
-                    const headerBtn = document.querySelector('.header-dropdown-btn');
-                    if ((headerMenu && !headerMenu.contains(ev.target) && headerBtn && !headerBtn.contains(ev.target)) || !headerMenu) {
+                    if (!ev.target.closest('.sidebar-dropdown-menu') && !ev.target.closest('.header-dropdown-btn') && !ev.target.closest('.wa-desktop-only')) {
                         this.state.showHeaderDropdown = false;
                         changed = true;
                     }
                 }
                 if (this.state.showMessageDropdownId !== null) {
-                    const msgMenu = document.querySelector('.msg-dropdown-menu');
-                    const msgBtn = document.querySelector('.msg-dropdown-btn');
-                    if ((msgMenu && !msgMenu.contains(ev.target) && msgBtn && !msgBtn.contains(ev.target)) || !msgMenu) {
+                    if (!ev.target.closest('.msg-dropdown-menu') && !ev.target.closest('.msg-dropdown-btn')) {
                         this.state.showMessageDropdownId = null;
                         changed = true;
                     }
                 }
                 if (this.state.showAttachMenu) {
-                    const attachMenu = document.querySelector('.attach-dropdown-menu');
-                    const attachBtn = document.querySelector('.whatsapp-attach-btn');
-                    if ((attachMenu && !attachMenu.contains(ev.target) && attachBtn && !attachBtn.contains(ev.target)) || !attachMenu) {
+                    if (!ev.target.closest('.attach-dropdown-menu') && !ev.target.closest('.whatsapp-attach-btn')) {
                         this.state.showAttachMenu = false;
                         changed = true;
                     }
                 }
                 if (this.state.showPlusMenu) {
-                    const plusMenu = document.querySelector('.attach-dropdown-menu');
-                    const plusBtn = document.querySelector('.whatsapp-attach-btn');
-                    if (!plusMenu || (plusMenu && !plusMenu.contains(ev.target) && plusBtn && !plusBtn.contains(ev.target))) {
+                    if (!ev.target.closest('.attach-dropdown-menu') && !ev.target.closest('.whatsapp-attach-btn')) {
                         this.state.showPlusMenu = false;
                         changed = true;
                     }
                 }
                 if (this.state.showFilterDropdown) {
-                    const filterMenu = document.querySelector('.filter-dropdown-menu');
-                    const filterPill = document.querySelector('.chat-filter-dropdown-container');
-                    if (!filterMenu || (filterMenu && !filterMenu.contains(ev.target) && filterPill && !filterPill.contains(ev.target))) {
+                    if (!ev.target.closest('.filter-dropdown-menu') && !ev.target.closest('.chat-filter-dropdown-container')) {
                         this.state.showFilterDropdown = false;
                         changed = true;
                     }
