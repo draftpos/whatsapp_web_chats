@@ -1241,10 +1241,7 @@ class WhatsAppAccount(models.Model):
                     if is_audio:
                         self._compress_audio_attachment(att)
                     elif att.mimetype and att.mimetype.startswith('video/'):
-                        has_uncompressed_videos = True
-                        videos_to_compress.append(att.id)
-                        # Spoof the mimetype to mp4 so Odoo's native WhatsApp module doesn't throw an exception during message_post
-                        att.sudo().write({'mimetype': 'video/mp4'})
+                        self._compress_video_attachment(att)
                         
             # Force author_id to the current user, unless explicitly provided (e.g., scheduled messages)
             if 'author_id' not in kwargs:
@@ -1255,55 +1252,18 @@ class WhatsAppAccount(models.Model):
             if body == '<p><br></p>' or not body.strip():
                 kwargs['body'] = ''
                 
-            if has_uncompressed_videos:
-                msg_id = channel.with_context(is_compressing_video=True).message_post(**kwargs).id
-            else:
-                msg_id = channel.message_post(**kwargs).id
+            msg_id = channel.message_post(**kwargs).id
 
             # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
-            if not has_uncompressed_videos:
-                wa_msgs = self.env['whatsapp.message'].sudo().search([
-                    ('mail_message_id', '=', msg_id),
-                    ('state', '=', 'outgoing')
-                ])
-                for wa_msg in wa_msgs:
-                    try:
-                        wa_msg._send(force_send_by_cron=False)
-                    except Exception as send_err:
-                        _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
-            
-            if has_uncompressed_videos:
-                wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', msg_id)], limit=1)
-                if wa_msg:
-                    wa_msg.write({'state': 'cancel'})
-                
-                def _bg_compress_video(dbname, att_ids, wa_msg_id):
-                    import time
-                    # Wait for the main transaction to commit so we can find the wa_msg_id
-                    time.sleep(2)
-                    
-                    from odoo.modules.registry import Registry
-                    from odoo.api import Environment
-                    from odoo import SUPERUSER_ID
-                    
-                    with Registry(dbname).cursor() as cr:
-                        env = Environment(cr, SUPERUSER_ID, {})
-                        for att in env['ir.attachment'].browse(att_ids):
-                            env['whatsapp.account']._compress_video_attachment(att)
-                            
-                        if wa_msg_id:
-                            msg = env['whatsapp.message'].browse(wa_msg_id)
-                            if msg.exists():
-                                msg.write({'state': 'outgoing'})
-                                env.ref('whatsapp.ir_cron_send_whatsapp_queue', raise_if_not_found=False)._trigger()
-                                
-                def _start_video_thread():
-                    import threading
-                    t = threading.Thread(target=_bg_compress_video, args=(self.env.cr.dbname, videos_to_compress, wa_msg.id if wa_msg else False))
-                    t.start()
-                
-                _start_video_thread()
-                
+            wa_msgs = self.env['whatsapp.message'].sudo().search([
+                ('mail_message_id', '=', msg_id),
+                ('state', '=', 'outgoing')
+            ])
+            for wa_msg in wa_msgs:
+                try:
+                    wa_msg._send(force_send_by_cron=False)
+                except Exception as send_err:
+                    _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
             return msg_id
         return False
 

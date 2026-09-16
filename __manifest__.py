@@ -5,6 +5,9 @@
     'summary': 'Provides a WhatsApp Web-like interface for managing WhatsApp chats.',
     'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup'],
 
+    'external_dependencies': {
+        'bin': ['ffmpeg'],
+    },
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
