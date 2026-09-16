@@ -1269,6 +1269,12 @@ class WhatsAppAccount(models.Model):
                 ('state', '=', 'outgoing')
             ])
             for wa_msg in wa_msgs:
+                _logger.info(f"PRE-SEND WA MSG {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
+                # If Odoo mistakenly created a text message with no body, cancel it to prevent Meta API error!
+                if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
+                    _logger.info(f"Cancelling bogus empty text message {wa_msg.id} to avoid Meta API error.")
+                    wa_msg.write({'state': 'cancel'})
+                    continue
                 try:
                     wa_msg._send(force_send_by_cron=False)
                 except Exception as send_err:
