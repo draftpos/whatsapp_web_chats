@@ -83,7 +83,7 @@ class WhatsAppMessage(models.Model):
                 
             # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
             if is_audio and msg.body:
-                msg.write({'body': False})
+                msg.write({'body': 'Aud'})
                 
         valid_messages = self.filtered(lambda m: m.state != 'cancel')
         if not valid_messages:
@@ -114,7 +114,7 @@ class WhatsAppMessage(models.Model):
                 
             # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
             if is_audio and msg.body:
-                msg.write({'body': False})
+                msg.write({'body': 'Aud'})
                 
         valid_messages = self.filtered(lambda m: m.state != 'cancel')
         if not valid_messages:

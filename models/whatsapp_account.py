@@ -1232,6 +1232,7 @@ class WhatsAppAccount(models.Model):
             attachment_ids = kwargs.get('attachment_ids', [])
             has_uncompressed_videos = False
             videos_to_compress = []
+            has_audio = False
             
             # Synchronously compress audio attachments before creating the message
             for att_id in attachment_ids:
@@ -1243,6 +1244,7 @@ class WhatsAppAccount(models.Model):
                         is_audio = True
                         
                     if is_audio:
+                        has_audio = True
                         self._compress_audio_attachment(att)
                     elif att.mimetype and att.mimetype.startswith('video/'):
                         self._compress_video_attachment(att)
@@ -1259,7 +1261,7 @@ class WhatsAppAccount(models.Model):
                 if not attachment_ids:
                     kwargs['body'] = ' '
                 else:
-                    kwargs['body'] = False
+                    kwargs['body'] = 'Aud' if has_audio else ''
                 
             msg_id = channel.message_post(**kwargs).id
 
