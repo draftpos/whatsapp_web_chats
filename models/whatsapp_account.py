@@ -1447,7 +1447,7 @@ class WhatsAppAccount(models.Model):
             'name': partner.name,
             'channel_type': 'whatsapp',
             'whatsapp_partner_id': partner.id,
-            'whatsapp_number': clean_phone,
+            'whatsapp_number': '+' + clean_phone if clean_phone else '',
             'wa_account_id': account.id,
             'company_id': account.company_id.id if account.company_id else False,
             'channel_member_ids': members
@@ -1464,7 +1464,7 @@ class WhatsAppAccount(models.Model):
         clean_phone = ''.join([c for c in str(number) if c.isdigit()])
         if clean_phone.startswith('0') and len(clean_phone) == 10:
             clean_phone = '263' + clean_phone[1:]
-        number = clean_phone
+        number = '+' + clean_phone if clean_phone else ''
             
         if not clean_phone:
             return {'success': False, 'error': 'Invalid number'}
