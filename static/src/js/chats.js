@@ -1462,7 +1462,7 @@ export class WhatsAppChatsAction extends Component {
                 }
                 
                 let tmp = document.createElement("DIV");
-                tmp.innerHTML = msg.body || "";
+                tmp.innerHTML = (msg.body && String(msg.body).toLowerCase() !== 'false' && String(msg.body) !== '<p><br></p>') ? msg.body : "";
                 let bodyText = tmp.textContent || tmp.innerText || "";
                 
                 let isForwarded = false;
@@ -2581,7 +2581,7 @@ export class WhatsAppChatsAction extends Component {
                 for (let i = 0; i < pendingFiles.length; i++) {
                     const pendingFile = pendingFiles[i];
                     const isFirst = (i === 0);
-                    const body = isFirst && messageBody.trim() ? messageBody : ' ';
+                    const body = isFirst && messageBody.trim() ? messageBody : '';
                     const tempMsgId = 'temp_' + Date.now() + '_' + i;
                     
                     const tempMsg = {
