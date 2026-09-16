@@ -63,16 +63,26 @@ class WhatsAppMessage(models.Model):
         if self.env.context.get('is_compressing_video'):
             return
             
+        from odoo.tools import html2plaintext
+        
         # Meta API throws 'text.body is required' if we send a text message with empty body.
         # Odoo sometimes creates these alongside media messages. Cancel them here before sending.
         for msg in self:
-            if msg.state == 'outgoing' and msg.message_type == 'text':
-                import re
-                clean_body = re.sub(r'<[^>]+>', '', str(msg.body or '')).strip()
-                if not clean_body or clean_body == 'False':
-                    msg.write({'state': 'cancel'})
+            is_audio = False
+            has_attachments = bool(msg.mail_message_id.attachment_ids)
+            if has_attachments:
+                # Check if it's an audio attachment to prevent caption error
+                att = msg.mail_message_id.attachment_ids[0]
+                if att.mimetype and att.mimetype.startswith('audio/'):
+                    is_audio = True
+                    
+            clean_body = html2plaintext(msg.body or '').strip()
+            
+            if not has_attachments and (not clean_body or clean_body == 'False'):
+                msg.write({'state': 'cancel'})
+                
             # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
-            elif msg.state == 'outgoing' and msg.message_type == 'audio' and msg.body:
+            if is_audio and msg.body:
                 msg.write({'body': False})
                 
         valid_messages = self.filtered(lambda m: m.state != 'cancel')
@@ -85,15 +95,25 @@ class WhatsAppMessage(models.Model):
         if self.env.context.get('is_compressing_video'):
             return
             
+        from odoo.tools import html2plaintext
+        
         # Cancel any bogus empty text messages to avoid Meta API errors
         for msg in self:
-            if msg.state == 'outgoing' and msg.message_type == 'text':
-                import re
-                clean_body = re.sub(r'<[^>]+>', '', str(msg.body or '')).strip()
-                if not clean_body or clean_body == 'False':
-                    msg.write({'state': 'cancel'})
+            is_audio = False
+            has_attachments = bool(msg.mail_message_id.attachment_ids)
+            if has_attachments:
+                # Check if it's an audio attachment to prevent caption error
+                att = msg.mail_message_id.attachment_ids[0]
+                if att.mimetype and att.mimetype.startswith('audio/'):
+                    is_audio = True
+                    
+            clean_body = html2plaintext(msg.body or '').strip()
+            
+            if not has_attachments and (not clean_body or clean_body == 'False'):
+                msg.write({'state': 'cancel'})
+                
             # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
-            elif msg.state == 'outgoing' and msg.message_type == 'audio' and msg.body:
+            if is_audio and msg.body:
                 msg.write({'body': False})
                 
         valid_messages = self.filtered(lambda m: m.state != 'cancel')
