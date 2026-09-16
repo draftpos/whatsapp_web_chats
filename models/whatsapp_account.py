@@ -1254,12 +1254,12 @@ class WhatsAppAccount(models.Model):
             # Clean empty bodies to avoid 'text.body is required' API errors from Meta
             # But DO NOT set it to ' ' if there are attachments, otherwise Odoo splits it into 2 messages!
             body = kwargs.get('body', '')
-            if body == '<p><br></p>' or not body.strip():
+            if not body or body == '<p><br></p>' or not str(body).strip():
                 # Only force a space if there are NO attachments (so it's a pure text message)
                 if not attachment_ids:
                     kwargs['body'] = ' '
                 else:
-                    kwargs['body'] = ''
+                    kwargs['body'] = False
                 
             msg_id = channel.message_post(**kwargs).id
 
