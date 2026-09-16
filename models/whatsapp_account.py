@@ -1109,6 +1109,7 @@ class WhatsAppAccount(models.Model):
                 '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
                 '-crf', '28', '-preset', 'fast',
                 '-c:a', 'aac', '-b:a', '128k',
+                '-f', 'mp4', '-movflags', '+faststart',
                 temp_out_path
             ]
             
@@ -1124,9 +1125,10 @@ class WhatsAppAccount(models.Model):
                 
             attachment.sudo().write({
                 'datas': base64.b64encode(compressed_data),
-                'mimetype': 'video/mp4',
                 'name': name
             })
+            # Force the mimetype via SQL because Odoo's python-magic often incorrectly overrides it to video/quicktime
+            self.env.cr.execute("UPDATE ir_attachment SET mimetype='video/mp4' WHERE id=%s", (attachment.id,))
             
             os.unlink(temp_in_path)
             os.unlink(temp_out_path)
