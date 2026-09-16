@@ -1094,12 +1094,9 @@ class WhatsAppAccount(models.Model):
 
         try:
             raw_data = base64.b64decode(attachment.datas)
-            is_mp4 = attachment.mimetype == 'video/mp4'
-            is_large = len(raw_data) > 15728640
+            # We MUST always re-encode to ensure H.264 / AAC. 
+            # Modern phones use HEVC/H.265 (which is still video/mp4), and Meta API accepts the upload but silently drops the delivery.
             
-            if is_mp4 and not is_large:
-                return
-                
             with tempfile.NamedTemporaryFile(delete=False, suffix='.mov') as temp_in:
                 temp_in.write(raw_data)
                 temp_in_path = temp_in.name
