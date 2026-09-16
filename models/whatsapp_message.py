@@ -16,6 +16,10 @@ class WhatsAppMessage(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        if self.env.context.get('is_compressing_video'):
+            for v in vals_list:
+                v['state'] = 'cancel'
+                
         records = super().create(vals_list)
         for rec in records:
             if not rec.company_id and rec.wa_account_id and rec.wa_account_id.company_id:

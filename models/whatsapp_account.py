@@ -1255,7 +1255,10 @@ class WhatsAppAccount(models.Model):
             if body == '<p><br></p>' or not body.strip():
                 kwargs['body'] = ''
                 
-            msg_id = channel.message_post(**kwargs).id
+            if has_uncompressed_videos:
+                msg_id = channel.with_context(is_compressing_video=True).message_post(**kwargs).id
+            else:
+                msg_id = channel.message_post(**kwargs).id
 
             # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
             if not has_uncompressed_videos:
@@ -1409,7 +1412,7 @@ class WhatsAppAccount(models.Model):
             ('wa_account_id', '=', account.id),
             '|',
             ('whatsapp_partner_id', '=', partner.id),
-            ('whatsapp_number', '=', clean_phone)
+            ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone])
         ]
         
         # If partner has no phone, we can only search by partner_id
@@ -1470,7 +1473,7 @@ class WhatsAppAccount(models.Model):
         # This prevents unique constraint violations if the partner phone is formatted differently.
         existing_channel = self.env['discuss.channel'].sudo().search([
             ('channel_type', '=', 'whatsapp'),
-            ('whatsapp_number', '=', clean_phone),
+            ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
             ('wa_account_id', '=', account.id)
         ], limit=1)
         
