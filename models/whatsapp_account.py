@@ -1130,6 +1130,7 @@ class WhatsAppAccount(models.Model):
             })
             # Force the mimetype via SQL because Odoo's python-magic often incorrectly overrides it to video/quicktime
             self.env.cr.execute("UPDATE ir_attachment SET mimetype='video/mp4' WHERE id=%s", (attachment.id,))
+            attachment.invalidate_recordset(['mimetype'])
             
             os.unlink(temp_in_path)
             os.unlink(temp_out_path)
