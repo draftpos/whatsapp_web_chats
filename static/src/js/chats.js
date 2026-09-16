@@ -64,6 +64,7 @@ export class WhatsAppChatsAction extends Component {
             selectedTransferAgentId: "any",
             showChatDropdownId: null,
             showHeaderDropdown: false,
+            showSidebarDropdown: false,
             showMessageDropdownId: null,
             chatFilter: "all",
             showLabels: true,
@@ -452,6 +453,21 @@ export class WhatsAppChatsAction extends Component {
             this.state.showFilterDropdown = false;
             this.state.showAccountDropdown = false;
         }
+    }
+
+    sidebarNewChat() {
+        this.openNewChatModal();
+        this.toggleSidebarDropdown();
+    }
+
+    sidebarProfile() {
+        this.openProfileSettings();
+        this.toggleSidebarDropdown();
+    }
+
+    sidebarConfig() {
+        this.goToConfigurations();
+        this.toggleSidebarDropdown();
     }
 
     async selectAccount(accountId) {
