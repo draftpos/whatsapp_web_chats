@@ -3,7 +3,7 @@
    Desktop (chats.css) is completely unaffected.
    ============================================================= */
 
-.wa-mobile-only  { display: none; }
+.wa-mobile-only  { display: none !important; }
 .wa-mobile-back-btn { display: none; }
 .wa-mobile-fab   { display: none; }
 
