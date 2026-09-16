@@ -17,18 +17,22 @@
             </t>
             <t t-else="">
                 <div class="whatsapp-sidebar">
-                    <div class="whatsapp-header">
-                    <div style="display: flex; align-items: center;">
+                    <div class="whatsapp-header wa-sidebar-header">
+                    <div style="display: flex; align-items: center; flex: 1;">
                         <t t-set="activeAcc" t-value="state.accounts.find(a => a.id.toString() === state.selectedAccount)"/>
                         <t t-if="activeAcc and activeAcc.image_1920">
-                            <img t-attf-src="data:image/jpeg;base64,{{activeAcc.image_1920}}" class="chat-avatar" style="object-fit: cover; margin-right: 10px;"/>
+                            <img t-attf-src="data:image/jpeg;base64,{{activeAcc.image_1920}}" class="chat-avatar wa-desktop-only" style="object-fit: cover; margin-right: 10px;"/>
                         </t>
-                        <div style="display: flex; align-items: center; color: #ffffff;">
+                        <!-- Desktop: WhatsApp icon + Chats text -->
+                        <div style="display: flex; align-items: center; color: #ffffff;" class="wa-desktop-only">
                             <div style="background-color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; cursor: pointer;" t-on-click="openProfileSettings" title="Profile Settings">
                                 <i class="fa fa-whatsapp" style="font-size: 20px; color: #25D366;"></i>
                             </div>
                             <span>Chats</span>
                         </div>
+                        <!-- Mobile: bold WhatsApp title -->
+                        <span class="wa-mobile-only wa-header-title">WhatsApp</span>
+                    </div>
                     <t t-if="state.selectedChannels?.length > 0">
                         <button t-on-click="deleteSelectedChannels"
                                 style="margin-left: 10px; background: #f24a4a; border: none; border-radius: 6px; color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
@@ -36,8 +40,21 @@
                             Delete <t t-esc="state.selectedChannels.length"/> Chat<t t-if="state.selectedChannels.length > 1">s</t>
                         </button>
                     </t>
-                    <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: white;" title="New Chat"></i>
-                    <i class="fa fa-ellipsis-v" t-on-click="toggleSidebarDropdown" style="font-size: 20px; cursor: pointer; color: white; position: relative;" title="Menu"></i>
+                    <!-- Desktop: plus + menu icons -->
+                    <i class="fa fa-plus-circle wa-desktop-only" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: white;" title="New Chat"></i>
+                    <!-- Mobile header icons: camera, search, dots -->
+                    <div class="wa-mobile-only" style="display: flex; align-items: center; gap: 4px; margin-left: auto;">
+                        <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="New Chat" t-on-click="openNewChatModal">
+                            <i class="fa fa-camera"/>
+                        </button>
+                        <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="Search" t-on-click="() => Object.assign(this.state, {showSearchModal: true})">
+                            <i class="fa fa-search"/>
+                        </button>
+                        <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="Menu" t-on-click="toggleSidebarDropdown">
+                            <i class="fa fa-ellipsis-v"/>
+                        </button>
+                    </div>
+                    <i class="fa fa-ellipsis-v wa-desktop-only" t-on-click="toggleSidebarDropdown" style="font-size: 20px; cursor: pointer; color: white; position: relative;" title="Menu"></i>
                 </div>
             </div>
             <!-- Search bar -->
@@ -243,7 +260,12 @@
                     </t>
                 </div>
 
-                <!-- Mobile-only Bottom Navigation Bar (hidden on desktop via CSS) -->
+                <!-- Mobile FAB: floating compose / new chat button -->
+                <button class="wa-mobile-fab wa-mobile-only" t-on-click="openNewChatModal" title="New Chat">
+                    <i class="fa fa-pencil"/>
+                </button>
+
+                <!-- Mobile-only Bottom Navigation Bar -->
                 <div class="wa-mobile-bottom-nav wa-mobile-only">
                     <div class="wa-bottom-nav-item wa-bottom-nav-active">
                         <i class="fa fa-comments"/>
@@ -285,6 +307,13 @@
                             </div>
                         </div>
                         <div style="display: flex; align-items: center;">
+                            <!-- Mobile: video + voice call buttons -->
+                            <button class="wa-mobile-only" style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px 6px; cursor: pointer; display: flex; align-items: center;" title="Video call">
+                                <i class="fa fa-video-camera"/>
+                            </button>
+                            <button class="wa-mobile-only" style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px 6px; cursor: pointer; display: flex; align-items: center;" title="Voice call">
+                                <i class="fa fa-phone"/>
+                            </button>
 
                             <t t-if="state.isSelectingMessages">
                                 <button class="whatsapp-header-btn" t-on-click="cancelSelection"
