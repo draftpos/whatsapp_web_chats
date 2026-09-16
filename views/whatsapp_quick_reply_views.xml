@@ -7,8 +7,8 @@
             <list string="Quick Replies">
                 <field name="sequence" widget="handle"/>
                 <field name="shortcut"/>
-                <field name="is_pinned"/>
-                <field name="is_favorite"/>
+                <field name="is_pinned" widget="boolean_toggle"/>
+                <field name="is_favorite" widget="boolean_toggle"/>
                 <field name="body"/>
                 <field name="account_id"/>
             </list>
