@@ -261,7 +261,6 @@
                                     <div class="chat-dropdown-item" t-on-click="(ev) => this.openTransferModal(channel.id, ev)">Transfer Chat</div>
                                 </div>
                             </t>
-                            </div>
                         </div>
                     </t>
                 </div>
