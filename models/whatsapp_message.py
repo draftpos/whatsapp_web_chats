@@ -62,6 +62,16 @@ class WhatsAppMessage(models.Model):
     def _send(self, force_send_by_cron=False, **kwargs):
         if self.env.context.get('is_compressing_video'):
             return
+            
+        # Meta API throws 'text.body is required' if we send a text message with empty body.
+        # Odoo sometimes creates these alongside media messages. Cancel them here before sending.
+        for msg in self:
+            if msg.state == 'outgoing' and msg.message_type == 'text':
+                import re
+                clean_body = re.sub(r'<[^>]+>', '', str(msg.body or '')).strip()
+                if not clean_body or clean_body == 'False':
+                    msg.write({'state': 'cancel'})
+                    
         return super()._send(force_send_by_cron=force_send_by_cron, **kwargs)
         
     def _send_message(self, **kwargs):
