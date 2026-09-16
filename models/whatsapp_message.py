@@ -77,6 +77,15 @@ class WhatsAppMessage(models.Model):
     def _send_message(self, **kwargs):
         if self.env.context.get('is_compressing_video'):
             return
+            
+        # Cancel any bogus empty text messages to avoid Meta API errors
+        for msg in self:
+            if msg.state == 'outgoing' and msg.message_type == 'text':
+                import re
+                clean_body = re.sub(r'<[^>]+>', '', str(msg.body or '')).strip()
+                if not clean_body or clean_body == 'False':
+                    msg.write({'state': 'cancel'})
+                    
         return super()._send_message(**kwargs)
 
     @api.model
