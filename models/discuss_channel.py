@@ -213,11 +213,20 @@ class DiscussChannel(models.Model):
         # Auto-send group invite message exactly once per chat
         # But only if this message is a regular chat message (not an internal notification)
         # and if the feature is enabled for the account.
+        try:
+            invite_sent = self.wa_group_invite_sent
+            has_account = bool(self.wa_account_id)
+            auto_share = self.wa_account_id.wa_group_auto_message_share if has_account else False
+        except Exception:
+            invite_sent = True
+            has_account = False
+            auto_share = False
+
         if (
             self.channel_type == 'whatsapp' 
-            and not self.wa_group_invite_sent 
-            and self.wa_account_id
-            and self.wa_account_id.wa_group_auto_message_share
+            and not invite_sent 
+            and has_account
+            and auto_share
         ):
             # Check if this message was a real message (not a system notification)
             message_type = kwargs.get('message_type') or message.message_type
