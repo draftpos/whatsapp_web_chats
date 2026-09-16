@@ -3594,20 +3594,17 @@ export class WhatsAppChatsAction extends Component {
     
     scrollToMessage(msgId) {
         setTimeout(() => {
-            if (this.messagesContainer.el) {
-                const msgs = this.messagesContainer.el.querySelectorAll('.message-row');
-                for (let msg of msgs) {
-                    if (msg.querySelector('.msg-dropdown-btn') && msg.outerHTML.includes(`toggleMessageDropdown(${msgId}`)) {
-                        msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        // Add a temporary highlight class
-                        msg.style.transition = "background-color 0.5s ease";
-                        const oldBg = msg.style.backgroundColor;
-                        msg.style.backgroundColor = "rgba(0, 168, 132, 0.2)";
-                        setTimeout(() => {
-                            msg.style.backgroundColor = oldBg;
-                        }, 1500);
-                        break;
-                    }
+            if (this.messagesContainer && this.messagesContainer.el) {
+                const msg = this.messagesContainer.el.querySelector(`#message-${msgId}`);
+                if (msg) {
+                    msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Add a temporary highlight class
+                    msg.style.transition = "background-color 0.5s ease";
+                    const oldBg = msg.style.backgroundColor;
+                    msg.style.backgroundColor = "rgba(0, 168, 132, 0.2)";
+                    setTimeout(() => {
+                        msg.style.backgroundColor = oldBg;
+                    }, 1500);
                 }
             }
         }, 100);
