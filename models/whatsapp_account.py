@@ -1401,6 +1401,8 @@ class WhatsAppAccount(models.Model):
             
         phone = partner.phone
         clean_phone = ''.join([c for c in str(phone) if c.isdigit()]) if phone else ''
+        if clean_phone.startswith('0') and len(clean_phone) == 10:
+            clean_phone = '263' + clean_phone[1:]
         
         domain = [
             ('channel_type', '=', 'whatsapp'),
@@ -1457,6 +1459,8 @@ class WhatsAppAccount(models.Model):
             return {'success': False, 'error': 'Account not found'}
             
         clean_phone = ''.join([c for c in str(number) if c.isdigit()])
+        if clean_phone.startswith('0') and len(clean_phone) == 10:
+            clean_phone = '263' + clean_phone[1:]
         number = clean_phone
             
         if not clean_phone:
