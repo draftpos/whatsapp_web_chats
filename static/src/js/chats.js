@@ -443,9 +443,15 @@ export class WhatsAppChatsAction extends Component {
         this.state.isAccountDropdownOpen = !this.state.isAccountDropdownOpen;
     }
 
-    toggleSidebarDropdown() {
-        // Menu coming soon
-        console.log("Sidebar dropdown coming soon");
+    toggleSidebarDropdown(ev) {
+        if (this.state.showSidebarDropdown) {
+            this.state.showSidebarDropdown = false;
+        } else {
+            this.state.showSidebarDropdown = true;
+            this.state.showHeaderDropdown = false;
+            this.state.showFilterDropdown = false;
+            this.state.showAccountDropdown = false;
+        }
     }
 
     async selectAccount(accountId) {

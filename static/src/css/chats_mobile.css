@@ -439,7 +439,8 @@
 
     /* Filter/template dropdown modals full-width */
     .filter-dropdown-menu,
-    .header-dropdown-menu {
+    .header-dropdown-menu,
+    .sidebar-dropdown-menu {
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
