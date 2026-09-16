@@ -3,7 +3,7 @@ from odoo import api, fields, models
 class WhatsAppQuickReply(models.Model):
     _name = 'whatsapp.quick.reply'
     _description = 'WhatsApp Quick Reply'
-    _order = 'is_pinned desc, is_favorite desc, shortcut asc, id desc'
+    _order = 'sequence asc, is_pinned desc, is_favorite desc, shortcut asc, id desc'
 
     tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
 
@@ -12,6 +12,7 @@ class WhatsAppQuickReply(models.Model):
     account_id = fields.Many2one('whatsapp.account', string="WhatsApp Account", help="Leave blank if applicable to all accounts")
     is_pinned = fields.Boolean(string="Pinned", default=False)
     is_favorite = fields.Boolean(string="Favorite", default=False)
+    sequence = fields.Integer(string="Sequence", default=10)
     
     @api.model
     def get_quick_replies(self, account_id=None):

@@ -5,6 +5,7 @@
         <field name="model">whatsapp.quick.reply</field>
         <field name="arch" type="xml">
             <list string="Quick Replies">
+                <field name="sequence" widget="handle"/>
                 <field name="shortcut"/>
                 <field name="is_pinned"/>
                 <field name="is_favorite"/>
