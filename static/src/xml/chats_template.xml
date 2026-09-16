@@ -42,13 +42,10 @@
                     </t>
                     <!-- Desktop: plus + menu icons -->
                     <i class="fa fa-plus-circle wa-desktop-only" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 15px; font-size: 18px; cursor: pointer; color: white;" title="New Chat"></i>
-                    <!-- Mobile header icons: camera, search, dots -->
+                    <!-- Mobile header icons: new chat + menu (real features only) -->
                     <div class="wa-mobile-only" style="display: flex; align-items: center; gap: 4px; margin-left: auto;">
                         <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="New Chat" t-on-click="openNewChatModal">
-                            <i class="fa fa-camera"/>
-                        </button>
-                        <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="Search" t-on-click="() => Object.assign(this.state, {showSearchModal: true})">
-                            <i class="fa fa-search"/>
+                            <i class="fa fa-pencil"/>
                         </button>
                         <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="Menu" t-on-click="toggleSidebarDropdown">
                             <i class="fa fa-ellipsis-v"/>
@@ -307,13 +304,6 @@
                             </div>
                         </div>
                         <div style="display: flex; align-items: center;">
-                            <!-- Mobile: video + voice call buttons -->
-                            <button class="wa-mobile-only" style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px 6px; cursor: pointer; display: flex; align-items: center;" title="Video call">
-                                <i class="fa fa-video-camera"/>
-                            </button>
-                            <button class="wa-mobile-only" style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px 6px; cursor: pointer; display: flex; align-items: center;" title="Voice call">
-                                <i class="fa fa-phone"/>
-                            </button>
 
                             <t t-if="state.isSelectingMessages">
                                 <button class="whatsapp-header-btn" t-on-click="cancelSelection"
