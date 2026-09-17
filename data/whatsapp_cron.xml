@@ -17,7 +17,6 @@
             <field name="code">model._cron_send_scheduled_messages()</field>
             <field name="interval_number">1</field>
             <field name="interval_type">minutes</field>
-            <field name="numbercall">-1</field>
             <field name="active" eval="True"/>
         </record>
         <record id="ir_cron_send_group_auto_messages" model="ir.cron">
