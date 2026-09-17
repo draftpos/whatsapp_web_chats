@@ -165,6 +165,11 @@ class DiscussChannel(models.Model):
                 })
                 if parent_msg_id:
                     self.env['whatsapp.message'].browse(parent_msg_id).state = 'replied'
+                    
+                # Auto-send group invite when we RECEIVE a message from the customer
+                if self.wa_account_id and self.wa_account_id.wa_group_auto_message_share and not self.wa_group_invite_sent:
+                    self.wa_account_id.with_context(skip_auto_invite=True)._send_group_auto_message(self)
+                    
             return True
             
         if hasattr(super(), '_notify_thread'):
@@ -208,23 +213,6 @@ class DiscussChannel(models.Model):
                 messages_to_delete.unlink()
 
     def message_post(self, **kwargs):
+        # We only override this to pass skip_auto_invite down, or we can just call super
         message = super().message_post(**kwargs)
-
-        # Guard: skip if we are already inside the auto-invite send, or if the
-        # channel has already received the invite (fast-path check before the DB hit).
-        if self.env.context.get('skip_auto_invite') or self.wa_group_invite_sent:
-            return message
-
-        if (
-            self.channel_type == 'whatsapp'
-            and self.wa_account_id
-            and self.wa_account_id.wa_group_auto_message_share
-        ):
-            # Only trigger on real messages — not internal system notifications.
-            # We use a blocklist so we don't miss valid types like 'email', 'comment', etc.
-            message_type = kwargs.get('message_type') or message.message_type
-            SKIP_TYPES = {'notification', 'user_notification', 'auto_comment'}
-            if message_type not in SKIP_TYPES:
-                self.wa_account_id.with_context(skip_auto_invite=True)._send_group_auto_message(self)
-
         return message
