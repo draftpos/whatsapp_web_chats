@@ -1115,7 +1115,13 @@ class WhatsAppAccount(models.Model):
             ]
             
             _logger.info("Running ffmpeg conversion: %s", " ".join(cmd))
-            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            try:
+                subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+            except subprocess.CalledProcessError as e:
+                _logger.error("FFmpeg stdout: %s", e.stdout)
+                _logger.error("FFmpeg stderr: %s", e.stderr)
+                from odoo.exceptions import UserError
+                raise UserError(f"Video compression failed. FFmpeg error: {e.stderr}")
             
             with open(temp_out_path, 'rb') as f:
                 compressed_data = f.read()
