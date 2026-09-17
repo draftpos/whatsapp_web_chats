@@ -443,19 +443,4 @@
         overflow-y: auto !important;
     }
 
-    /* Filter/template dropdown modals full-width */
-    .header-dropdown-menu,
-    .sidebar-dropdown-menu,
-    .attach-dropdown-menu {
-        position: fixed !important;
-        top: auto !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100% !important;
-        border-radius: 16px 16px 0 0 !important;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.12) !important;
-        z-index: 1060 !important;
-        padding-bottom: 20px !important;
-    }
 }
