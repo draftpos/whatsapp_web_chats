@@ -69,26 +69,28 @@ class WhatsAppScheduledMessage(models.Model):
         
         for msg in messages:
             try:
+                msg_sudo = msg.sudo()
+                author_id = msg.created_by_id.partner_id.id if msg.created_by_id else False
                 if msg.message_type == 'template' and msg.template_id:
                     # Send template
-                    msg.channel_id.wa_account_id.send_whatsapp_template(msg.channel_id.id, msg.template_id.id)
+                    msg_sudo.channel_id.wa_account_id.send_whatsapp_template(msg.channel_id.id, msg.template_id.id)
                 elif msg.message_type == 'quick_reply' and msg.quick_reply_id:
                     # Send quick reply
-                    msg.channel_id.wa_account_id.post_whatsapp_message(
+                    msg_sudo.channel_id.wa_account_id.post_whatsapp_message(
                         msg.channel_id.id,
                         body=msg.quick_reply_id.body,
-                        message_type='whatsapp_message',
+                        message_type='comment',
                         subtype_xmlid='mail.mt_comment',
-                        author_id=msg.created_by_id.partner_id.id
+                        author_id=author_id
                     )
                 elif msg.message_type == 'custom' and msg.custom_body:
                     # Send custom message
-                    msg.channel_id.wa_account_id.post_whatsapp_message(
+                    msg_sudo.channel_id.wa_account_id.post_whatsapp_message(
                         msg.channel_id.id,
                         body=msg.custom_body,
-                        message_type='whatsapp_message',
+                        message_type='comment',
                         subtype_xmlid='mail.mt_comment',
-                        author_id=msg.created_by_id.partner_id.id
+                        author_id=author_id
                     )
                 
                 msg.write({'state': 'sent'})
@@ -112,7 +114,7 @@ class WhatsAppScheduledMessage(models.Model):
                         })
                         
             except Exception as e:
-                _logger.error(f"Failed to send scheduled message {msg.id}: {str(e)}")
+                _logger.exception("Failed to send scheduled message %s", msg.id)
                 msg.write({'state': 'failed'})
                 
         # Trigger the WhatsApp queue immediately so it doesn't wait for its own hourly cron

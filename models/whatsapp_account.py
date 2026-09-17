@@ -772,20 +772,11 @@ class WhatsAppAccount(models.Model):
         # Apply custom routing bot logic — use filtered value so echo-backs never trigger bot replies
         self._process_routing_bot(value)
 
-        # Send group auto invite message to incoming chats that haven't received it yet
-        if self.wa_group_auto_message_share:
-            for message in filtered_messages:
-                wa_id = message.get('from', '')
-                clean_phone = ''.join([c for c in str(wa_id) if c.isdigit()])
-                if clean_phone:
-                    cust_channel = self.env['discuss.channel'].sudo().search([
-                        ('channel_type', '=', 'whatsapp'),
-                        ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
-                        ('wa_account_id', '=', self.id)
-                    ], limit=1)
-                    if cust_channel and not cust_channel.wa_group_invite_sent:
-                        self._send_group_auto_message(cust_channel)
-                    
+        # NOTE: Group auto message is triggered via the discuss_channel.message_post hook
+        # (see discuss_channel.py). It does NOT need a separate trigger here, as doing so
+        # creates a double-fire race condition. The message_post hook + atomic DB flag is
+        # the single authoritative path that guarantees exactly-once delivery.
+
         return res
 
     def _process_routing_bot(self, value):
@@ -1659,13 +1650,33 @@ class WhatsAppAccount(models.Model):
         return {}
 
     def _send_group_auto_message(self, channel):
-        """ Sends the group auto message to a single discuss.channel """
+        """Sends the group auto message to a single discuss.channel — EXACTLY ONCE.
+
+        Uses an atomic SQL UPDATE to claim the 'right to send' before any API call,
+        so even if two worker processes race on the same channel simultaneously,
+        only one will actually deliver the message.
+        """
         self.ensure_one()
         if not self.wa_group_auto_message_share or not self.phone_uid or not self.token:
             return False
-            
-        if not channel or channel.channel_type != 'whatsapp' or channel.wa_group_invite_sent:
+
+        if not channel or channel.channel_type != 'whatsapp':
             return False
+
+        # ── Atomic claim: only the first caller wins ──────────────────────────────
+        # UPDATE ... WHERE wa_group_invite_sent = FALSE returns the number of rows
+        # updated. If 0, another process already claimed it — bail out immediately.
+        self.env.cr.execute(
+            "UPDATE discuss_channel "
+            "SET wa_group_invite_sent = TRUE "
+            "WHERE id = %s AND wa_group_invite_sent = FALSE",
+            (channel.id,)
+        )
+        if self.env.cr.rowcount == 0:
+            # Already sent (or being sent right now by another process)
+            return False
+        # Invalidate ORM cache so subsequent reads see the committed value
+        channel.invalidate_recordset(['wa_group_invite_sent'])
 
         text = (self.wa_group_auto_message_text or '').strip()
         link = (self.wa_group_auto_message_link or '').strip()
@@ -1678,9 +1689,6 @@ class WhatsAppAccount(models.Model):
         clean_phone = re.sub(r'\D', '', str(phone or ''))
         if not clean_phone:
             return False
-
-        # Mark channel as invite sent immediately to prevent race conditions or duplicate sends
-        channel.sudo().write({'wa_group_invite_sent': True})
 
         import requests
         url = f"https://graph.facebook.com/v19.0/{self.phone_uid}/messages"
@@ -1720,6 +1728,7 @@ class WhatsAppAccount(models.Model):
                     'state': 'sent',
                     'body': full_text
                 })
+                _logger.info("Group auto message sent to channel %s (phone: %s)", channel.id, clean_phone)
                 return True
             else:
                 _logger.error("Meta API error sending group auto message to %s: %s", clean_phone, resp_data)

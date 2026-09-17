@@ -2980,9 +2980,24 @@ export class WhatsAppChatsAction extends Component {
         if (!this.state.selectedChannel) return;
         
         try {
-            const localDate = new Date(this.state.scheduledMsgDate);
-            const utcString = localDate.toISOString().replace('T', ' ').substring(0, 19);
-            
+            // Parse the datetime-local string (e.g. "2026-09-17T14:30") as LOCAL time.
+            // datetime-local inputs are always in the browser's local time with no TZ info.
+            // We must convert to UTC for Odoo's backend (which stores everything as UTC).
+            const rawInput = this.state.scheduledMsgDate; // "YYYY-MM-DDTHH:MM"
+            if (!rawInput) {
+                alert("Please select a date and time.");
+                return;
+            }
+            // Parse as local time by splitting manually (avoids spec ambiguity across browsers)
+            const [datePart, timePart] = rawInput.split('T');
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hour, minute] = (timePart || '00:00').split(':').map(Number);
+            // Create a local Date object
+            const localDate = new Date(year, month - 1, day, hour, minute, 0);
+            // Convert to UTC string in Odoo format: "YYYY-MM-DD HH:MM:SS"
+            const pad = n => String(n).padStart(2, '0');
+            const utcString = `${localDate.getUTCFullYear()}-${pad(localDate.getUTCMonth()+1)}-${pad(localDate.getUTCDate())} ${pad(localDate.getUTCHours())}:${pad(localDate.getUTCMinutes())}:00`;
+
             await this.orm.create("whatsapp.scheduled.message", [{
                 channel_id: this.state.selectedChannel.id,
                 scheduled_at: utcString,
@@ -2993,8 +3008,14 @@ export class WhatsAppChatsAction extends Component {
             }]);
             
             this.closeScheduledMsgModal();
+            // Show confirmation with local time
+            const localTimeStr = localDate.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+            if (this.env && this.env.services && this.env.services.notification) {
+                this.env.services.notification.add(`Message scheduled for ${localTimeStr}`, { type: 'success' });
+            }
         } catch (e) {
             console.error("Failed to schedule message", e);
+            alert("Failed to schedule message: " + (e.message || e));
         }
     }
 
