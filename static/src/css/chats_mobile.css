@@ -443,4 +443,8 @@
         overflow-y: auto !important;
     }
 
+    .chat-dropdown-item {
+        font-size: 16px !important;
+        padding: 14px 20px !important;
+    }
 }
