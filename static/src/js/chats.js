@@ -3688,7 +3688,7 @@ export class WhatsAppChatsAction extends Component {
             if (ev && ev.currentTarget) {
                 const rect = ev.currentTarget.getBoundingClientRect();
                 const dropdownHeight = 250; 
-                const dropdownWidth = 180;
+                const dropdownWidth = 200;
                 let top;
                 // If there isn't enough space below, but there is space above, show upwards
                 if (window.innerHeight - rect.bottom < dropdownHeight && rect.top > dropdownHeight) {
@@ -3696,9 +3696,18 @@ export class WhatsAppChatsAction extends Component {
                 } else {
                     top = rect.bottom; 
                 }
-                // align to the right of the button
-                let left = rect.right - dropdownWidth;
-                if (left < 10) left = 10;
+                
+                // Open to the side with space (prevent overlap/overflow)
+                const spaceRight = window.innerWidth - rect.right;
+                let left;
+                if (spaceRight >= dropdownWidth + 10) {
+                    // Open to the right, adjacent to the button
+                    left = rect.right + 5;
+                } else {
+                    // Open to the left if not enough space on right
+                    left = Math.max(10, rect.right - dropdownWidth);
+                }
+                
                 this.state.dropdownStyle = `top: ${top}px; left: ${left}px; width: ${dropdownWidth}px;`;
             }
         }
