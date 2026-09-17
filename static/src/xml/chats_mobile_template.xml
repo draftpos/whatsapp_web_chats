@@ -28,11 +28,11 @@
     <!-- Mobile Bottom Navigation Bar -->
     <t t-name="whatsapp_web_chats.MobileBottomNav">
         <div class="wa-mobile-bottom-nav wa-mobile-only">
-            <div class="wa-bottom-nav-item wa-bottom-nav-active" t-on-click="() => this.goBackToChatList()">
+            <div t-attf-class="wa-bottom-nav-item {{ (!state.showMobileChatbotDropdown and !state.showMobileConfigDropdown) ? 'wa-bottom-nav-active' : '' }}" t-on-click="() => this.goBackToChatList()">
                 <i class="fa fa-comments"/>
                 <span>Chats</span>
             </div>
-            <div class="wa-bottom-nav-item" style="position: relative;" t-on-click="() => this.toggleMobileChatbotDropdown()">
+            <div t-attf-class="wa-bottom-nav-item {{ state.showMobileChatbotDropdown ? 'wa-bottom-nav-active' : '' }}" style="position: relative;" t-on-click="() => this.toggleMobileChatbotDropdown()">
                 <i class="fa fa-android"/>
                 <span>Chatbot</span>
                 <t t-if="state.showMobileChatbotDropdown">
@@ -45,7 +45,7 @@
                     </div>
                 </t>
             </div>
-            <div class="wa-bottom-nav-item" style="position: relative;" t-on-click="() => this.toggleMobileConfigDropdown()">
+            <div t-attf-class="wa-bottom-nav-item {{ state.showMobileConfigDropdown ? 'wa-bottom-nav-active' : '' }}" style="position: relative;" t-on-click="() => this.toggleMobileConfigDropdown()">
                 <i class="fa fa-cogs"/>
                 <span>Configuration</span>
                 <t t-if="state.showMobileConfigDropdown">
