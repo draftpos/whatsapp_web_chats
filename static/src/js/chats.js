@@ -3715,7 +3715,7 @@ export class WhatsAppChatsAction extends Component {
             if (ev && ev.currentTarget) {
                 const rect = ev.currentTarget.getBoundingClientRect();
                 const dropdownHeight = 250; 
-                const dropdownWidth = 200;
+                const dropdownWidth = 220; // Increased to prevent text wrapping
                 let top;
                 // If there isn't enough space below, but there is space above, show upwards
                 if (window.innerHeight - rect.bottom < dropdownHeight && rect.top > dropdownHeight) {
