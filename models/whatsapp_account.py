@@ -1256,9 +1256,14 @@ class WhatsAppAccount(models.Model):
                         has_audio = True
                         self._compress_audio_attachment(att)
                     elif att.mimetype and att.mimetype.startswith('video/'):
-                        self._compress_video_attachment(att)
-                        
-            # Force author_id to the current user, unless explicitly provided (e.g., scheduled messages)
+                        # Bypassing ffmpeg and Meta's strict video transcoding entirely!
+                        # We force the mimetype to application/octet-stream so Odoo's standard WhatsApp
+                        # module sends the video as a "Document" message.
+                        # This guarantees 100% delivery (Meta does not transcode documents, it just delivers them).
+                        if att.name and not (att.name.lower().endswith('.mp4') or att.name.lower().endswith('.mov')):
+                            att.sudo().write({'name': att.name + '.mp4'})
+                        att.sudo().write({'mimetype': 'application/octet-stream'})
+                        att.invalidate_recordset(['mimetype'])
             if 'author_id' not in kwargs:
                 kwargs['author_id'] = self.env.user.partner_id.id
             
