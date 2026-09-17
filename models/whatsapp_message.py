@@ -67,6 +67,7 @@ class WhatsAppMessage(models.Model):
         
         # Meta API throws 'text.body is required' if we send a text message with empty body.
         # Odoo sometimes creates these alongside media messages. Cancel them here before sending.
+        handled_directly = self.env['whatsapp.message']
         for msg in self:
             is_audio = False
             has_attachments = bool(msg.mail_message_id.attachment_ids)
@@ -75,6 +76,62 @@ class WhatsAppMessage(models.Model):
                 att = msg.mail_message_id.attachment_ids[0]
                 if att.mimetype and att.mimetype.startswith('audio/'):
                     is_audio = True
+                elif att.mimetype and att.mimetype.startswith('video/'):
+                    # Direct Meta API Send for videos to bypass Odoo's broken payload construction
+                    import requests
+                    import base64
+                    account = msg.wa_account_id
+                    if not account:
+                        if msg.mail_message_id.model == 'discuss.channel':
+                            account = self.env['discuss.channel'].browse(msg.mail_message_id.res_id).wa_account_id
+                            
+                    if account and account.token and account.account_uid:
+                        try:
+                            headers = {'Authorization': f'Bearer {account.token}'}
+                            files = {
+                                'file': (att.name, base64.b64decode(att.datas), att.mimetype),
+                                'type': (None, att.mimetype),
+                                'messaging_product': (None, 'whatsapp')
+                            }
+                            upload_res = requests.post(
+                                f"https://graph.facebook.com/v17.0/{account.account_uid}/media", 
+                                headers=headers, files=files, timeout=60
+                            )
+                            upload_data = upload_res.json()
+                            if 'id' not in upload_data:
+                                raise Exception(f"Upload failed: {upload_data}")
+                                
+                            media_id = upload_data['id']
+                            clean_caption = html2plaintext(msg.body or '').strip()
+                            
+                            payload = {
+                                "messaging_product": "whatsapp",
+                                "recipient_type": "individual",
+                                "to": msg.mobile_number,
+                                "type": "video",
+                                "video": { "id": media_id }
+                            }
+                            if clean_caption and clean_caption != 'False':
+                                payload['video']['caption'] = clean_caption
+                                
+                            send_res = requests.post(
+                                f"https://graph.facebook.com/v17.0/{account.account_uid}/messages",
+                                headers={'Authorization': f'Bearer {account.token}', 'Content-Type': 'application/json'},
+                                json=payload, timeout=15
+                            )
+                            send_data = send_res.json()
+                            if 'messages' in send_data:
+                                msg.write({'state': 'sent', 'msg_uid': send_data['messages'][0]['id']})
+                            else:
+                                raise Exception(f"Send failed: {send_data}")
+                            handled_directly |= msg
+                            continue
+                        except Exception as e:
+                            import logging
+                            logging.getLogger(__name__).error("Direct video send error: %s", str(e))
+                            msg.write({'state': 'error'})
+                            handled_directly |= msg
+                            continue
                     
             clean_body = html2plaintext(msg.body or '').strip()
             
@@ -85,7 +142,7 @@ class WhatsAppMessage(models.Model):
             if is_audio and msg.body:
                 msg.write({'body': ''})
                 
-        valid_messages = self.filtered(lambda m: m.state != 'cancel')
+        valid_messages = self.filtered(lambda m: m.state != 'cancel' and m not in handled_directly)
         if not valid_messages:
             return valid_messages
                     
@@ -98,6 +155,7 @@ class WhatsAppMessage(models.Model):
         from odoo.tools import html2plaintext
         
         # Cancel any bogus empty text messages to avoid Meta API errors
+        handled_directly = self.env['whatsapp.message']
         for msg in self:
             is_audio = False
             has_attachments = bool(msg.mail_message_id.attachment_ids)
@@ -106,6 +164,62 @@ class WhatsAppMessage(models.Model):
                 att = msg.mail_message_id.attachment_ids[0]
                 if att.mimetype and att.mimetype.startswith('audio/'):
                     is_audio = True
+                elif att.mimetype and att.mimetype.startswith('video/'):
+                    # Direct Meta API Send for videos to bypass Odoo's broken payload construction
+                    import requests
+                    import base64
+                    account = msg.wa_account_id
+                    if not account:
+                        if msg.mail_message_id.model == 'discuss.channel':
+                            account = self.env['discuss.channel'].browse(msg.mail_message_id.res_id).wa_account_id
+                            
+                    if account and account.token and account.account_uid:
+                        try:
+                            headers = {'Authorization': f'Bearer {account.token}'}
+                            files = {
+                                'file': (att.name, base64.b64decode(att.datas), att.mimetype),
+                                'type': (None, att.mimetype),
+                                'messaging_product': (None, 'whatsapp')
+                            }
+                            upload_res = requests.post(
+                                f"https://graph.facebook.com/v17.0/{account.account_uid}/media", 
+                                headers=headers, files=files, timeout=60
+                            )
+                            upload_data = upload_res.json()
+                            if 'id' not in upload_data:
+                                raise Exception(f"Upload failed: {upload_data}")
+                                
+                            media_id = upload_data['id']
+                            clean_caption = html2plaintext(msg.body or '').strip()
+                            
+                            payload = {
+                                "messaging_product": "whatsapp",
+                                "recipient_type": "individual",
+                                "to": msg.mobile_number,
+                                "type": "video",
+                                "video": { "id": media_id }
+                            }
+                            if clean_caption and clean_caption != 'False':
+                                payload['video']['caption'] = clean_caption
+                                
+                            send_res = requests.post(
+                                f"https://graph.facebook.com/v17.0/{account.account_uid}/messages",
+                                headers={'Authorization': f'Bearer {account.token}', 'Content-Type': 'application/json'},
+                                json=payload, timeout=15
+                            )
+                            send_data = send_res.json()
+                            if 'messages' in send_data:
+                                msg.write({'state': 'sent', 'msg_uid': send_data['messages'][0]['id']})
+                            else:
+                                raise Exception(f"Send failed: {send_data}")
+                            handled_directly |= msg
+                            continue
+                        except Exception as e:
+                            import logging
+                            logging.getLogger(__name__).error("Direct video send error: %s", str(e))
+                            msg.write({'state': 'error'})
+                            handled_directly |= msg
+                            continue
                     
             clean_body = html2plaintext(msg.body or '').strip()
             
@@ -116,7 +230,7 @@ class WhatsAppMessage(models.Model):
             if is_audio and msg.body:
                 msg.write({'body': ''})
                 
-        valid_messages = self.filtered(lambda m: m.state != 'cancel')
+        valid_messages = self.filtered(lambda m: m.state != 'cancel' and m not in handled_directly)
         if not valid_messages:
             return valid_messages
                     
