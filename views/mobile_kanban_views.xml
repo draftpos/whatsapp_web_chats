@@ -13,7 +13,7 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row" style="margin-bottom: 8px;">
+                            <div class="row m-0 m-0" style="margin-bottom: 8px;">
                                 <div class="col-8">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="mobile_number"/></strong>
                                 </div>
@@ -21,12 +21,12 @@
                                     <span class="badge rounded-pill" style="background-color: #008069; color: white; padding: 4px 8px;"><field name="state"/></span>
                                 </div>
                             </div>
-                            <div class="row mt-2">
+                            <div class="row m-0 mt-2">
                                 <div class="col-12" style="font-size: 14px; color: #54656f; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
                                     <field name="body"/>
                                 </div>
                             </div>
-                            <div class="row text-muted mt-2">
+                            <div class="row m-0 text-muted mt-2">
                                 <div class="col-12" style="font-size: 12px; color: #8696a0;">
                                     <i class="fa fa-clock-o me-1"></i><field name="create_date"/>
                                 </div>
@@ -52,7 +52,7 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row">
+                            <div class="row m-0 m-0">
                                 <div class="col-12">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="name"/></strong>
                                 </div>
@@ -79,12 +79,12 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row">
+                            <div class="row m-0 m-0">
                                 <div class="col-12">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="name"/></strong>
                                 </div>
                             </div>
-                            <div class="row text-muted mt-2">
+                            <div class="row m-0 text-muted mt-2">
                                 <div class="col-12" style="font-size: 14px; color: #667781;">
                                     <i class="fa fa-android me-1"></i><field name="chatbot_id"/>
                                 </div>
@@ -111,7 +111,7 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row">
+                            <div class="row m-0 m-0">
                                 <div class="col-8">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="display_name"/></strong>
                                 </div>
@@ -141,12 +141,12 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row">
+                            <div class="row m-0 m-0">
                                 <div class="col-12">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="name"/></strong>
                                 </div>
                             </div>
-                            <div class="row text-muted mt-2">
+                            <div class="row m-0 text-muted mt-2">
                                 <div class="col-12" style="font-size: 14px; color: #667781;">
                                     <i class="fa fa-android me-1"></i><field name="chatbot_id"/>
                                 </div>
@@ -172,12 +172,12 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row">
+                            <div class="row m-0 m-0">
                                 <div class="col-12">
                                     <strong style="font-size: 16px; color: #111b21; display: block; margin-bottom: 8px;"><field name="name"/></strong>
                                 </div>
                             </div>
-                            <div class="row mt-2">
+                            <div class="row m-0 mt-2">
                                 <div class="col-12" style="font-size: 14px; color: #54656f; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word;">
                                     <field name="message"/>
                                 </div>
@@ -209,7 +209,7 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row" style="margin-bottom: 8px;">
+                            <div class="row m-0 m-0" style="margin-bottom: 8px;">
                                 <div class="col-8">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="name"/></strong>
                                 </div>
@@ -217,7 +217,7 @@
                                     <span class="badge rounded-pill" style="background-color: #008069; color: white; padding: 4px 8px;"><field name="status"/></span>
                                 </div>
                             </div>
-                            <div class="row mt-2">
+                            <div class="row m-0 mt-2">
                                 <div class="col-12" style="font-size: 14px; color: #54656f; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
                                     <field name="body"/>
                                 </div>
