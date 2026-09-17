@@ -385,10 +385,10 @@
     overflow-y: auto;
 }
 .chat-dropdown-item { 
-    padding: 6px 12px; 
+    padding: 10px 24px; 
     cursor: pointer; 
-    font-size: 13px; 
-    color: #111b21; 
+    font-size: 14px; 
+    color: #3b4a54; 
 }
 .chat-dropdown-item:hover { background-color: #f5f6f6; }
 
