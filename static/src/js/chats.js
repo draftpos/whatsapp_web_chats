@@ -28,6 +28,7 @@ export class WhatsAppChatsAction extends Component {
             wa_templates: [],
             showTemplatesModal: false,
             showMobileChatbotDropdown: false,
+            showMobileConfigDropdown: false,
             showScheduledMsgModal: false,
             scheduledMsgStep: 1,
             scheduledMsgDate: "",
@@ -473,6 +474,13 @@ export class WhatsAppChatsAction extends Component {
     toggleMobileChatbotDropdown(ev) {
         if (ev) ev.stopPropagation();
         this.state.showMobileChatbotDropdown = !this.state.showMobileChatbotDropdown;
+        if (this.state.showMobileChatbotDropdown) this.state.showMobileConfigDropdown = false;
+    }
+
+    toggleMobileConfigDropdown(ev) {
+        if (ev) ev.stopPropagation();
+        this.state.showMobileConfigDropdown = !this.state.showMobileConfigDropdown;
+        if (this.state.showMobileConfigDropdown) this.state.showMobileChatbotDropdown = false;
     }
 
     sidebarNewChat() {

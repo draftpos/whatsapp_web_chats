@@ -45,9 +45,18 @@
                     </div>
                 </t>
             </div>
-            <div class="wa-bottom-nav-item" t-on-click="() => this.goToConfigurations()">
+            <div class="wa-bottom-nav-item" style="position: relative;" t-on-click="() => this.toggleMobileConfigDropdown()">
                 <i class="fa fa-cogs"/>
                 <span>Configuration</span>
+                <t t-if="state.showMobileConfigDropdown">
+                    <div class="mobile-nav-dropdown" style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: white; border-radius: 8px; box-shadow: 0 -2px 10px rgba(0,0,0,0.15); padding: 8px 0; min-width: 180px; z-index: 1000; margin-bottom: 10px;" t-on-click.stop="() => {}">
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp.whatsapp_message_action'); this.state.showMobileConfigDropdown = false; }">Messages</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp.whatsapp_account_action'); this.state.showMobileConfigDropdown = false; }">WhatsApp Business Accounts</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp_web_chats.whatsapp_quick_reply_config_action'); this.state.showMobileConfigDropdown = false; }">Quick Replies</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp.whatsapp_template_action'); this.state.showMobileConfigDropdown = false; }">Templates</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp_web_chats.action_whatsapp_web_chats_config_settings'); this.state.showMobileConfigDropdown = false; }">Settings</div>
+                    </div>
+                </t>
             </div>
             <div class="wa-bottom-nav-item" t-on-click="() => this.openProfileSettings()">
                 <i class="fa fa-sliders"/>
