@@ -379,7 +379,7 @@
     border-radius: 4px; 
     padding: 5px 0; 
     z-index: 20; 
-    min-width: 150px; 
+    min-width: 220px; 
     border: 1px solid #d1d7db; 
     max-height: 300px;
     overflow-y: auto;
@@ -389,6 +389,7 @@
     cursor: pointer; 
     font-size: 14px; 
     color: #3b4a54; 
+    white-space: nowrap;
 }
 .chat-dropdown-item:hover { background-color: #f5f6f6; }
 
