@@ -213,49 +213,14 @@ class DiscussChannel(models.Model):
         if self.env.context.get('skip_auto_invite'):
             return message
             
-        # Auto-send group invite message exactly once per chat
-        # But only if this message is a regular chat message (not an internal notification)
-        # and if the feature is enabled for the account.
-        try:
-            invite_sent = self.wa_group_invite_sent
-            has_account = bool(self.wa_account_id)
-            auto_share = self.wa_account_id.wa_group_auto_message_share if has_account else False
-        except Exception:
-            invite_sent = True
-            has_account = False
-            auto_share = False
-
         if (
             self.channel_type == 'whatsapp' 
-            and not invite_sent 
-            and has_account
-            and auto_share
+            and not self.wa_group_invite_sent 
+            and self.wa_account_id 
+            and self.wa_account_id.wa_group_auto_message_share
         ):
-            # Check if this message was a real message (not a system notification)
             message_type = kwargs.get('message_type') or message.message_type
             if message_type in ['comment', 'whatsapp_message', 'inbound']:
-                # Construct message
-                text = self.wa_account_id.wa_group_auto_message_text or ""
-                link = self.wa_account_id.wa_group_auto_message_link or ""
-                full_text = f"{text} {link}".strip()
-                
-                if full_text:
-                    # Determine author (fallback to OdooBot if no valid user is available)
-                    author_id = self.wa_account_id.user_id.partner_id.id
-                    if not author_id:
-                        author_id = self.env.user.partner_id.id if self.env.user.partner_id else self.env.ref('base.partner_root').id
-                        
-                    try:
-                        self.env['whatsapp.account'].with_context(skip_auto_invite=True).sudo().post_whatsapp_message(
-                            channel_id=self.id,
-                            body=full_text,
-                            message_type="whatsapp_message",
-                            subtype_xmlid="mail.mt_comment",
-                            author_id=author_id
-                        )
-                        self.sudo().write({'wa_group_invite_sent': True})
-                    except Exception as e:
-                        import logging
-                        logging.getLogger(__name__).error("Failed to send auto group invite to %s: %s", self.id, str(e))
+                self.wa_account_id.with_context(skip_auto_invite=True)._send_group_auto_message(self)
                         
         return message

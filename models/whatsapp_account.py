@@ -771,6 +771,20 @@ class WhatsAppAccount(models.Model):
                     
         # Apply custom routing bot logic — use filtered value so echo-backs never trigger bot replies
         self._process_routing_bot(value)
+
+        # Send group auto invite message to incoming chats that haven't received it yet
+        if self.wa_group_auto_message_share:
+            for message in filtered_messages:
+                wa_id = message.get('from', '')
+                clean_phone = ''.join([c for c in str(wa_id) if c.isdigit()])
+                if clean_phone:
+                    cust_channel = self.env['discuss.channel'].sudo().search([
+                        ('channel_type', '=', 'whatsapp'),
+                        ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
+                        ('wa_account_id', '=', self.id)
+                    ], limit=1)
+                    if cust_channel and not cust_channel.wa_group_invite_sent:
+                        self._send_group_auto_message(cust_channel)
                     
         return res
 
@@ -1643,4 +1657,127 @@ class WhatsAppAccount(models.Model):
                 'image_1920': account.image_1920 if hasattr(account, 'image_1920') else False,
             }
         return {}
+
+    def _send_group_auto_message(self, channel):
+        """ Sends the group auto message to a single discuss.channel """
+        self.ensure_one()
+        if not self.wa_group_auto_message_share or not self.phone_uid or not self.token:
+            return False
+            
+        if not channel or channel.channel_type != 'whatsapp' or channel.wa_group_invite_sent:
+            return False
+
+        text = (self.wa_group_auto_message_text or '').strip()
+        link = (self.wa_group_auto_message_link or '').strip()
+        if not text and not link:
+            return False
+        full_text = f"{text}\n{link}".strip() if (text and link) else (text or link)
+
+        phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
+        import re
+        clean_phone = re.sub(r'\D', '', str(phone or ''))
+        if not clean_phone:
+            return False
+
+        # Mark channel as invite sent immediately to prevent race conditions or duplicate sends
+        channel.sudo().write({'wa_group_invite_sent': True})
+
+        import requests
+        url = f"https://graph.facebook.com/v19.0/{self.phone_uid}/messages"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": clean_phone,
+            "type": "text",
+            "text": {
+                "preview_url": True,
+                "body": full_text
+            }
+        }
+
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=15)
+            resp_data = resp.json()
+            if 'messages' in resp_data:
+                msg_uid = resp_data['messages'][0]['id']
+                from odoo.tools import plaintext2html
+                mail_msg = channel.sudo().with_context(skip_auto_invite=True).message_post(
+                    body=plaintext2html(full_text),
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_comment',
+                    author_id=self.env.ref('base.partner_root').id
+                )
+                self.env['whatsapp.message'].sudo().create({
+                    'mail_message_id': mail_msg.id,
+                    'message_type': 'outbound',
+                    'mobile_number': f'+{clean_phone}',
+                    'wa_account_id': self.id,
+                    'msg_uid': msg_uid,
+                    'state': 'sent',
+                    'body': full_text
+                })
+                return True
+            else:
+                _logger.error("Meta API error sending group auto message to %s: %s", clean_phone, resp_data)
+                return False
+        except Exception as e:
+            _logger.error("Exception sending group auto message to channel %s: %s", channel.id, str(e))
+            return False
+
+    def action_send_group_auto_message_to_all(self):
+        """ Sends group auto message to all existing channels in the database that haven't received it yet """
+        self.ensure_one()
+        if not self.wa_group_auto_message_share:
+            from odoo.exceptions import UserError
+            raise UserError("Please enable WhatsApp Group Auto Message Share first.")
+
+        text = (self.wa_group_auto_message_text or '').strip()
+        link = (self.wa_group_auto_message_link or '').strip()
+        if not text and not link:
+            from odoo.exceptions import UserError
+            raise UserError("Please configure the Auto Message Text and/or Link before sending.")
+
+        pending_channels = self.env['discuss.channel'].sudo().search([
+            ('channel_type', '=', 'whatsapp'),
+            ('wa_account_id', '=', self.id),
+            ('wa_group_invite_sent', '=', False)
+        ])
+        
+        count = 0
+        import time
+        for channel in pending_channels:
+            if self._send_group_auto_message(channel):
+                count += 1
+                time.sleep(0.1)
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Group Auto Message Sent',
+                'message': f'Successfully sent group invite to {count} contacts (out of {len(pending_channels)} pending)!',
+                'type': 'success',
+                'sticky': False,
+            }
+        }
+
+    @api.model
+    def _cron_send_group_auto_messages(self):
+        """ Cron job to find pending channels in the database and send group auto messages """
+        accounts = self.search([('wa_group_auto_message_share', '=', True)])
+        import time
+        for acc in accounts:
+            pending_channels = self.env['discuss.channel'].sudo().search([
+                ('channel_type', '=', 'whatsapp'),
+                ('wa_account_id', '=', acc.id),
+                ('wa_group_invite_sent', '=', False)
+            ], limit=50)
+            for ch in pending_channels:
+                acc._send_group_auto_message(ch)
+                time.sleep(0.1)
+
  

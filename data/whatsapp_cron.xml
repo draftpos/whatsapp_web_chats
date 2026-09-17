@@ -19,5 +19,14 @@
             <field name="interval_type">minutes</field>
             <field name="active" eval="True"/>
         </record>
+        <record id="ir_cron_send_group_auto_messages" model="ir.cron">
+            <field name="name">WhatsApp: Auto Group Message Dispatcher</field>
+            <field name="model_id" ref="model_whatsapp_account"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_send_group_auto_messages()</field>
+            <field name="interval_number">10</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
     </data>
 </odoo>
