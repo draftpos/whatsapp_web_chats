@@ -3021,6 +3021,18 @@ export class WhatsAppChatsAction extends Component {
         this.state.showTemplatesModal = false;
     }
 
+
+    openContactModal() {
+        this.env.services.notification.add('Contact sharing is coming soon!', { type: 'info' });
+        this.state.showAttachMenu = false;
+        this.state.showPlusMenu = false;
+    }
+
+    openStickersModal() {
+        this.env.services.notification.add('Stickers are coming soon!', { type: 'info' });
+        this.state.showAttachMenu = false;
+        this.state.showPlusMenu = false;
+    }
     openScheduledMsgModal() {
         this.state.showPlusMenu = false;
         this.state.showScheduledMsgModal = true;
