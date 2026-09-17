@@ -10,10 +10,12 @@ def main():
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(host, username=user, password=password, timeout=15)
     
-    # Run the exact upgrade command
-    cmd = "echo 'Ashley@#$1234' | sudo -S docker exec odoo_demo1_havano_pro_cpsmddqqvbceafpdpqoknnae tail -n 200 /var/log/odoo/odoo.log"
+    query = sys.argv[1] if len(sys.argv) > 1 else ""
+    if query:
+        cmd = f"echo 'Ashley@#$1234' | sudo -S docker exec odoo_demo1_havano_pro_cpsmddqqvbceafpdpqoknnae grep -a -C 5 -i '{query}' /var/log/odoo/odoo.log | tail -n 100"
+    else:
+        cmd = "echo 'Ashley@#$1234' | sudo -S docker exec odoo_demo1_havano_pro_cpsmddqqvbceafpdpqoknnae tail -n 200 /var/log/odoo/odoo.log"
     
-    print("Running upgrade...")
     stdin, stdout, stderr = client.exec_command(cmd, timeout=900)
     
     for line in stdout:

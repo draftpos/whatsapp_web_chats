@@ -2589,10 +2589,9 @@ export class WhatsAppChatsAction extends Component {
             }
             this.state.replyingToMessage = null;
 
-            const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
-
             if (pendingFiles.length === 0) {
                 // Text only
+                const channelId = this.state.selectedChannel.id;
                 const tempMsgId = 'temp_' + Date.now();
                 const tempMsg = {
                     id: tempMsgId,
@@ -2608,15 +2607,47 @@ export class WhatsAppChatsAction extends Component {
                     quoted_author: replyingToAuthor
                 };
                 this.state.messages.push(tempMsg);
-                
-                offlineQueue.push({
-                    tempId: tempMsgId,
-                    channelId: this.state.selectedChannel.id,
-                    body: messageBody,
-                    replyingToMessageId: replyingToMessageId,
-                    files: [],
-                    timestamp: Date.now()
-                });
+                this.scrollToBottom();
+
+                (async () => {
+                    const kwargs = {
+                        body: messageBody,
+                        message_type: "whatsapp_message",
+                        subtype_xmlid: "mail.mt_comment",
+                        attachment_ids: []
+                    };
+                    if (replyingToMessageId) {
+                        kwargs.parent_id = replyingToMessageId;
+                    }
+
+                    try {
+                        await this.orm.call(
+                            "whatsapp.account",
+                            "post_whatsapp_message",
+                            [channelId],
+                            kwargs
+                        );
+                        tempMsg.wa_state = 'sent';
+                        await new Promise(r => setTimeout(r, 400));
+                        await this.loadMessages();
+                        this.scrollToBottom();
+                        await this.loadChannels();
+                    } catch (err) {
+                        console.error("Failed to send message:", err);
+                        tempMsg.wa_state = 'error';
+                        // Add to offline queue for later retry if network failure
+                        const offlineQueue = JSON.parse(localStorage.getItem('wa_offline_queue') || '[]');
+                        offlineQueue.push({
+                            tempId: tempMsgId,
+                            channelId: channelId,
+                            body: messageBody,
+                            replyingToMessageId: replyingToMessageId,
+                            files: [],
+                            timestamp: Date.now()
+                        });
+                        localStorage.setItem('wa_offline_queue', JSON.stringify(offlineQueue));
+                    }
+                })();
             } else {
                 // One or more files, send each media directly with its attachment
                 const channelId = this.state.selectedChannel.id;
@@ -3195,9 +3226,7 @@ export class WhatsAppChatsAction extends Component {
         
         this.scrollToBottom();
         
-        if (!this._isOfflineQueueRunning) {
-            this.flushOfflineQueue();
-        }
+        this.flushOfflineQueue();
     }
 
     async forwardToChannel(targetChannel) {
