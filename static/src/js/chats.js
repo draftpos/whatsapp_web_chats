@@ -245,6 +245,32 @@ export class WhatsAppChatsAction extends Component {
         });
     }
 
+    // Prevents UI flickering by merging new data into existing objects, preserving references
+    mergeArrayStable(targetArr, sourceArr, idKey = 'id') {
+        if (!targetArr || !targetArr.length) return sourceArr;
+        if (!sourceArr || !sourceArr.length) return [];
+        
+        const targetMap = new Map();
+        targetArr.forEach(item => {
+            if (item && item[idKey]) targetMap.set(item[idKey], item);
+        });
+        
+        const newArr = [];
+        for (const sourceItem of sourceArr) {
+            const key = sourceItem[idKey];
+            if (targetMap.has(key)) {
+                const targetItem = targetMap.get(key);
+                for (const prop in sourceItem) {
+                    targetItem[prop] = sourceItem[prop];
+                }
+                newArr.push(targetItem);
+            } else {
+                newArr.push(sourceItem);
+            }
+        }
+        return newArr;
+    }
+
     async loadTags() {
         try {
             this.state.availableTags = await this.orm.call("whatsapp.account", "get_all_chat_tags", [], {}, { silent: true });
@@ -698,7 +724,7 @@ export class WhatsAppChatsAction extends Component {
                 }
             }
 
-            this.state.channels = validChannels;
+            this.state.channels = this.mergeArrayStable(this.state.channels, validChannels, 'id');
             
             try {
                 localStorage.setItem(cacheKey, JSON.stringify(validChannels));
@@ -1460,7 +1486,7 @@ export class WhatsAppChatsAction extends Component {
             const oldMessages = [...this.state.messages];
             
             if (messages.length > 0) {
-            this.state.messages = messages.map(msg => {
+            const mappedMessages = messages.map(msg => {
                 let isMe = msg.is_me !== undefined ? msg.is_me : false;
                 
                 // Fallback for older messages or if is_me is missing
@@ -1560,6 +1586,7 @@ export class WhatsAppChatsAction extends Component {
                 
                 return { ...msg, isMe, bodyText, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
             });
+            this.state.messages = this.mergeArrayStable(this.state.messages, mappedMessages, 'id');
             } // end if messages.length > 0
             
             // --- Merge pending/recently sent messages ---
@@ -1944,7 +1971,7 @@ export class WhatsAppChatsAction extends Component {
                 }
             }
 
-            this.state.channels = validFresh;
+            this.state.channels = this.mergeArrayStable(this.state.channels, validFresh, 'id');
         } catch(e) {
             console.warn("Poll error", e);
         }
