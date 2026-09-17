@@ -39,7 +39,7 @@
     </record>
 
     <record id="whatsapp.whatsapp_message_action" model="ir.actions.act_window">
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
 
     <!-- whatsapp.account -->
@@ -65,7 +65,7 @@
     </record>
 
     <record id="whatsapp.whatsapp_account_action" model="ir.actions.act_window">
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
 
     <!-- wa.chatbot.flow -->
@@ -97,7 +97,7 @@
     </record>
 
     <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_flow" model="ir.actions.act_window">
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
 
     <!-- wa.chatbot.session -->
@@ -127,7 +127,7 @@
     </record>
 
     <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_session" model="ir.actions.act_window">
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
 
     <!-- wa.chatbot.keyword -->
@@ -159,7 +159,7 @@
     </record>
 
     <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword" model="ir.actions.act_window">
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
     <!-- whatsapp.quick.reply -->
     <record id="whatsapp_quick_reply_view_kanban" model="ir.ui.view">
@@ -190,12 +190,12 @@
     </record>
 
     <record id="whatsapp_web_chats.whatsapp_quick_reply_config_action" model="ir.actions.act_window">
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
     <record id="whatsapp.whatsapp_template_action" model="ir.actions.act_window">
         <field name="name">WhatsApp Template</field>
         <field name="res_model">whatsapp.template</field>
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
 
     <record id="whatsapp_template_view_kanban" model="ir.ui.view">
