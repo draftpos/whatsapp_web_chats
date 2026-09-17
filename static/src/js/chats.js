@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, useState, onWillStart, onMounted, onWillDestroy, useRef } from "@odoo/owl";
+import { Component, useState, onWillStart, onMounted, onWillDestroy, useRef, markup } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { session } from "@web/session";
@@ -1519,6 +1519,13 @@ export class WhatsAppChatsAction extends Component {
                 tmp.innerHTML = (msg.body && String(msg.body).toLowerCase() !== 'false' && String(msg.body) !== '<p><br></p>') ? msg.body : "";
                 let bodyText = tmp.textContent || tmp.innerText || "";
                 
+                let linkifiedText = bodyText;
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                linkifiedText = linkifiedText.replace(urlRegex, function(url) {
+                    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color: #0275d8; text-decoration: underline;" onclick="event.stopPropagation()">' + url + '</a>';
+                });
+                let bodyHtml = markup(linkifiedText);
+                
                 let isForwarded = false;
                 if (bodyText.startsWith("↩ Forwarded:")) {
                     isForwarded = true;
@@ -1587,7 +1594,7 @@ export class WhatsAppChatsAction extends Component {
                     }
                 }
 
-                                let authorName = "";
+                let authorName = "";
                 if (msg.author_id) {
                     authorName = msg.author_id[1] || "";
                     let authorLower = authorName.toLowerCase();
@@ -1597,8 +1604,11 @@ export class WhatsAppChatsAction extends Component {
                 } else if (!isMe && this.state.selectedChannel) {
                     authorName = this.state.selectedChannel.name || "Customer";
                 }
+                if (msg.message_type === 'outbound' || (msg.wa_state && msg.wa_state !== 'received' && msg.wa_state !== 'error')) {
+                    isMe = true;
+                }
                 
-                return { ...msg, isMe, bodyText, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
+                return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
             });
             this.state.messages = this.mergeArrayStable(this.state.messages, mappedMessages, 'id');
             } // end if messages.length > 0

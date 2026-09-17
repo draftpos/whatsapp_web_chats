@@ -598,7 +598,7 @@
                                             </div>
                                         </t>
                                         <t t-else="">
-                                            <div class="message-body" t-esc="msg.bodyText"/>
+                                            <div class="message-body" t-out="msg.bodyHtml"/>
                                         </t>
                                         <t t-if="msg.is_edited">
                                             <span class="msg-edited-label">Edited</span>
