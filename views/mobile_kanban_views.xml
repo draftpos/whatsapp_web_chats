@@ -39,7 +39,9 @@
     </record>
 
     <record id="whatsapp.whatsapp_message_action" model="ir.actions.act_window">
-        <field name="view_mode">kanban,list,form</field>
+        <field name="name">WhatsApp Messages</field>
+        <field name="res_model">whatsapp.message</field>
+        <field name="view_mode">kanban,tree,form</field>
     </record>
 
     <!-- whatsapp.account -->
@@ -65,7 +67,14 @@
     </record>
 
     <record id="whatsapp.whatsapp_account_action" model="ir.actions.act_window">
-        <field name="view_mode">kanban,list,form</field>
+        <field name="name">WhatsApp Business Account</field>
+        <field name="res_model">whatsapp.account</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new WhatsApp Business Account
+            </p>
+        </field>
     </record>
 
     <!-- wa.chatbot.flow -->
@@ -97,7 +106,9 @@
     </record>
 
     <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_flow" model="ir.actions.act_window">
-        <field name="view_mode">kanban,list,form</field>
+        <field name="name">Chatbot Flow</field>
+        <field name="res_model">wa.chatbot.flow</field>
+        <field name="view_mode">kanban,tree,form</field>
     </record>
 
     <!-- wa.chatbot.session -->
@@ -127,7 +138,9 @@
     </record>
 
     <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_session" model="ir.actions.act_window">
-        <field name="view_mode">kanban,list,form</field>
+        <field name="name">Chatbot Sessions</field>
+        <field name="res_model">wa.chatbot.session</field>
+        <field name="view_mode">kanban,tree,form</field>
     </record>
 
     <!-- wa.chatbot.keyword -->
@@ -159,7 +172,9 @@
     </record>
 
     <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword" model="ir.actions.act_window">
-        <field name="view_mode">kanban,list,form</field>
+        <field name="name">Chatbot Keywords</field>
+        <field name="res_model">wa.chatbot.keyword</field>
+        <field name="view_mode">kanban,tree,form</field>
     </record>
     <!-- whatsapp.quick.reply -->
     <record id="whatsapp_quick_reply_view_kanban" model="ir.ui.view">
@@ -190,12 +205,14 @@
     </record>
 
     <record id="whatsapp_web_chats.whatsapp_quick_reply_config_action" model="ir.actions.act_window">
-        <field name="view_mode">kanban,list,form</field>
+        <field name="name">Quick Replies</field>
+        <field name="res_model">whatsapp.quick.reply</field>
+        <field name="view_mode">kanban,tree,form</field>
     </record>
     <record id="whatsapp.whatsapp_template_action" model="ir.actions.act_window">
         <field name="name">WhatsApp Template</field>
         <field name="res_model">whatsapp.template</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">kanban,tree,form</field>
     </record>
 
     <record id="whatsapp_template_view_kanban" model="ir.ui.view">
