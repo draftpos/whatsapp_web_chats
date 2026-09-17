@@ -108,11 +108,14 @@ class WhatsAppMessage(models.Model):
                                 "messaging_product": "whatsapp",
                                 "recipient_type": "individual",
                                 "to": msg.mobile_number,
-                                "type": "video",
-                                "video": { "id": media_id }
+                                "type": "document",
+                                "document": { 
+                                    "id": media_id,
+                                    "filename": att.name or "video.mp4"
+                                }
                             }
                             if clean_caption and clean_caption != 'False':
-                                payload['video']['caption'] = clean_caption
+                                payload['document']['caption'] = clean_caption
                                 
                             send_res = requests.post(
                                 f"https://graph.facebook.com/v17.0/{account.account_uid}/messages",
@@ -196,11 +199,14 @@ class WhatsAppMessage(models.Model):
                                 "messaging_product": "whatsapp",
                                 "recipient_type": "individual",
                                 "to": msg.mobile_number,
-                                "type": "video",
-                                "video": { "id": media_id }
+                                "type": "document",
+                                "document": { 
+                                    "id": media_id,
+                                    "filename": att.name or "video.mp4"
+                                }
                             }
                             if clean_caption and clean_caption != 'False':
-                                payload['video']['caption'] = clean_caption
+                                payload['document']['caption'] = clean_caption
                                 
                             send_res = requests.post(
                                 f"https://graph.facebook.com/v17.0/{account.account_uid}/messages",
