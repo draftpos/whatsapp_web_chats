@@ -935,61 +935,61 @@
                                         </t>
                                         
                                         <t t-if="state.showPlusMenu">
-                                            <div class="attach-dropdown-menu" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1000; min-width: 240px; padding: 12px 0; display: flex; flex-direction: column; gap: 5px; max-height: calc(100vh - 200px); overflow-y: auto; overflow-x: hidden;">
-                                                <div class="attach-menu-item" t-on-click="openScheduledMsgModal" style="display: flex; align-items: center; padding: 6px 16px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #008069; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                                        <i class="fa fa-clock-o" style="font-size: 14px;"/>
+                                            <div class="attach-dropdown-menu" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 15px; background: white; border-radius: 16px; box-shadow: 0 2px 15px rgba(11,20,26,.15); z-index: 1000; min-width: 230px; padding: 12px 0; display: flex; flex-direction: column; gap: 5px; max-height: calc(100vh - 200px); overflow-y: auto; overflow-x: hidden;">
+                                                <div class="attach-menu-item" t-on-click="openScheduledMsgModal" style="display: flex; align-items: center; padding: 5px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #008069; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                        <i class="fa fa-clock-o" style="font-size: 13px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Scheduled Message</span>
+                                                    <span style="font-size: 14px; color: #3b4a54; font-weight: 500;">Scheduled Message</span>
                                                 </div>
 
-                                                <div class="attach-menu-item" t-on-click="() => this.openContactModal()" style="display: flex; align-items: center; padding: 6px 16px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #009DE2; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                                        <i class="fa fa-user" style="font-size: 14px;"/>
+                                                <div class="attach-menu-item" t-on-click="() => this.openContactModal()" style="display: flex; align-items: center; padding: 5px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #009DE2; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                        <i class="fa fa-user" style="font-size: 13px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Contact/Phone</span>
+                                                    <span style="font-size: 14px; color: #3b4a54; font-weight: 500;">Contact/Phone</span>
                                                 </div>
 
-                                                <div class="attach-menu-item" t-on-click="() => this.openStickersModal()" style="display: flex; align-items: center; padding: 6px 16px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #FF2E74; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                                        <i class="fa fa-smile-o" style="font-size: 14px;"/>
+                                                <div class="attach-menu-item" t-on-click="() => this.openStickersModal()" style="display: flex; align-items: center; padding: 5px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #FF2E74; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                        <i class="fa fa-smile-o" style="font-size: 13px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Sticker</span>
+                                                    <span style="font-size: 14px; color: #3b4a54; font-weight: 500;">Sticker</span>
                                                 </div>
 
-                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('*/*')" style="display: flex; align-items: center; padding: 6px 16px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #5156EA; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                                        <i class="fa fa-file-text" style="font-size: 14px;"/>
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('*/*')" style="display: flex; align-items: center; padding: 5px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #5156EA; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                        <i class="fa fa-file-text" style="font-size: 13px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Document</span>
+                                                    <span style="font-size: 14px; color: #3b4a54; font-weight: 500;">Document</span>
                                                 </div>
 
-                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('audio/*')" style="display: flex; align-items: center; padding: 6px 16px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #F56056; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                                        <i class="fa fa-headphones" style="font-size: 14px;"/>
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('audio/*')" style="display: flex; align-items: center; padding: 5px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #F56056; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                        <i class="fa fa-headphones" style="font-size: 13px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Audio</span>
+                                                    <span style="font-size: 14px; color: #3b4a54; font-weight: 500;">Audio</span>
                                                 </div>
 
-                                                <div class="attach-menu-item" t-on-click="() => this.openTemplatesModal('templates')" style="display: flex; align-items: center; padding: 6px 16px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #00A884; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                                        <i class="fa fa-file-text-o" style="font-size: 14px;"/>
+                                                <div class="attach-menu-item" t-on-click="() => this.openTemplatesModal('templates')" style="display: flex; align-items: center; padding: 5px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #00A884; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                        <i class="fa fa-file-text-o" style="font-size: 13px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Templates</span>
+                                                    <span style="font-size: 14px; color: #3b4a54; font-weight: 500;">Templates</span>
                                                 </div>
 
-                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/*,video/*')" style="display: flex; align-items: center; padding: 6px 16px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #007DFC; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                                        <i class="fa fa-image" style="font-size: 14px;"/>
+                                                <div class="attach-menu-item" t-on-click="() => this.triggerFileInput('image/*,video/*')" style="display: flex; align-items: center; padding: 5px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #007DFC; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                        <i class="fa fa-image" style="font-size: 13px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Photos &amp; Videos</span>
+                                                    <span style="font-size: 14px; color: #3b4a54; font-weight: 500;">Photos &amp; Videos</span>
                                                 </div>
 
-                                                <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 6px 16px; cursor: pointer; transition: background 0.2s;">
-                                                    <div style="background: #FF2E74; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                                        <i class="fa fa-bolt" style="font-size: 14px;"/>
+                                                <div class="attach-menu-item" t-on-click="openTemplatesModal" style="display: flex; align-items: center; padding: 5px 16px; cursor: pointer; transition: background 0.2s;">
+                                                    <div style="background: #FF2E74; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                                        <i class="fa fa-bolt" style="font-size: 13px;"/>
                                                     </div>
-                                                    <span style="font-size: 15px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
+                                                    <span style="font-size: 14px; color: #3b4a54; font-weight: 500;">Quick Replies</span>
                                                 </div>
                                             </div>
                                         </t>
