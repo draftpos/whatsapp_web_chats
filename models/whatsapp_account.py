@@ -1682,7 +1682,7 @@ class WhatsAppAccount(models.Model):
         link = (self.wa_group_auto_message_link or '').strip()
         if not text and not link:
             return False
-        full_text = f"{text}\n{link}".strip() if (text and link) else (text or link)
+        full_text = f"{text}\n\n{link}".strip() if (text and link) else (text or link)
 
         phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
         import re
