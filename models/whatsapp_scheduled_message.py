@@ -79,7 +79,7 @@ class WhatsAppScheduledMessage(models.Model):
                     msg_sudo.channel_id.wa_account_id.post_whatsapp_message(
                         msg.channel_id.id,
                         body=msg.quick_reply_id.body,
-                        message_type='comment',
+                        message_type='whatsapp_message',
                         subtype_xmlid='mail.mt_comment',
                         author_id=author_id
                     )
@@ -88,7 +88,7 @@ class WhatsAppScheduledMessage(models.Model):
                     msg_sudo.channel_id.wa_account_id.post_whatsapp_message(
                         msg.channel_id.id,
                         body=msg.custom_body,
-                        message_type='comment',
+                        message_type='whatsapp_message',
                         subtype_xmlid='mail.mt_comment',
                         author_id=author_id
                     )
