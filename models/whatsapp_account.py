@@ -1738,7 +1738,9 @@ class WhatsAppAccount(models.Model):
             return False
 
     def action_send_group_auto_message_to_all(self):
-        """ Sends group auto message to all existing channels in the database that haven't received it yet """
+        """Sends group auto message ONLY to contacts we have already spoken to
+        (i.e. channels with at least one existing message) that have not yet
+        received the invite.  Never sends to brand-new / empty channels."""
         self.ensure_one()
         if not self.wa_group_auto_message_share:
             from odoo.exceptions import UserError
@@ -1750,12 +1752,25 @@ class WhatsAppAccount(models.Model):
             from odoo.exceptions import UserError
             raise UserError("Please configure the Auto Message Text and/or Link before sending.")
 
+        # Find discuss.channel IDs that have at least one real message
+        # (excludes 'notification' system messages — only real chat messages count).
+        self.env.cr.execute("""
+            SELECT DISTINCT res_id
+            FROM mail_message
+            WHERE model = 'discuss.channel'
+              AND message_type NOT IN ('notification', 'user_notification', 'auto_comment')
+        """)
+        channel_ids_with_messages = {row[0] for row in self.env.cr.fetchall()}
+
+        # Pending channels for this account that haven't received the invite yet
+        # AND where at least one real message was exchanged (we talked to them).
         pending_channels = self.env['discuss.channel'].sudo().search([
             ('channel_type', '=', 'whatsapp'),
             ('wa_account_id', '=', self.id),
-            ('wa_group_invite_sent', '=', False)
+            ('wa_group_invite_sent', '=', False),
+            ('id', 'in', list(channel_ids_with_messages)),
         ])
-        
+
         count = 0
         import time
         for channel in pending_channels:
@@ -1768,7 +1783,7 @@ class WhatsAppAccount(models.Model):
             'tag': 'display_notification',
             'params': {
                 'title': 'Group Auto Message Sent',
-                'message': f'Successfully sent group invite to {count} contacts (out of {len(pending_channels)} pending)!',
+                'message': f'Sent group invite to {count} out of {len(pending_channels)} existing conversations that had not yet received it.',
                 'type': 'success',
                 'sticky': False,
             }
