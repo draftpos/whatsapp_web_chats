@@ -135,6 +135,12 @@
 
     .whatsapp-chat-filters::-webkit-scrollbar { display: none; }
 
+    .whatsapp-chat-filters.filter-open {
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+    }
+
     .chat-filter-pill {
         white-space: nowrap !important;
         padding: 5px 16px !important;
@@ -438,7 +444,6 @@
     }
 
     /* Filter/template dropdown modals full-width */
-    .filter-dropdown-menu,
     .header-dropdown-menu,
     .sidebar-dropdown-menu,
     .attach-dropdown-menu {
