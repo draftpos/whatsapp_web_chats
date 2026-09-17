@@ -101,7 +101,7 @@
                                 <i class="fa fa-caret-down" style="margin-left: 5px;"></i>
                             </div>
                             <t t-if="state.showFilterDropdown">
-                                <div class="filter-dropdown-menu" style="position: absolute; top: 100%; left: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 150px; margin-top: 5px; max-height: 300px; overflow-y: auto;">
+                                <div class="filter-dropdown-menu wa-desktop-only" style="position: absolute; top: 100%; left: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 150px; margin-top: 5px; max-height: 300px; overflow-y: auto;">
                                     <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('done'); Object.assign(this.state, {showFilterDropdown: false}); }">Done</div>
                                     <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('urgent'); Object.assign(this.state, {showFilterDropdown: false}); }">Urgent</div>
                                     <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('archived'); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; gap: 6px;">
@@ -120,7 +120,31 @@
                                 </div>
                             </t>
                         </div>
+                        </div>
                     </div>
+                    
+                <!-- Mobile Filter Dropdown Bottom Sheet -->
+                <t t-if="state.showFilterDropdown">
+                    <div class="wa-modal-overlay wa-mobile-only" style="z-index: 1059; background: rgba(0,0,0,0.4); position: fixed; top: 0; left: 0; right: 0; bottom: 0;" t-on-click.stop="() => this.state.showFilterDropdown = false"></div>
+                    <div class="filter-dropdown-menu wa-mobile-only" style="position: fixed; top: auto; bottom: 0; left: 0; right: 0; background: white; border-radius: 16px 16px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); z-index: 1060; padding: 15px 0 30px 0; max-height: 60vh; overflow-y: auto;">
+                        <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('done'); Object.assign(this.state, {showFilterDropdown: false}); }" style="padding: 15px 20px; font-size: 16px;">Done</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('urgent'); Object.assign(this.state, {showFilterDropdown: false}); }" style="padding: 15px 20px; font-size: 16px;">Urgent</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('archived'); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; gap: 6px; padding: 15px 20px; font-size: 16px;">
+                            <i class="fa fa-archive" style="color: #667781;"/>
+                            Archived
+                        </div>
+                        <t t-if="state.availableTags and state.availableTags.length > 0">
+                            <div style="border-top: 1px solid #f0f2f5; margin: 4px 0;"></div>
+                            <t t-foreach="state.availableTags" t-as="tag" t-key="tag.id">
+                                <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('tag_' + tag.id); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; padding: 15px 20px; font-size: 16px;">
+                                    <div style="width: 12px; height: 12px; border-radius: 50%; margin-right: 8px;" t-attf-style="background-color: {{tag.color}};"></div>
+                                    <t t-esc="tag.name"/>
+                                </div>
+                            </t>
+                        </t>
+                    </div>
+                </t>
+                
                 <div class="whatsapp-chat-list" t-ref="chatList">
                     <t t-if="this.filteredChannels?.length === 0">
                         <div style="padding: 20px; text-align: center; color: #8696a0; font-size: 14px;">No chats found</div>
