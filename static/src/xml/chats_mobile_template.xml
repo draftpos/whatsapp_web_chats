@@ -37,7 +37,11 @@
                 <span>Chatbot</span>
                 <t t-if="state.showMobileChatbotDropdown">
                     <div class="mobile-nav-dropdown" style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: white; border-radius: 8px; box-shadow: 0 -2px 10px rgba(0,0,0,0.15); padding: 8px 0; min-width: 150px; z-index: 1000; margin-bottom: 10px;" t-on-click.stop="() => {}">
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_dashboard'); this.state.showMobileChatbotDropdown = false; }">Dashboard</div>
                         <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot'); this.state.showMobileChatbotDropdown = false; }">Chatbots</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_flow'); this.state.showMobileChatbotDropdown = false; }">Flows</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_session'); this.state.showMobileChatbotDropdown = false; }">Sessions</div>
+                        <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword'); this.state.showMobileChatbotDropdown = false; }">Keywords</div>
                     </div>
                 </t>
             </div>
