@@ -170,7 +170,7 @@ class DiscussChannel(models.Model):
                 if self.wa_account_id and self.wa_account_id.wa_group_auto_message_share and not self.wa_group_invite_sent:
                     self.wa_account_id.with_context(skip_auto_invite=True)._send_group_auto_message(self)
                     
-                return True
+            return True
             
         if hasattr(super(), '_notify_thread'):
             return super()._notify_thread(message, msg_vals=msg_vals, **kwargs)
