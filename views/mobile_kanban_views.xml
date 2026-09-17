@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- whatsapp.message -->
+    <record id="whatsapp_message_view_kanban" model="ir.ui.view">
+        <field name="name">whatsapp.message.kanban</field>
+        <field name="model">whatsapp.message</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="mobile_number"/>
+                <field name="create_date"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="row">
+                                <div class="col-8">
+                                    <strong><field name="mobile_number"/></strong>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <span class="badge rounded-pill text-bg-info"><field name="state"/></span>
+                                </div>
+                            </div>
+                            <div class="row text-muted mt-2">
+                                <div class="col-12">
+                                    <field name="create_date"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="whatsapp.whatsapp_message_action" model="ir.actions.act_window">
+        <field name="view_mode">list,kanban,form</field>
+    </record>
+
+    <!-- whatsapp.account -->
+    <record id="whatsapp_account_view_kanban" model="ir.ui.view">
+        <field name="name">whatsapp.account.kanban</field>
+        <field name="model">whatsapp.account</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong><field name="name"/></strong>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="whatsapp.whatsapp_account_action" model="ir.actions.act_window">
+        <field name="view_mode">list,kanban,form</field>
+    </record>
+
+    <!-- wa.chatbot.flow -->
+    <record id="wa_chatbot_flow_view_kanban" model="ir.ui.view">
+        <field name="name">wa.chatbot.flow.kanban</field>
+        <field name="model">wa.chatbot.flow</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="chatbot_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong><field name="name"/></strong>
+                                </div>
+                            </div>
+                            <div class="row text-muted mt-2">
+                                <div class="col-12">
+                                    <field name="chatbot_id"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_flow" model="ir.actions.act_window">
+        <field name="view_mode">list,kanban,form</field>
+    </record>
+
+    <!-- wa.chatbot.session -->
+    <record id="wa_chatbot_session_view_kanban" model="ir.ui.view">
+        <field name="name">wa.chatbot.session.kanban</field>
+        <field name="model">wa.chatbot.session</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="display_name"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="row">
+                                <div class="col-8">
+                                    <strong><field name="display_name"/></strong>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <span class="badge rounded-pill text-bg-info"><field name="state"/></span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_session" model="ir.actions.act_window">
+        <field name="view_mode">list,kanban,form</field>
+    </record>
+
+    <!-- wa.chatbot.keyword -->
+    <record id="wa_chatbot_keyword_view_kanban" model="ir.ui.view">
+        <field name="name">wa.chatbot.keyword.kanban</field>
+        <field name="model">wa.chatbot.keyword</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="chatbot_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong><field name="name"/></strong>
+                                </div>
+                            </div>
+                            <div class="row text-muted mt-2">
+                                <div class="col-12">
+                                    <field name="chatbot_id"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword" model="ir.actions.act_window">
+        <field name="view_mode">list,kanban,form</field>
+    </record>
+    <!-- whatsapp.quick.reply -->
+    <record id="whatsapp_quick_reply_view_kanban" model="ir.ui.view">
+        <field name="name">whatsapp.quick.reply.kanban</field>
+        <field name="model">whatsapp.quick.reply</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="message"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong><field name="name"/></strong>
+                                </div>
+                            </div>
+                            <div class="row text-muted mt-2">
+                                <div class="col-12">
+                                    <field name="message"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="whatsapp_web_chats.whatsapp_quick_reply_config_action" model="ir.actions.act_window">
+        <field name="view_mode">list,kanban,form</field>
+    </record>
+</odoo>

@@ -6,7 +6,7 @@
     },
     'category': 'Discuss',
     'summary': 'Provides a WhatsApp Web-like interface for managing WhatsApp chats.',
-    'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup'],
+    'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup', 'dev_whatsapp_chatbot_ent'],
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
@@ -21,6 +21,7 @@
         'views/res_users_views.xml',
         'views/res_config_settings_views.xml',
         'views/login_templates.xml',
+        'views/mobile_kanban_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
