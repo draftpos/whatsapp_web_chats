@@ -826,6 +826,11 @@ export class WhatsAppChatsAction extends Component {
         return (this.state.chatSearch || "").toLowerCase().trim();
     }
 
+    get inboxChannelsCount() {
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => !c.wa_is_done && !c.wa_is_blocked && (c.last_message_preview || c.id === this.state.activeChannelId)).length;
+    }
+
     get filteredChannels() {
         if (!this.state.channels) return [];
         let filtered = this.state.channels;
@@ -852,8 +857,8 @@ export class WhatsAppChatsAction extends Component {
                     const tagId = parseInt(this.state.chatFilter.replace('tag_', ''));
                     filtered = filtered.filter(c => !c.wa_is_blocked && c.wa_tags && c.wa_tags.some(t => t.id === tagId));
                 } else {
-                    // Inbox view: hide archived and blocked chats
-                    filtered = filtered.filter(c => !c.wa_is_done && !c.wa_is_blocked);
+                    // Inbox view: hide archived and blocked chats, and hide empty chats unless it is the active one
+                    filtered = filtered.filter(c => !c.wa_is_done && !c.wa_is_blocked && (c.last_message_preview || c.id === this.state.activeChannelId));
                 }
                 break;
         }
