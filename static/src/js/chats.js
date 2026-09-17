@@ -2586,7 +2586,8 @@ export class WhatsAppChatsAction extends Component {
                     timestamp: Date.now()
                 });
             } else {
-                // One or more files, split into separate messages because WhatsApp API allows only 1 media per message
+                // One or more files, send each media directly with its attachment
+                const channelId = this.state.selectedChannel.id;
                 for (let i = 0; i < pendingFiles.length; i++) {
                     const pendingFile = pendingFiles[i];
                     const isFirst = (i === 0);
@@ -2613,25 +2614,79 @@ export class WhatsAppChatsAction extends Component {
                         quoted_author: replyingToAuthor
                     };
                     this.state.messages.push(tempMsg);
-                    
-                    offlineQueue.push({
-                        tempId: tempMsgId,
-                        channelId: this.state.selectedChannel.id,
-                        body: body,
-                        replyingToMessageId: replyingToMessageId,
-                        files: [{
-                            name: pendingFile.name,
-                            type: pendingFile.type,
-                            dataUrl: pendingFile.dataUrl || null,
-                            localBlobUrl: pendingFile.localBlobUrl || null
-                        }],
-                        timestamp: Date.now() + i
-                    });
+                    this.scrollToBottom();
+
+                    // Upload and send attachment immediately
+                    (async () => {
+                        try {
+                            let fileToUpload = pendingFile.file;
+                            if (!fileToUpload && pendingFile.dataUrl) {
+                                fileToUpload = this.dataURLtoBlob(pendingFile.dataUrl);
+                            }
+                            if (!fileToUpload) {
+                                throw new Error("No file content to upload");
+                            }
+
+                            const formData = new window.FormData();
+                            formData.append('csrf_token', window.odoo?.csrf_token || '');
+                            formData.append('name', pendingFile.name);
+                            formData.append('ufile', fileToUpload, pendingFile.name);
+                            formData.append('model', 'discuss.channel');
+                            formData.append('id', channelId);
+
+                            const response = await window.fetch('/web/binary/upload_attachment', {
+                                method: 'POST',
+                                body: formData,
+                            });
+                            if (!response.ok) {
+                                throw new Error(`Upload failed with status ${response.status}`);
+                            }
+                            const responseText = await response.text();
+                            let attachmentId = null;
+                            const match = responseText.match(/\[.*?\]|\{.*?\}/);
+                            if (match) {
+                                const result = JSON.parse(match[0]);
+                                if (Array.isArray(result) && result.length > 0) {
+                                    attachmentId = result[0].id;
+                                } else if (result.id) {
+                                    attachmentId = result.id;
+                                }
+                            }
+                            if (!attachmentId) {
+                                throw new Error("Could not parse attachment ID from upload response");
+                            }
+
+                            const kwargs = {
+                                body: body,
+                                message_type: "whatsapp_message",
+                                subtype_xmlid: "mail.mt_comment",
+                                attachment_ids: [attachmentId]
+                            };
+                            if (replyingToMessageId) {
+                                kwargs.parent_id = replyingToMessageId;
+                            }
+
+                            await this.orm.call(
+                                "whatsapp.account",
+                                "post_whatsapp_message",
+                                [channelId],
+                                kwargs
+                            );
+
+                            tempMsg.wa_state = 'sent';
+                            await new Promise(r => setTimeout(r, 400));
+                            await this.loadMessages();
+                            this.scrollToBottom();
+                        } catch (err) {
+                            console.error("Failed to send attachment:", err);
+                            tempMsg.wa_state = 'error';
+                            alert("Failed to send attachment: " + (err.message || err));
+                        }
+                    })();
                 }
             }
             
             this.scrollToBottom();
-            localStorage.setItem('wa_offline_queue', JSON.stringify(offlineQueue));
         } finally {
             this.state.isSending = false;
         }

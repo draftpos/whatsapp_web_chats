@@ -80,22 +80,29 @@ class WhatsAppMessage(models.Model):
                     # Direct Meta API Send for videos to bypass Odoo's broken payload construction
                     import requests
                     import base64
+                    import re
                     account = msg.wa_account_id
                     if not account:
                         if msg.mail_message_id.model == 'discuss.channel':
                             account = self.env['discuss.channel'].browse(msg.mail_message_id.res_id).wa_account_id
                             
-                    if account and account.token and account.account_uid:
+                    if account and account.token and account.phone_uid:
                         try:
+                            clean_phone = re.sub(r'\D', '', str(msg.mobile_number or ''))
+                            if not clean_phone:
+                                raise Exception(f"Invalid mobile number: {msg.mobile_number}")
+                                
                             headers = {'Authorization': f'Bearer {account.token}'}
                             files = {
-                                'file': (att.name, base64.b64decode(att.datas), att.mimetype),
-                                'type': (None, att.mimetype),
-                                'messaging_product': (None, 'whatsapp')
+                                'file': (att.name or 'video.mp4', base64.b64decode(att.datas), 'video/mp4'),
+                            }
+                            data = {
+                                'messaging_product': 'whatsapp',
+                                'type': 'video/mp4'
                             }
                             upload_res = requests.post(
-                                f"https://graph.facebook.com/v17.0/{account.account_uid}/media", 
-                                headers=headers, files=files, timeout=60
+                                f"https://graph.facebook.com/v19.0/{account.phone_uid}/media", 
+                                headers=headers, data=data, files=files, timeout=60
                             )
                             upload_data = upload_res.json()
                             if 'id' not in upload_data:
@@ -107,18 +114,17 @@ class WhatsAppMessage(models.Model):
                             payload = {
                                 "messaging_product": "whatsapp",
                                 "recipient_type": "individual",
-                                "to": msg.mobile_number,
-                                "type": "document",
-                                "document": { 
-                                    "id": media_id,
-                                    "filename": att.name or "video.mp4"
+                                "to": clean_phone,
+                                "type": "video",
+                                "video": { 
+                                    "id": media_id
                                 }
                             }
                             if clean_caption and clean_caption != 'False':
-                                payload['document']['caption'] = clean_caption
+                                payload['video']['caption'] = clean_caption
                                 
                             send_res = requests.post(
-                                f"https://graph.facebook.com/v17.0/{account.account_uid}/messages",
+                                f"https://graph.facebook.com/v19.0/{account.phone_uid}/messages",
                                 headers={'Authorization': f'Bearer {account.token}', 'Content-Type': 'application/json'},
                                 json=payload, timeout=15
                             )
@@ -171,22 +177,29 @@ class WhatsAppMessage(models.Model):
                     # Direct Meta API Send for videos to bypass Odoo's broken payload construction
                     import requests
                     import base64
+                    import re
                     account = msg.wa_account_id
                     if not account:
                         if msg.mail_message_id.model == 'discuss.channel':
                             account = self.env['discuss.channel'].browse(msg.mail_message_id.res_id).wa_account_id
                             
-                    if account and account.token and account.account_uid:
+                    if account and account.token and account.phone_uid:
                         try:
+                            clean_phone = re.sub(r'\D', '', str(msg.mobile_number or ''))
+                            if not clean_phone:
+                                raise Exception(f"Invalid mobile number: {msg.mobile_number}")
+                                
                             headers = {'Authorization': f'Bearer {account.token}'}
                             files = {
-                                'file': (att.name, base64.b64decode(att.datas), att.mimetype),
-                                'type': (None, att.mimetype),
-                                'messaging_product': (None, 'whatsapp')
+                                'file': (att.name or 'video.mp4', base64.b64decode(att.datas), 'video/mp4'),
+                            }
+                            data = {
+                                'messaging_product': 'whatsapp',
+                                'type': 'video/mp4'
                             }
                             upload_res = requests.post(
-                                f"https://graph.facebook.com/v17.0/{account.account_uid}/media", 
-                                headers=headers, files=files, timeout=60
+                                f"https://graph.facebook.com/v19.0/{account.phone_uid}/media", 
+                                headers=headers, data=data, files=files, timeout=60
                             )
                             upload_data = upload_res.json()
                             if 'id' not in upload_data:
@@ -198,18 +211,17 @@ class WhatsAppMessage(models.Model):
                             payload = {
                                 "messaging_product": "whatsapp",
                                 "recipient_type": "individual",
-                                "to": msg.mobile_number,
-                                "type": "document",
-                                "document": { 
-                                    "id": media_id,
-                                    "filename": att.name or "video.mp4"
+                                "to": clean_phone,
+                                "type": "video",
+                                "video": { 
+                                    "id": media_id
                                 }
                             }
                             if clean_caption and clean_caption != 'False':
-                                payload['document']['caption'] = clean_caption
+                                payload['video']['caption'] = clean_caption
                                 
                             send_res = requests.post(
-                                f"https://graph.facebook.com/v17.0/{account.account_uid}/messages",
+                                f"https://graph.facebook.com/v19.0/{account.phone_uid}/messages",
                                 headers={'Authorization': f'Bearer {account.token}', 'Content-Type': 'application/json'},
                                 json=payload, timeout=15
                             )
