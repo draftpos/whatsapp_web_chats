@@ -1717,7 +1717,7 @@ class WhatsAppAccount(models.Model):
                     body=plaintext2html(full_text),
                     message_type='comment',
                     subtype_xmlid='mail.mt_comment',
-                    author_id=self.env.ref('base.partner_root').id
+                    author_id=self.env.ref('base.partner_admin').id
                 )
                 self.env['whatsapp.message'].sudo().create({
                     'mail_message_id': mail_msg.id,
@@ -1752,23 +1752,11 @@ class WhatsAppAccount(models.Model):
             from odoo.exceptions import UserError
             raise UserError("Please configure the Auto Message Text and/or Link before sending.")
 
-        # Find discuss.channel IDs that have at least one real message
-        # (excludes 'notification' system messages — only real chat messages count).
-        self.env.cr.execute("""
-            SELECT DISTINCT res_id
-            FROM mail_message
-            WHERE model = 'discuss.channel'
-              AND message_type NOT IN ('notification', 'user_notification', 'auto_comment')
-        """)
-        channel_ids_with_messages = {row[0] for row in self.env.cr.fetchall()}
-
         # Pending channels for this account that haven't received the invite yet
-        # AND where at least one real message was exchanged (we talked to them).
         pending_channels = self.env['discuss.channel'].sudo().search([
             ('channel_type', '=', 'whatsapp'),
             ('wa_account_id', '=', self.id),
-            ('wa_group_invite_sent', '=', False),
-            ('id', 'in', list(channel_ids_with_messages)),
+            ('wa_group_invite_sent', '=', False)
         ])
 
         count = 0
