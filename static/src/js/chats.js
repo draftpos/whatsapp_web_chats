@@ -944,7 +944,7 @@ export class WhatsAppChatsAction extends Component {
 
     get inboxChannelsCount() {
         if (!this.state.channels) return 0;
-        return this.state.channels.filter(c => !c.wa_is_done && !c.wa_is_blocked && (c.last_message_preview || c.id === this.state.activeChannelId)).length;
+        return this.state.channels.filter(c => !c.wa_is_done && !c.wa_is_blocked && (c.last_message_preview || c.last_message_time || c.id === this.state.activeChannelId)).length;
     }
 
     get filteredChannels() {
@@ -974,7 +974,7 @@ export class WhatsAppChatsAction extends Component {
                     filtered = filtered.filter(c => !c.wa_is_blocked && c.wa_tags && c.wa_tags.some(t => t.id === tagId));
                 } else {
                     // Inbox view: hide archived and blocked chats, and hide empty chats unless it is the active one
-                    filtered = filtered.filter(c => !c.wa_is_done && !c.wa_is_blocked && (c.last_message_preview || c.id === this.state.activeChannelId));
+                    filtered = filtered.filter(c => !c.wa_is_done && !c.wa_is_blocked && (c.last_message_preview || c.last_message_time || c.id === this.state.activeChannelId));
                 }
                 break;
         }

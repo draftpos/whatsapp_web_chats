@@ -21,6 +21,7 @@
         'views/login_templates.xml',
         'data/school_sync_cron.xml',
         'views/mobile_kanban_views.xml',
+        'views/send_school_balances_wizard_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

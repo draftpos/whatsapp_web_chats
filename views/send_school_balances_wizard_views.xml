@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_send_school_balances_wizard_form" model="ir.ui.view">
+        <field name="name">send.school.balances.wizard.form</field>
+        <field name="model">send.school.balances.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send School Balances">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="whatsapp_account_id" options="{'no_create': True}" readonly="1"/>
+                            <field name="integration_type" invisible="1"/>
+                            <field name="target_audience" widget="radio"/>
+                        </group>
+                        
+                        <group>
+                            <field name="class_name" invisible="target_audience != 'class'" required="target_audience == 'class'"/>
+                            <field name="section_name" invisible="target_audience != 'section'" required="target_audience == 'section'"/>
+                            <field name="student_name" invisible="target_audience != 'student'" required="target_audience == 'student'"/>
+                        </group>
+                    </group>
+                    <p class="text-muted">
+                        This action will generate Student Statement PDFs for the selected audience and send them via WhatsApp using the template configured in your account settings.
+                    </p>
+                </sheet>
+                <footer>
+                    <button string="Send Balances" name="action_send_balances" type="object" class="oe_highlight"/>
+                    <button string="Cancel" class="btn btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard from whatsapp.account form -->
+    <record id="action_send_school_balances_wizard" model="ir.actions.act_window">
+        <field name="name">Send School Balances</field>
+        <field name="res_model">send.school.balances.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_whatsapp_account_id': active_id}</field>
+    </record>
+</odoo>

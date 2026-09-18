@@ -59,6 +59,13 @@
                 <field name="whatsapp_account_id"/>
                 <filter string="Sent Successfully" name="sent" domain="[('status', '=', 'sent')]"/>
                 <filter string="Failed" name="failed" domain="[('status', '=', 'failed')]"/>
+                <separator/>
+                <filter string="Manual Trigger" name="manual" domain="[('trigger_type', '=', 'manual')]"/>
+                <filter string="Billing Trigger" name="billing" domain="[('trigger_type', '=', 'billing')]"/>
+                <separator/>
+                <filter string="Status" name="group_by_status" context="{'group_by':'status'}"/>
+                <filter string="Trigger Type" name="group_by_trigger" context="{'group_by':'trigger_type'}"/>
+                <filter string="Date" name="group_by_date" context="{'group_by':'create_date:day'}"/>
             </search>
         </field>
     </record>

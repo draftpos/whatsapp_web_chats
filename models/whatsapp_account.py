@@ -52,17 +52,37 @@ class WhatsAppAccount(models.Model):
     allow_school_balances = fields.Boolean(string="Allow sending balances from school app", default=False)
     school_integration_type = fields.Selection([
         ('local', 'Local (Same Database)'),
-        ('remote', 'Remote Server (XML-RPC)')
+        ('remote', 'Remote Server')
     ], string="Integration Type", default='local')
     school_app_url = fields.Char(string="School App URL")
-    school_db_name = fields.Char(string="Database Name")
-    school_username = fields.Char(string="Username")
-    school_password = fields.Char(string="Password")
+    school_db_name = fields.Char(string="School Database Name")
+    school_username = fields.Char(string="School Username/Email")
+    school_password = fields.Char(string="School Password")
+    
+    school_balance_template = fields.Text(
+        string="Balance Message Template", 
+        default="Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}.",
+        help="Use placeholders: {parent_name}, {student_name}, {school}, {balance}"
+    )
+    school_auto_send_frequency = fields.Selection([
+        ('manual', 'Manual Only'),
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('custom', 'Custom Date')
+    ], string="Auto-Send Frequency", default='manual')
+    school_auto_send_custom_date = fields.Date(string="Custom Send Date")
 
     @api.model
     def _cron_sync_school_balances(self):
-        accounts = self.search([('allow_school_balances', '=', True)])
+        accounts = self.search([('allow_school_balances', '=', True), ('school_auto_send_frequency', '!=', 'manual')])
+        from datetime import date
+        today = date.today()
+        
         for acc in accounts:
+            if acc.school_auto_send_frequency == 'custom' and acc.school_auto_send_custom_date != today:
+                continue
+                
             try:
                 if acc.school_integration_type == 'local':
                     acc._sync_school_balances_local()
@@ -87,7 +107,13 @@ class WhatsAppAccount(models.Model):
             ('state', '=', 'posted')
         ], order='id desc', limit=100) # Process latest 100 to avoid long crons
 
+        template = self.school_balance_template or "Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}."
+        school_name = self.company_id.name or 'Our School'
+
         for move in moves:
+            if move.amount_residual <= 0:
+                continue
+
             # Check if this move is already logged
             existing_log = self.env['whatsapp.school.balance.log'].search([
                 ('whatsapp_account_id', '=', self.id),
@@ -115,20 +141,59 @@ class WhatsAppAccount(models.Model):
                 self._create_balance_log(student.name, parent.name, False, move.amount_residual, move.id, 'billing', 'failed', 'Parent has no phone number.')
                 continue
 
-            message = self._generate_balance_message(student.name, parent.name, move.amount_residual)
-            
             # Send message via WhatsApp
             try:
                 # Normalize phone (very basic, actual implementation should use standard phone formatting)
                 phone = parent_phone.replace(' ', '').replace('+', '')
                 
-                # Create whatsapp message
-                self.env['whatsapp.message'].create({
+                # Generate PDF Report
+                attachment = False
+                try:
+                    import base64
+                    from datetime import date
+                    from dateutil.relativedelta import relativedelta
+                    
+                    start_date = date.today().replace(day=1) - relativedelta(months=1)
+                    end_date = date.today()
+                    
+                    wizard = self.env['customer.statement.wizard'].create({
+                        'partner_id': parent.id,
+                        'start_date': start_date,
+                        'end_date': end_date
+                    })
+                    
+                    report = self.env.ref('havano_schools_odoo.statement_receipt')
+                    pdf_content, _ = report._render_qweb_pdf(wizard.id)
+                    pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+                    
+                    attachment = self.env['ir.attachment'].create({
+                        'name': f"Statement_{student.name}_{date.today()}.pdf",
+                        'type': 'binary',
+                        'datas': pdf_base64,
+                        'res_model': 'whatsapp.message',
+                        'mimetype': 'application/pdf'
+                    })
+                except Exception as e:
+                    _logger.error(f"Failed to generate PDF for {student.name}: {e}")
+                    attachment = False
+
+                message = template.format(
+                    parent_name=parent.name,
+                    student_name=student.name,
+                    school=school_name,
+                    balance=move.amount_residual
+                )
+                
+                msg_vals = {
                     'wa_account_id': self.id,
                     'mobile_number': phone,
                     'body': message,
-                    'state': 'sent' # Assuming immediate queue
-                })
+                    'state': 'sent'
+                }
+                if attachment:
+                    msg_vals['attachment_id'] = attachment.id
+                    
+                self.env['whatsapp.message'].create(msg_vals)
                 # Note: In reality, you'd call the api to send, or let the queue handle it.
                 # Assuming creating whatsapp.message with state 'sent' or calling a specific send function.
                 # Since I don't know the exact send function, I will just create the record.
@@ -165,7 +230,13 @@ class WhatsAppAccount(models.Model):
 
         moves = models.execute_kw(self.school_db_name, uid, self.school_password, 'account.move', 'read', [move_ids], {'fields': ['partner_id', 'amount_residual']})
         
+        template = self.school_balance_template or "Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}."
+        school_name = self.company_id.name or 'Our School'
+
         for move in moves:
+            if move.get('amount_residual', 0) <= 0:
+                continue
+
             existing_log = self.env['whatsapp.school.balance.log'].search([
                 ('whatsapp_account_id', '=', self.id),
                 ('move_id_ref', '=', move['id'])
@@ -201,7 +272,12 @@ class WhatsAppAccount(models.Model):
                 self._create_balance_log(student_name, parent['name'], False, move['amount_residual'], move['id'], 'billing', 'failed', 'Parent has no phone number.')
                 continue
 
-            message = self._generate_balance_message(student_name, parent['name'], move['amount_residual'])
+            message = template.format(
+                parent_name=parent['name'],
+                student_name=student_name,
+                school=school_name,
+                balance=move['amount_residual']
+            )
             
             try:
                 phone = parent_phone.replace(' ', '').replace('+', '')
