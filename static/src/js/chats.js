@@ -163,6 +163,14 @@ export class WhatsAppChatsAction extends Component {
             window.addEventListener('resize', this._updateMobileClass);
             this._updateMobileClass();
 
+            // Mobile view: handle hardware back button
+            this._onPopState = (ev) => {
+                if (this.state.isMobile && this.state.selectedChannel) {
+                    this.goBackToChatList(true);
+                }
+            };
+            window.addEventListener('popstate', this._onPopState);
+
             // Close dropdowns when clicking anywhere outside
             this._onDocumentClick = (ev) => {
                 let changed = false;
@@ -243,6 +251,9 @@ export class WhatsAppChatsAction extends Component {
             }
             if (this._updateMobileClass) {
                 window.removeEventListener('resize', this._updateMobileClass);
+            }
+            if (this._onPopState) {
+                window.removeEventListener('popstate', this._onPopState);
             }
         });
     }
@@ -1278,13 +1289,17 @@ export class WhatsAppChatsAction extends Component {
         await this.deleteChat(channelId);
     }
 
-    goBackToChatList() {
+    goBackToChatList(fromPopState = false) {
         // Mobile: slide back to the chat list panel
         this.state.selectedChannel = null;
         this.state.messages = [];
         this.state.showContactInfo = false;
         const container = document.querySelector('.whatsapp-container');
         if (container) container.classList.remove('mobile-chat-open');
+        
+        if (this.state.isMobile && fromPopState !== true) {
+            window.history.back();
+        }
     }
 
     selectChannel(channel, event) {
@@ -1298,6 +1313,10 @@ export class WhatsAppChatsAction extends Component {
         this.state.chatSearch = '';
         this.state.messages = this.messageCache[channel.id] || [];
         this.state.isSending = false;
+
+        if (this.state.isMobile) {
+            window.history.pushState({ chatOpen: true }, "");
+        }
 
         const loadId = Symbol();
         this.currentLoadId = loadId;
