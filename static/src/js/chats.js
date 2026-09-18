@@ -186,6 +186,12 @@ export class WhatsAppChatsAction extends Component {
                         changed = true;
                     }
                 }
+                if (this.state.showSidebarDropdown) {
+                    if (!ev.target.closest('.sidebar-dropdown-menu') && !ev.target.closest('.fa-ellipsis-v') && !ev.target.closest('[title="Menu"]')) {
+                        this.state.showSidebarDropdown = false;
+                        changed = true;
+                    }
+                }
                 if (this.state.showMessageDropdownId !== null) {
                     if (!ev.target.closest('.msg-dropdown-menu') && !ev.target.closest('.msg-dropdown-btn')) {
                         this.state.showMessageDropdownId = null;
