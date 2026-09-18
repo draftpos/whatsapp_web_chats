@@ -20,14 +20,17 @@
                     <div class="whatsapp-header wa-sidebar-header">
                     <div style="display: flex; align-items: center; flex: 1;">
                         <t t-set="activeAcc" t-value="state.accounts.find(a => a.id.toString() === state.selectedAccount)"/>
-                        <t t-if="activeAcc and activeAcc.image_1920">
-                            <img t-attf-src="data:image/jpeg;base64,{{activeAcc.image_1920}}" class="chat-avatar wa-desktop-only" style="object-fit: cover; margin-right: 10px;"/>
-                        </t>
-                        <!-- Desktop: WhatsApp icon + Chats text -->
+                        <!-- Profile Icon (Desktop & Mobile) -->
+                        <div style="background-color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; cursor: pointer; flex-shrink: 0;" t-on-click="openProfileSettings" title="Profile Settings">
+                            <t t-if="activeAcc and activeAcc.image_1920">
+                                <img t-attf-src="data:image/jpeg;base64,{{activeAcc.image_1920}}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;"/>
+                            </t>
+                            <t t-else="">
+                                <i class="fa fa-user" style="font-size: 18px; color: #25D366;"></i>
+                            </t>
+                        </div>
+                        <!-- Desktop: Chats text -->
                         <div style="display: flex; align-items: center; color: #ffffff;" class="wa-desktop-only">
-                            <div style="background-color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; cursor: pointer;" t-on-click="openProfileSettings" title="Profile Settings">
-                                <i class="fa fa-whatsapp" style="font-size: 20px; color: #25D366;"></i>
-                            </div>
                             <span>Chats</span>
                         </div>
                         <!-- Mobile: bold WhatsApp title -->
@@ -59,6 +62,14 @@
                             <div class="chat-dropdown-item" t-on-click="sidebarNewChat">New Chat</div>
                             <div class="chat-dropdown-item" t-on-click="sidebarProfile">Profile Settings</div>
                             <div class="chat-dropdown-item" t-on-click="sidebarConfig">Configuration</div>
+                            <t t-if="state.isMobile">
+                                <div class="chat-dropdown-item" style="border-top: 1px solid #eee; margin-top: 4px; padding-top: 8px; font-weight: bold; color: #8696a0;">Chatbot</div>
+                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_dashboard'); this.state.showSidebarDropdown = false; }">Dashboard</div>
+                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot'); this.state.showSidebarDropdown = false; }">Chatbots</div>
+                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_flow'); this.state.showSidebarDropdown = false; }">Flows</div>
+                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_session'); this.state.showSidebarDropdown = false; }">Sessions</div>
+                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword'); this.state.showSidebarDropdown = false; }">Keywords</div>
+                            </t>
                         </div>
                     </t>
                 </div>
@@ -276,10 +287,7 @@
                     <i class="fa fa-pencil"/>
                 </button>
 
-                <!-- Mobile-only Bottom Navigation Bar -->
-                <t t-if="state.isMobile">
-                    <t t-call="whatsapp_web_chats.MobileBottomNav"/>
-                </t>
+                <!-- Mobile-only Bottom Navigation Bar removed as per request -->
 
             </div>
             <div class="whatsapp-main">
