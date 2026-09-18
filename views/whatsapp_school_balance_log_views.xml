@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_whatsapp_school_balance_log_tree" model="ir.ui.view">
-        <field name="name">whatsapp.school.balance.log.tree</field>
+    <record id="view_whatsapp_school_balance_log_list" model="ir.ui.view">
+        <field name="name">whatsapp.school.balance.log.list</field>
         <field name="model">whatsapp.school.balance.log</field>
         <field name="arch" type="xml">
-            <tree string="School Balance Logs" decoration-danger="status == 'failed'" decoration-success="status == 'sent'">
+            <list string="School Balance Logs" decoration-danger="status == 'failed'" decoration-success="status == 'sent'">
                 <field name="create_date" string="Date"/>
                 <field name="whatsapp_account_id"/>
                 <field name="student_name"/>
@@ -13,7 +13,7 @@
                 <field name="balance_amount" widget="monetary"/>
                 <field name="trigger_type"/>
                 <field name="status" widget="badge" decoration-danger="status == 'failed'" decoration-success="status == 'sent'"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -66,7 +66,7 @@
     <record id="action_whatsapp_school_balance_log" model="ir.actions.act_window">
         <field name="name">School Balance Logs</field>
         <field name="res_model">whatsapp.school.balance.log</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="context">{'search_default_failed': 1}</field>
     </record>
 </odoo>

@@ -52,6 +52,7 @@
                                     class="btn btn-primary"
                                     confirm="Are you sure you want to send the group auto message to all contacts in the database who have not received it yet?"/>
                         </div>
+                    </page>
                     <page string="School Integration" name="school_integration">
                         <group>
                             <field name="allow_school_balances"/>
