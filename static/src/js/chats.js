@@ -164,9 +164,18 @@ export class WhatsAppChatsAction extends Component {
             this._updateMobileClass();
 
             // Mobile view: handle hardware back button
+            // Push an initial chat state so back always lands here, not on login
+            window.history.replaceState({ whatsappChat: true }, '');
+
             this._onPopState = (ev) => {
-                if (this.state.isMobile && this.state.selectedChannel) {
-                    this.goBackToChatList(true);
+                if (this.state.isMobile) {
+                    if (this.state.selectedChannel) {
+                        // Back from inside a chat -> go to chat list
+                        this.goBackToChatList(true);
+                    } else if (!ev.state || !ev.state.whatsappChat) {
+                        // Back from an Odoo action page -> return to our chat screen
+                        this.action.doAction('whatsapp_web_chats.action_whatsapp_web_chats', { clearBreadcrumbs: true });
+                    }
                 }
             };
             window.addEventListener('popstate', this._onPopState);
