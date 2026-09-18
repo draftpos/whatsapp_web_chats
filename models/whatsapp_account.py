@@ -106,7 +106,11 @@ class WhatsAppAccount(models.Model):
             if not parent:
                 continue
 
-            parent_phone = parent.mobile or parent.phone or parent.partner_id.mobile or parent.partner_id.phone
+            # Safe fallback for mobile or phone, since some DBs might not have mobile field
+            try:
+                parent_phone = parent.mobile or parent.phone or parent.partner_id.mobile or parent.partner_id.phone
+            except AttributeError:
+                parent_phone = parent.phone or getattr(parent.partner_id, 'mobile', False) or parent.partner_id.phone
             if not parent_phone:
                 self._create_balance_log(student.name, parent.name, False, move.amount_residual, move.id, 'billing', 'failed', 'Parent has no phone number.')
                 continue
@@ -122,7 +126,7 @@ class WhatsAppAccount(models.Model):
                 self.env['whatsapp.message'].create({
                     'wa_account_id': self.id,
                     'mobile_number': phone,
-                    'message_body': message,
+                    'body': message,
                     'state': 'sent' # Assuming immediate queue
                 })
                 # Note: In reality, you'd call the api to send, or let the queue handle it.
@@ -187,9 +191,11 @@ class WhatsAppAccount(models.Model):
             if not parent_ids:
                 continue
                 
-            parents = models.execute_kw(self.school_db_name, uid, self.school_password, 'havano.parent', 'read', [parent_ids], {'fields': ['name', 'mobile', 'phone']})
-            parent = parents[0]
-            parent_phone = parent.get('mobile') or parent.get('phone')
+            parents = models.execute_kw(self.school_db_name, uid, self.school_password, 'havano.parent', 'read', [parent_ids], {'fields': ['name', 'phone']})
+            parent = parents[0] if parents else None
+            if not parent:
+                continue
+            parent_phone = parent.get('phone')
             
             if not parent_phone:
                 self._create_balance_log(student_name, parent['name'], False, move['amount_residual'], move['id'], 'billing', 'failed', 'Parent has no phone number.')
@@ -202,7 +208,7 @@ class WhatsAppAccount(models.Model):
                 self.env['whatsapp.message'].create({
                     'wa_account_id': self.id,
                     'mobile_number': phone,
-                    'message_body': message,
+                    'body': message,
                     'state': 'sent'
                 })
                 self._create_balance_log(student_name, parent['name'], parent_phone, move['amount_residual'], move['id'], 'billing', 'sent', '')
