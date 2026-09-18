@@ -7,6 +7,7 @@ from . import product_template
 from . import whatsapp_product
 from . import whatsapp_message
 from . import whatsapp_template
+from . import whatsapp_school_balance_log
 from . import mail_message
 from . import res_users
 from . import discuss_channel

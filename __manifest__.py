@@ -18,9 +18,12 @@
         'views/chats_action.xml',
         'views/product_template_views.xml',
         'views/whatsapp_product_views.xml',
+        'views/whatsapp_school_balance_log_views.xml',
         'views/res_users_views.xml',
         'views/res_config_settings_views.xml',
         'views/login_templates.xml',
+        'views/whatsapp_template_views.xml',
+        'data/school_sync_cron.xml',
         'views/mobile_kanban_views.xml',
     ],
     'assets': {
