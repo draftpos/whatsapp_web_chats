@@ -13,7 +13,10 @@ class WhatsappSchoolBalanceLog(models.Model):
     move_id_ref = fields.Integer(string='Invoice/Receipt ID (Local or Remote)')
     trigger_type = fields.Selection([
         ('billing', 'Billing (Invoice)'),
-        ('receipting', 'Receipting (Payment)')
+        ('receipting', 'Receipting (Payment)'),
+        ('statement', 'Student Statement'),
+        ('manual', 'Manual Sync'),
+        ('cron', 'Scheduled Sync')
     ], string='Triggered By')
     status = fields.Selection([
         ('sent', 'Sent Successfully'),

@@ -5,14 +5,14 @@
         <field name="model">whatsapp.school.balance.log</field>
         <field name="arch" type="xml">
             <list string="School Balance Logs" decoration-danger="status == 'failed'" decoration-success="status == 'sent'">
-                <field name="create_date" string="Date"/>
-                <field name="whatsapp_account_id"/>
-                <field name="student_name"/>
-                <field name="parent_name"/>
-                <field name="parent_number"/>
-                <field name="balance_amount" widget="monetary"/>
-                <field name="trigger_type"/>
-                <field name="status" widget="badge" decoration-danger="status == 'failed'" decoration-success="status == 'sent'"/>
+                <field name="create_date" string="Date" optional="show"/>
+                <field name="whatsapp_account_id" optional="show"/>
+                <field name="student_name" optional="show"/>
+                <field name="parent_name" optional="show"/>
+                <field name="parent_number" optional="show"/>
+                <field name="balance_amount" widget="monetary" optional="show"/>
+                <field name="trigger_type" optional="show"/>
+                <field name="status" widget="badge" decoration-danger="status == 'failed'" decoration-success="status == 'sent'" optional="show"/>
             </list>
         </field>
     </record>
@@ -62,6 +62,8 @@
                 <separator/>
                 <filter string="Manual Trigger" name="manual" domain="[('trigger_type', '=', 'manual')]"/>
                 <filter string="Billing Trigger" name="billing" domain="[('trigger_type', '=', 'billing')]"/>
+                <filter string="Student Statement" name="statement" domain="[('trigger_type', '=', 'statement')]"/>
+                <filter string="Scheduled Sync" name="cron" domain="[('trigger_type', '=', 'cron')]"/>
                 <separator/>
                 <filter string="Status" name="group_by_status" context="{'group_by':'status'}"/>
                 <filter string="Trigger Type" name="group_by_trigger" context="{'group_by':'trigger_type'}"/>
