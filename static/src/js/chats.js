@@ -115,10 +115,14 @@ export class WhatsAppChatsAction extends Component {
             phoneModalContacts: [],
             // Mobile view
             isMobile: window.innerWidth <= 768,
+            // Navigation loading
+            isNavigating: false,
         });
         
         this.myPartnerId = null;
         this.isAdmin = session.is_admin || session.is_superuser || false;
+        // Cache for pre-resolved action IDs (avoids XML ID lookup RPC on each click)
+        this._actionIds = {};
 
         onWillStart(async () => {
             await Promise.all([
@@ -126,7 +130,8 @@ export class WhatsAppChatsAction extends Component {
                 this.loadProducts(),
                 this.loadTemplates(),
                 this.loadTags(),
-                this.loadQuickReplies()
+                this.loadQuickReplies(),
+                this._preloadActionIds(),
             ]);
         });
         
@@ -644,7 +649,61 @@ export class WhatsAppChatsAction extends Component {
     }
 
     goToConfigurations() {
-        this.action.doAction('whatsapp.whatsapp_account_action');
+        this.navigateTo('whatsapp.whatsapp_account_action');
+    }
+
+    /**
+     * Pre-resolves all navigation action XML IDs to database IDs at startup.
+     * This eliminates the XML ID lookup RPC on each click, cutting navigation time roughly in half.
+     */
+    async _preloadActionIds() {
+        const xmlIds = [
+            'whatsapp.whatsapp_message_action',
+            'whatsapp.whatsapp_account_action',
+            'whatsapp_web_chats.whatsapp_quick_reply_config_action',
+            'whatsapp.whatsapp_template_action',
+            'whatsapp_web_chats.action_whatsapp_web_chats_config_settings',
+            'dev_whatsapp_chatbot_ent.action_wa_chatbot_dashboard',
+            'dev_whatsapp_chatbot_ent.action_wa_chatbot',
+            'dev_whatsapp_chatbot_ent.action_wa_chatbot_flow',
+            'dev_whatsapp_chatbot_ent.action_wa_chatbot_session',
+            'dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword',
+        ];
+        try {
+            const results = await this.orm.call('ir.model.data', 'check_object_reference_many', [xmlIds]);
+            if (results) {
+                for (const xmlId of xmlIds) {
+                    if (results[xmlId]) {
+                        this._actionIds[xmlId] = results[xmlId][1];
+                    }
+                }
+            }
+        } catch (e) {
+            // Silently fail — navigateTo will fall back to XML ID lookup
+            console.warn('Could not preload action IDs', e);
+        }
+    }
+
+    /**
+     * Navigate to an action by XML ID, using pre-cached numeric ID if available.
+     * Shows an immediate loading overlay to provide instant user feedback.
+     */
+    async navigateTo(xmlId, options = {}) {
+        this.state.showSidebarDropdown = false;
+        this.state.isNavigating = true;
+        try {
+            const actionId = this._actionIds[xmlId] || xmlId;
+            await this.action.doAction(actionId, { clearBreadcrumbs: true, ...options });
+        } catch (e) {
+            console.error('Navigation failed, retrying with XML ID', e);
+            try {
+                await this.action.doAction(xmlId, { clearBreadcrumbs: true, ...options });
+            } catch (e2) {
+                console.error('Navigation failed', e2);
+            }
+        } finally {
+            this.state.isNavigating = false;
+        }
     }
 
     async loadChannels() {

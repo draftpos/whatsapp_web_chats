@@ -7,6 +7,11 @@
 .wa-mobile-back-btn { display: none; }
 .wa-mobile-fab   { display: none; }
 
+@keyframes wa-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
 @media (max-width: 768px) {
 
     /* ---- visibility toggles ---- */

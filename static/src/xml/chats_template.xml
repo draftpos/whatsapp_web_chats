@@ -2,6 +2,13 @@
 <templates xml:space="preserve">
     <t t-name="whatsapp_web_chats.ChatsAction" owl="1">
         <div class="whatsapp-container">
+            <!-- Navigation loading overlay: shows immediately on menu item click -->
+            <t t-if="state.isNavigating">
+                <div style="position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;">
+                    <i class="fa fa-whatsapp" style="font-size: 48px; color: #25D366; animation: wa-pulse 1s infinite;"/>
+                    <span style="font-size: 15px; color: #54656f; font-weight: 500;">Loading...</span>
+                </div>
+            </t>
             <t t-if="state.accounts.length === 0">
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; background-color: #f0f2f5;">
                     <i class="fa fa-whatsapp" style="font-size: 80px; color: #25D366; margin-bottom: 20px;"></i>
@@ -65,20 +72,20 @@
                                 <div class="chat-dropdown-item" t-on-click="sidebarConfig">Configuration</div>
                             </t>
                             <t t-if="state.isMobile">
-                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp.whatsapp_message_action'); this.state.showSidebarDropdown = false; }">Messages</div>
-                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp.whatsapp_account_action'); this.state.showSidebarDropdown = false; }">WhatsApp Business Accounts</div>
-                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp_web_chats.whatsapp_quick_reply_config_action'); this.state.showSidebarDropdown = false; }">Quick Replies</div>
-                                <div class="chat-dropdown-item" t-on-click="() => { this.action.doAction('whatsapp.whatsapp_template_action'); this.state.showSidebarDropdown = false; }">Templates</div>
+                                <div class="chat-dropdown-item" t-on-click="() => navigateTo('whatsapp.whatsapp_message_action')">Messages</div>
+                                <div class="chat-dropdown-item" t-on-click="() => navigateTo('whatsapp.whatsapp_account_action')">WhatsApp Business Accounts</div>
+                                <div class="chat-dropdown-item" t-on-click="() => navigateTo('whatsapp_web_chats.whatsapp_quick_reply_config_action')">Quick Replies</div>
+                                <div class="chat-dropdown-item" t-on-click="() => navigateTo('whatsapp.whatsapp_template_action')">Templates</div>
                                 
                                 <div class="chat-dropdown-item" style="border-top: 1px solid #eee; margin-top: 4px; padding-top: 8px; font-weight: bold; color: #8696a0;">Chatbot</div>
-                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_dashboard'); this.state.showSidebarDropdown = false; }">Dashboard</div>
-                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot'); this.state.showSidebarDropdown = false; }">Chatbots</div>
-                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_flow'); this.state.showSidebarDropdown = false; }">Flows</div>
-                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_session'); this.state.showSidebarDropdown = false; }">Sessions</div>
-                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => { this.action.doAction('dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword'); this.state.showSidebarDropdown = false; }">Keywords</div>
+                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => navigateTo('dev_whatsapp_chatbot_ent.action_wa_chatbot_dashboard')">Dashboard</div>
+                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => navigateTo('dev_whatsapp_chatbot_ent.action_wa_chatbot')">Chatbots</div>
+                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => navigateTo('dev_whatsapp_chatbot_ent.action_wa_chatbot_flow')">Flows</div>
+                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => navigateTo('dev_whatsapp_chatbot_ent.action_wa_chatbot_session')">Sessions</div>
+                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => navigateTo('dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword')">Keywords</div>
                                 
                                 <div class="chat-dropdown-item" style="border-top: 1px solid #eee; margin-top: 4px; padding-top: 8px; font-weight: bold; color: #8696a0;">Configuration</div>
-                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => { this.action.doAction('whatsapp_web_chats.action_whatsapp_web_chats_config_settings'); this.state.showSidebarDropdown = false; }">Settings</div>
+                                <div class="chat-dropdown-item" style="padding-left: 30px;" t-on-click="() => navigateTo('whatsapp_web_chats.action_whatsapp_web_chats_config_settings')">Settings</div>
                             </t>
                         </div>
                     </t>
