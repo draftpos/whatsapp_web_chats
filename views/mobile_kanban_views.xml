@@ -96,17 +96,35 @@
             <kanban class="o_kanban_mobile">
                 <field name="name"/>
                 <field name="chatbot_id"/>
+                <field name="state"/>
+                <field name="description"/>
+                <field name="node_count"/>
+                <field name="is_default"/>
                 <templates>
                     <t t-name="card">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row m-0 m-0">
-                                <div class="col-12">
+                            <div class="row m-0" style="margin-bottom: 6px;">
+                                <div class="col-8">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="name"/></strong>
+                                    <span t-if="record.is_default.raw_value" style="margin-left: 6px; font-size: 10px; background: #e8f5e9; color: #25D366; border-radius: 4px; padding: 2px 5px;">Default</span>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <span class="badge rounded-pill" t-att-style="'background-color:' + (record.state.raw_value === 'active' ? '#25D366' : '#8696a0') + '; color:white; padding:4px 8px;'"><field name="state"/></span>
                                 </div>
                             </div>
-                            <div class="row m-0 text-muted mt-2">
-                                <div class="col-12" style="font-size: 14px; color: #667781;">
-                                    <i class="fa fa-android me-1"></i><field name="chatbot_id"/>
+                            <div class="row m-0 mt-1">
+                                <div class="col-12" style="font-size: 13px; color: #54656f;">
+                                    <i class="fa fa-android me-1"/><field name="chatbot_id"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1" t-if="record.description.value">
+                                <div class="col-12" style="font-size: 12px; color: #8696a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <field name="description"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1">
+                                <div class="col-12" style="font-size: 12px; color: #8696a0;">
+                                    <i class="fa fa-sitemap me-1"/><field name="node_count"/> nodes
                                 </div>
                             </div>
                         </div>
@@ -130,15 +148,37 @@
             <kanban class="o_kanban_mobile">
                 <field name="display_name"/>
                 <field name="state"/>
+                <field name="chatbot_id"/>
+                <field name="phone"/>
+                <field name="started_at"/>
+                <field name="message_count"/>
                 <templates>
                     <t t-name="card">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row m-0 m-0">
+                            <div class="row m-0" style="margin-bottom: 6px;">
                                 <div class="col-8">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="display_name"/></strong>
                                 </div>
                                 <div class="col-4 text-end">
                                     <span class="badge rounded-pill" style="background-color: #008069; color: white; padding: 4px 8px;"><field name="state"/></span>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1">
+                                <div class="col-12" style="font-size: 13px; color: #54656f;">
+                                    <i class="fa fa-android me-1"/><field name="chatbot_id"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1" t-if="record.phone.value">
+                                <div class="col-12" style="font-size: 13px; color: #54656f;">
+                                    <i class="fa fa-phone me-1"/><field name="phone"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1">
+                                <div class="col-6" style="font-size: 12px; color: #8696a0;">
+                                    <i class="fa fa-comments me-1"/><field name="message_count"/> msgs
+                                </div>
+                                <div class="col-6 text-end" style="font-size: 12px; color: #8696a0;">
+                                    <i class="fa fa-clock-o me-1"/><field name="started_at"/>
                                 </div>
                             </div>
                         </div>
@@ -162,17 +202,38 @@
             <kanban class="o_kanban_mobile">
                 <field name="name"/>
                 <field name="chatbot_id"/>
+                <field name="keyword"/>
+                <field name="match_type"/>
+                <field name="active"/>
+                <field name="target_flow_id"/>
                 <templates>
                     <t t-name="card">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row m-0 m-0">
-                                <div class="col-12">
-                                    <strong style="font-size: 16px; color: #111b21;"><field name="name"/></strong>
+                            <div class="row m-0" style="margin-bottom: 6px;">
+                                <div class="col-8">
+                                    <strong style="font-size: 16px; color: #111b21;"><field name="keyword"/></strong>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <span t-if="record.active.raw_value" class="badge rounded-pill" style="background-color: #25D366; color: white; padding: 4px 8px;">Active</span>
+                                    <span t-else="" class="badge rounded-pill" style="background-color: #8696a0; color: white; padding: 4px 8px;">Inactive</span>
                                 </div>
                             </div>
-                            <div class="row m-0 text-muted mt-2">
-                                <div class="col-12" style="font-size: 14px; color: #667781;">
-                                    <i class="fa fa-android me-1"></i><field name="chatbot_id"/>
+                            <div class="row m-0 mt-1" t-if="record.name.value">
+                                <div class="col-12" style="font-size: 13px; color: #111b21;">
+                                    <field name="name"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1">
+                                <div class="col-12" style="font-size: 13px; color: #54656f;">
+                                    <i class="fa fa-android me-1"/><field name="chatbot_id"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1">
+                                <div class="col-6" style="font-size: 12px; color: #8696a0;">
+                                    <i class="fa fa-tag me-1"/><field name="match_type"/>
+                                </div>
+                                <div class="col-6 text-end" style="font-size: 12px; color: #8696a0;" t-if="record.target_flow_id.value">
+                                    <i class="fa fa-arrow-right me-1"/><field name="target_flow_id"/>
                                 </div>
                             </div>
                         </div>
@@ -233,15 +294,37 @@
             <kanban class="o_kanban_mobile">
                 <field name="name"/>
                 <field name="status"/>
+                <field name="lang_code"/>
+                <field name="template_type"/>
+                <field name="body"/>
+                <field name="wa_account_id"/>
                 <templates>
                     <t t-name="card">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row m-0 m-0">
+                            <div class="row m-0" style="margin-bottom: 6px;">
                                 <div class="col-8">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="name"/></strong>
                                 </div>
                                 <div class="col-4 text-end">
                                     <span class="badge rounded-pill" style="background-color: #008069; color: white; padding: 4px 8px;"><field name="status"/></span>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1" t-if="record.body.value">
+                                <div class="col-12" style="font-size: 13px; color: #54656f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <field name="body"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1">
+                                <div class="col-6" style="font-size: 12px; color: #8696a0;">
+                                    <i class="fa fa-language me-1"/><field name="lang_code"/>
+                                </div>
+                                <div class="col-6 text-end" style="font-size: 12px; color: #8696a0;">
+                                    <i class="fa fa-tag me-1"/><field name="template_type"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1" t-if="record.wa_account_id.value">
+                                <div class="col-12" style="font-size: 12px; color: #8696a0;">
+                                    <i class="fa fa-whatsapp me-1"/><field name="wa_account_id"/>
                                 </div>
                             </div>
                         </div>
