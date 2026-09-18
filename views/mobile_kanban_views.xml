@@ -45,12 +45,29 @@
         <field name="arch" type="xml">
             <kanban class="o_kanban_mobile">
                 <field name="name"/>
+                <field name="phone_number"/>
+                <field name="account_uid"/>
+                <field name="active"/>
                 <templates>
                     <t t-name="card">
                         <div t-attf-class="oe_kanban_global_click" style="padding: 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 12px; background: white; border: 1px solid #f0f2f5;">
-                            <div class="row m-0 m-0">
-                                <div class="col-12">
+                            <div class="row m-0" style="margin-bottom: 6px;">
+                                <div class="col-8">
                                     <strong style="font-size: 16px; color: #111b21;"><field name="name"/></strong>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <span t-if="record.active.raw_value" class="badge rounded-pill" style="background-color: #25D366; color: white; padding: 4px 8px;">Active</span>
+                                    <span t-else="" class="badge rounded-pill" style="background-color: #8696a0; color: white; padding: 4px 8px;">Inactive</span>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1" t-if="record.phone_number.value">
+                                <div class="col-12" style="font-size: 13px; color: #54656f;">
+                                    <i class="fa fa-phone me-1"/><field name="phone_number"/>
+                                </div>
+                            </div>
+                            <div class="row m-0 mt-1" t-if="record.account_uid.value">
+                                <div class="col-12" style="font-size: 12px; color: #8696a0;">
+                                    <i class="fa fa-id-card me-1"/>Account ID: <field name="account_uid"/>
                                 </div>
                             </div>
                         </div>
