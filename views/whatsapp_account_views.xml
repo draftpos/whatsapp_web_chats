@@ -65,6 +65,13 @@
                             <field name="school_auto_send_frequency" invisible="not allow_school_balances"/>
                             <field name="school_auto_send_custom_date" invisible="not allow_school_balances or school_auto_send_frequency != 'custom'" required="school_auto_send_frequency == 'custom'"/>
                         </group>
+                        <div invisible="not allow_school_balances" class="mt-3 mb-3">
+                            <button name="%(whatsapp_web_chats.action_send_school_balances_wizard)d" 
+                                    type="action" 
+                                    string="Send Balances Manually" 
+                                    class="btn btn-primary"
+                                    icon="fa-paper-plane"/>
+                        </div>
                     </page>
                 </notebook>
             </xpath>
