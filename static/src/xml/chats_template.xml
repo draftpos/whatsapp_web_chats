@@ -114,7 +114,12 @@
                             <t t-esc="this.totalUnreadChannels"/>
                         </span>
                     </div>
-                    <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'favourites' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('favourites')">Favourites</div>
+                    <div t-attf-class="chat-filter-pill {{ state.chatFilter === 'favourites' ? 'active' : '' }}" t-on-click="() => this.setChatFilter('favourites')">
+                        Favourites
+                        <span t-if="this.totalFavouriteChannels > 0" class="badge rounded-pill" style="background: #ffb74d; color: white; margin-left: 4px; padding: 2px 6px; font-size: 11px;">
+                            <t t-esc="this.totalFavouriteChannels"/>
+                        </span>
+                    </div>
                         <!-- Dropdown Filter for Done/Urgent/Labels -->
                         <div class="chat-filter-dropdown-container" style="position: relative;">
                             <div t-attf-class="chat-filter-pill {{ ['done', 'urgent', 'archived'].includes(state.chatFilter) || (state.chatFilter.startsWith('tag_')) ? 'active' : '' }}" t-on-click="() => Object.assign(this.state, {showFilterDropdown: !state.showFilterDropdown})">
@@ -130,18 +135,31 @@
                             </div>
                             <t t-if="state.showFilterDropdown">
                                 <div class="filter-dropdown-menu" style="position: absolute; top: 100%; left: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 150px; margin-top: 5px; max-height: 300px; overflow-y: auto;">
-                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('done'); Object.assign(this.state, {showFilterDropdown: false}); }">Done</div>
-                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('urgent'); Object.assign(this.state, {showFilterDropdown: false}); }">Urgent</div>
-                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('archived'); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; gap: 6px;">
-                                        <i class="fa fa-archive" style="color: #667781;"/>
-                                        Archived
+                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('done'); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; justify-content: space-between;">
+                                        <span>Done</span>
+                                        <span t-if="this.totalDoneChannels > 0" class="badge rounded-pill" style="background: #e0e0e0; color: #333; font-size: 11px; padding: 2px 6px;"><t t-esc="this.totalDoneChannels"/></span>
+                                    </div>
+                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('urgent'); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; justify-content: space-between;">
+                                        <span>Urgent</span>
+                                        <span t-if="this.totalUrgentChannels > 0" class="badge rounded-pill" style="background: #ef5350; color: white; font-size: 11px; padding: 2px 6px;"><t t-esc="this.totalUrgentChannels"/></span>
+                                    </div>
+                                    <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('archived'); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; justify-content: space-between;">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <i class="fa fa-archive" style="color: #667781;"/>
+                                            <span>Archived</span>
+                                        </div>
+                                        <span t-if="this.totalArchivedChannels > 0" class="badge rounded-pill" style="background: #e0e0e0; color: #333; font-size: 11px; padding: 2px 6px;"><t t-esc="this.totalArchivedChannels"/></span>
                                     </div>
                                     <t t-if="state.availableTags and state.availableTags.length > 0">
                                         <div style="border-top: 1px solid #f0f2f5; margin: 4px 0;"></div>
                                         <t t-foreach="state.availableTags" t-as="tag" t-key="tag.id">
-                                            <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('tag_' + tag.id); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center;">
-                                                <div style="width: 12px; height: 12px; border-radius: 50%; margin-right: 8px;" t-attf-style="background-color: {{tag.color}};"></div>
-                                                <t t-esc="tag.name"/>
+                                            <div class="chat-dropdown-item" t-on-click="() => { this.setChatFilter('tag_' + tag.id); Object.assign(this.state, {showFilterDropdown: false}); }" style="display: flex; align-items: center; justify-content: space-between;">
+                                                <div style="display: flex; align-items: center;">
+                                                    <div style="width: 12px; height: 12px; border-radius: 50%; margin-right: 8px;" t-attf-style="background-color: {{tag.color}};"></div>
+                                                    <t t-esc="tag.name"/>
+                                                </div>
+                                                <t t-set="tagCount" t-value="this.getTagCount(tag.id)"/>
+                                                <span t-if="tagCount > 0" class="badge rounded-pill" style="background: #e0e0e0; color: #333; font-size: 11px; padding: 2px 6px;"><t t-esc="tagCount"/></span>
                                             </div>
                                         </t>
                                     </t>

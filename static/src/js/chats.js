@@ -947,6 +947,31 @@ export class WhatsAppChatsAction extends Component {
         return this.state.channels.filter(c => !c.wa_is_done && !c.wa_is_blocked).length;
     }
 
+    get totalFavouriteChannels() {
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_favourite).length;
+    }
+
+    get totalDoneChannels() {
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_done && !c.wa_is_blocked).length;
+    }
+
+    get totalUrgentChannels() {
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_urgent && !c.wa_is_blocked).length;
+    }
+
+    get totalArchivedChannels() {
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_done && !c.wa_is_blocked).length;
+    }
+
+    getTagCount(tagId) {
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => !c.wa_is_blocked && c.wa_tags && c.wa_tags.some(t => t.id === tagId)).length;
+    }
+
     get filteredChannels() {
         if (!this.state.channels) return [];
         let filtered = this.state.channels;
