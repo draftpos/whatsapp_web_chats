@@ -147,6 +147,10 @@
     }
 
     .chat-filter-pill {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
         white-space: nowrap !important;
         padding: 5px 16px !important;
         border-radius: 20px !important;
