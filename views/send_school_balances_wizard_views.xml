@@ -10,7 +10,9 @@
                         <group>
                             <field name="whatsapp_account_id" options="{'no_create': True}" readonly="1"/>
                             <field name="integration_type" invisible="1"/>
+                            <field name="document_type" widget="radio"/>
                             <field name="target_audience" widget="radio"/>
+                            <field name="filter_date" invisible="document_type == 'statement'" required="document_type != 'statement'"/>
                         </group>
                         
                         <group>

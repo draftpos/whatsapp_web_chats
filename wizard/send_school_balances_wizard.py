@@ -18,6 +18,14 @@ class SendSchoolBalancesWizard(models.TransientModel):
         ('student', 'Specific Student')
     ], string="Send To", required=True, default='school')
 
+    document_type = fields.Selection([
+        ('statement', 'Student Statement'),
+        ('billing', 'Billing (Invoice)'),
+        ('receipt', 'Receipt (Payment)')
+    ], string="Document to Send", required=True, default='statement')
+
+    filter_date = fields.Date(string="Date Filter (Generated On)", default=fields.Date.context_today)
+
     # Search fields for both Local and Remote DB
     class_name = fields.Char(string="Class Name (Exact Match)")
     section_name = fields.Char(string="Section Name (Exact Match)")
@@ -34,33 +42,53 @@ class SendSchoolBalancesWizard(models.TransientModel):
         else:
             return self._send_remote()
             
+    def _check_duplicate(self, student_name, trigger_type, date_obj):
+        # Checks if we already sent this exact document type to this student today
+        start_of_day = fields.Datetime.to_datetime(date_obj)
+        end_of_day = start_of_day.replace(hour=23, minute=59, second=59)
+        existing = self.env['whatsapp.school.balance.log'].search([
+            ('whatsapp_account_id', '=', self.whatsapp_account_id.id),
+            ('student_name', '=', student_name),
+            ('trigger_type', '=', trigger_type),
+            ('status', '=', 'sent'),
+            ('create_date', '>=', start_of_day),
+            ('create_date', '<=', end_of_day)
+        ], limit=1)
+        return bool(existing)
+
     def _send_local(self):
         account = self.whatsapp_account_id
         if 'havano.student' not in self.env:
             raise UserError("havano_schools_odoo is not installed on this database.")
             
-        domain = [
-            ('move_type', '=', 'out_invoice'),
-            ('state', '=', 'posted'),
-            ('amount_residual', '>', 0)
-        ]
-        
-        # Apply filters
-        if self.target_audience == 'class':
-            if self.class_name:
-                domain.append(('havano_student_id.havano_class_id.name', 'ilike', self.class_name))
-        elif self.target_audience == 'section':
-            if self.section_name:
-                domain.append(('havano_student_id.havano_section_id.name', 'ilike', self.section_name))
-        elif self.target_audience == 'student':
-            if self.student_name:
-                domain.append(('havano_student_id.name', 'ilike', self.student_name))
+        domain = []
+        if self.document_type == 'statement':
+            # Find all students with open invoices
+            domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('amount_residual', '>', 0)]
+        elif self.document_type == 'billing':
+            # Find invoices generated on the filter_date
+            domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('invoice_date', '=', self.filter_date)]
+        elif self.document_type == 'receipt':
+            # Find payments generated on the filter_date
+            domain = [('date', '=', self.filter_date), ('state', '=', 'posted')]
 
-        moves = self.env['account.move'].search(domain, order='id desc')
-        if not moves:
-            raise UserError("No outstanding balances found for the selected criteria.")
+        # Apply audience filters (assume model is account.move or account.payment linked to student via havano_student_id)
+        if self.target_audience == 'class' and self.class_name:
+            domain.append(('havano_student_id.havano_class_id.name', 'ilike', self.class_name))
+        elif self.target_audience == 'section' and self.section_name:
+            domain.append(('havano_student_id.havano_section_id.name', 'ilike', self.section_name))
+        elif self.target_audience == 'student' and self.student_name:
+            domain.append(('havano_student_id.name', 'ilike', self.student_name))
 
-        template = account.school_balance_template or "Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}."
+        if self.document_type in ['statement', 'billing']:
+            records = self.env['account.move'].search(domain, order='id desc')
+        else:
+            records = self.env['account.payment'].search(domain, order='id desc')
+
+        if not records:
+            raise UserError(f"No records found for the selected criteria ({self.document_type}).")
+
+        template = account.school_balance_template or "Dear {parent_name}, please find attached the {doc_type} for {student_name} at {school}. Balance: {balance}."
         school_name = account.company_id.name or 'Our School'
 
         success_count = 0
@@ -82,36 +110,71 @@ class SendSchoolBalancesWizard(models.TransientModel):
             except AttributeError:
                 parent_phone = parent.phone or getattr(parent.partner_id, 'mobile', False) or parent.partner_id.phone
                 
+        import datetime
+        today_date = datetime.date.today()
+
+        for record in records:
+            # record could be account.move or account.payment
+            student = record.havano_student_id
+            if not student:
+                continue
+
+            parent = self.env['havano.parent'].search([('student_ids', 'in', student.id)], limit=1)
+            if not parent:
+                fail_count += 1
+                account._create_balance_log(student.name, 'Unknown', False, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', 'No parent found.')
+                continue
+
+            try:
+                parent_phone = parent.mobile or parent.phone or parent.partner_id.mobile or parent.partner_id.phone
+            except AttributeError:
+                parent_phone = parent.phone or getattr(parent.partner_id, 'mobile', False) or parent.partner_id.phone
+                
             if not parent_phone:
                 fail_count += 1
-                account._create_balance_log(student.name, parent.name, False, move.amount_residual, move.id, 'manual', 'failed', 'Parent has no phone number.')
+                account._create_balance_log(student.name, parent.name, False, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', 'Parent has no phone number.')
+                continue
+
+            # Check for duplicate dispatch today
+            if self._check_duplicate(student.name, self.document_type, today_date):
+                # We already sent this document type to this student today
+                account._create_balance_log(student.name, parent.name, parent_phone, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', 'Skipped: Duplicate sent today.')
                 continue
 
             try:
                 phone = parent_phone.replace(' ', '').replace('+', '')
-                
-                # PDF Generation
                 attachment = False
+                
+                # Document PDF Generation
                 try:
                     import base64
-                    from datetime import date
-                    from dateutil.relativedelta import relativedelta
+                    if self.document_type == 'statement':
+                        from dateutil.relativedelta import relativedelta
+                        start_date = today_date.replace(day=1) - relativedelta(months=1)
+                        wizard = self.env['customer.statement.wizard'].create({
+                            'partner_id': parent.partner_id.id if hasattr(parent, 'partner_id') and parent.partner_id else parent.id,
+                            'start_date': start_date,
+                            'end_date': today_date
+                        })
+                        report = self.env.ref('havano_schools_odoo.statement_receipt')
+                        pdf_content, _ = report._render_qweb_pdf(wizard.id)
+                        pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+                        attach_name = f"Statement_{student.name}_{today_date}.pdf"
                     
-                    start_date = date.today().replace(day=1) - relativedelta(months=1)
-                    end_date = date.today()
-                    
-                    wizard = self.env['customer.statement.wizard'].create({
-                        'partner_id': parent.partner_id.id if hasattr(parent, 'partner_id') and parent.partner_id else parent.id,
-                        'start_date': start_date,
-                        'end_date': end_date
-                    })
-                    
-                    report = self.env.ref('havano_schools_odoo.statement_receipt')
-                    pdf_content, _ = report._render_qweb_pdf(wizard.id)
-                    pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
-                    
+                    elif self.document_type == 'billing':
+                        report = self.env.ref('account.account_invoices')
+                        pdf_content, _ = report._render_qweb_pdf(record.id)
+                        pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+                        attach_name = f"Invoice_{student.name}_{record.name.replace('/', '_')}.pdf"
+                        
+                    elif self.document_type == 'receipt':
+                        report = self.env.ref('account.action_report_payment_receipt')
+                        pdf_content, _ = report._render_qweb_pdf(record.id)
+                        pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+                        attach_name = f"Receipt_{student.name}_{record.name.replace('/', '_')}.pdf"
+
                     attachment = self.env['ir.attachment'].create({
-                        'name': f"Statement_{student.name}_{date.today()}.pdf",
+                        'name': attach_name,
                         'type': 'binary',
                         'datas': pdf_base64,
                         'res_model': 'whatsapp.message',
@@ -121,11 +184,13 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     _logger.error(f"Failed to generate PDF for {student.name}: {e}")
                     attachment = False
 
+                balance_val = record.amount_residual if hasattr(record, 'amount_residual') else record.amount
                 message = template.format(
                     parent_name=parent.name,
                     student_name=student.name,
                     school=school_name,
-                    balance=move.amount_residual
+                    balance=balance_val,
+                    doc_type=dict(self._fields['document_type'].selection).get(self.document_type)
                 )
                 
                 msg_vals = {
@@ -138,10 +203,10 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     msg_vals['attachment_id'] = attachment.id
                     
                 self.env['whatsapp.message'].create(msg_vals)
-                account._create_balance_log(student.name, parent.name, parent_phone, move.amount_residual, move.id, 'manual', 'sent', '')
+                account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record.id, self.document_type, 'sent', '')
                 success_count += 1
             except Exception as e:
-                account._create_balance_log(student.name, parent.name, parent_phone, move.amount_residual, move.id, 'manual', 'failed', str(e))
+                account._create_balance_log(student.name, parent.name, parent_phone, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', str(e))
                 fail_count += 1
 
         return {
@@ -172,7 +237,13 @@ class SendSchoolBalancesWizard(models.TransientModel):
 
         models_proxy = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/object')
         
-        domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted')]
+        domain = []
+        if self.document_type == 'statement':
+            domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('amount_residual', '>', 0)]
+        elif self.document_type == 'billing':
+            domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('invoice_date', '=', self.filter_date)]
+        elif self.document_type == 'receipt':
+            domain = [('date', '=', self.filter_date), ('state', '=', 'posted')]
         
         # To apply filters remotely, we need to first find the matching students
         student_domain = []
@@ -189,28 +260,34 @@ class SendSchoolBalancesWizard(models.TransientModel):
                 raise UserError("No students found matching the criteria in the remote database.")
             domain.append(('havano_student_id', 'in', student_ids))
 
-        move_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'account.move', 'search', [domain], {'order': 'id desc'})
-        if not move_ids:
-            raise UserError("No outstanding balances found for the selected criteria.")
+        target_model = 'account.move' if self.document_type in ['statement', 'billing'] else 'account.payment'
+        record_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, target_model, 'search', [domain], {'order': 'id desc'})
+        if not record_ids:
+            raise UserError(f"No records found for the selected criteria ({self.document_type}).")
 
-        moves = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'account.move', 'read', [move_ids], {'fields': ['partner_id', 'amount_residual', 'havano_student_id']})
+        read_fields = ['partner_id', 'amount_residual', 'havano_student_id', 'name'] if self.document_type in ['statement', 'billing'] else ['partner_id', 'amount', 'havano_student_id', 'name']
+        records = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, target_model, 'read', [record_ids], {'fields': read_fields})
         
-        template = account.school_balance_template or "Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}."
+        template = account.school_balance_template or "Dear {parent_name}, please find attached the {doc_type} for {student_name} at {school}. Balance: {balance}."
         school_name = account.company_id.name or 'Our School'
 
         success_count = 0
         fail_count = 0
+        
+        import datetime
+        today_date = datetime.date.today()
 
-        for move in moves:
-            if move.get('amount_residual', 0) <= 0:
+        for record in records:
+            balance_val = record.get('amount_residual', 0) if self.document_type in ['statement', 'billing'] else record.get('amount', 0)
+            if self.document_type == 'statement' and balance_val <= 0:
                 continue
 
-            partner_id = move['partner_id'][0] if move.get('partner_id') else False
+            partner_id = record['partner_id'][0] if record.get('partner_id') else False
             if not partner_id:
                 continue
 
             # Find student
-            student_id = move.get('havano_student_id')
+            student_id = record.get('havano_student_id')
             if not student_id:
                 continue
                 
@@ -220,59 +297,75 @@ class SendSchoolBalancesWizard(models.TransientModel):
             parent_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.parent', 'search', [[('student_ids', 'in', student_id[0])]], {'limit': 1})
             if not parent_ids:
                 fail_count += 1
-                account._create_balance_log(student_name, 'Unknown', False, move['amount_residual'], move['id'], 'manual', 'failed', 'No parent found.')
+                account._create_balance_log(student_name, 'Unknown', False, balance_val, record['id'], self.document_type, 'failed', 'No parent found in remote db.')
                 continue
-                
-            parents = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.parent', 'read', [parent_ids], {'fields': ['name', 'phone', 'partner_id']})
-            parent = parents[0] if parents else None
-            if not parent:
-                continue
-            parent_phone = parent.get('phone')
+
+            parents = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.parent', 'read', [parent_ids], {'fields': ['name', 'mobile', 'phone', 'partner_id']})
+            parent = parents[0]
             
+            parent_phone = parent.get('mobile') or parent.get('phone')
+            if not parent_phone and parent.get('partner_id'):
+                parent_partners = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'res.partner', 'read', [[parent['partner_id'][0]]], {'fields': ['mobile', 'phone']})
+                if parent_partners:
+                    parent_phone = parent_partners[0].get('mobile') or parent_partners[0].get('phone')
+                    
             if not parent_phone:
                 fail_count += 1
-                account._create_balance_log(student_name, parent['name'], False, move['amount_residual'], move['id'], 'manual', 'failed', 'Parent has no phone number.')
+                account._create_balance_log(student_name, parent['name'], False, balance_val, record['id'], self.document_type, 'failed', 'Parent has no phone number.')
+                continue
+
+            # Check deduplication locally
+            if self._check_duplicate(student_name, self.document_type, today_date):
+                account._create_balance_log(student_name, parent['name'], parent_phone, balance_val, record['id'], self.document_type, 'failed', 'Skipped: Duplicate sent today.')
                 continue
 
             try:
                 phone = parent_phone.replace(' ', '').replace('+', '')
                 
-                # Generate PDF Remotely
+                # Fetch PDF from Remote DB
                 attachment = False
                 try:
                     import base64
-                    from datetime import date
-                    from dateutil.relativedelta import relativedelta
+                    pdf_base64 = False
+                    if self.document_type == 'statement':
+                        report_proxy = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/report')
+                        pdf_content, _ = report_proxy.render_qweb_pdf(account.school_db_name, uid, account.school_password, 'havano_schools_odoo.statement_receipt', [record['id']])
+                        if pdf_content:
+                            pdf_base64 = base64.b64encode(pdf_content.data).decode('utf-8')
+                        attach_name = f"Statement_{student_name}_{today_date}.pdf"
                     
-                    start_date = date.today().replace(day=1) - relativedelta(months=1)
-                    end_date = date.today()
-                    
-                    parent_partner_id = parent.get('partner_id', [False])[0] or False
-                    if parent_partner_id:
-                        wizard_id = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'customer.statement.wizard', 'create', [{
-                            'partner_id': parent_partner_id,
-                            'start_date': str(start_date),
-                            'end_date': str(end_date)
-                        }])
+                    elif self.document_type == 'billing':
+                        report_proxy = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/report')
+                        pdf_content, _ = report_proxy.render_qweb_pdf(account.school_db_name, uid, account.school_password, 'account.account_invoices', [record['id']])
+                        if pdf_content:
+                            pdf_base64 = base64.b64encode(pdf_content.data).decode('utf-8')
+                        attach_name = f"Invoice_{student_name}_{record.get('name', '').replace('/', '_')}.pdf"
                         
-                        pdf_content = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'ir.actions.report', '_render_qweb_pdf', ['havano_schools_odoo.statement_receipt', [wizard_id]])
-                        if pdf_content and len(pdf_content) > 0:
-                            pdf_base64 = base64.b64encode(base64.b64decode(pdf_content[0])).decode('utf-8') if isinstance(pdf_content[0], str) else base64.b64encode(pdf_content[0]).decode('utf-8')
-                            attachment = self.env['ir.attachment'].create({
-                                'name': f"Statement_{student_name}_{date.today()}.pdf",
-                                'type': 'binary',
-                                'datas': pdf_base64,
-                                'res_model': 'whatsapp.message',
-                                'mimetype': 'application/pdf'
-                            })
+                    elif self.document_type == 'receipt':
+                        report_proxy = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/report')
+                        pdf_content, _ = report_proxy.render_qweb_pdf(account.school_db_name, uid, account.school_password, 'account.action_report_payment_receipt', [record['id']])
+                        if pdf_content:
+                            pdf_base64 = base64.b64encode(pdf_content.data).decode('utf-8')
+                        attach_name = f"Receipt_{student_name}_{record.get('name', '').replace('/', '_')}.pdf"
+
+                    if pdf_base64:
+                        attachment = self.env['ir.attachment'].create({
+                            'name': attach_name,
+                            'type': 'binary',
+                            'datas': pdf_base64,
+                            'res_model': 'whatsapp.message',
+                            'mimetype': 'application/pdf'
+                        })
                 except Exception as e:
-                    _logger.error(f"Failed to generate remote PDF for {student_name}: {e}")
+                    _logger.error(f"Failed to fetch PDF remotely for {student_name}: {e}")
+                    attachment = False
 
                 message = template.format(
                     parent_name=parent['name'],
                     student_name=student_name,
                     school=school_name,
-                    balance=move['amount_residual']
+                    balance=balance_val,
+                    doc_type=dict(self._fields['document_type'].selection).get(self.document_type)
                 )
                 
                 msg_vals = {
@@ -285,10 +378,10 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     msg_vals['attachment_id'] = attachment.id
                     
                 self.env['whatsapp.message'].create(msg_vals)
-                account._create_balance_log(student_name, parent['name'], parent_phone, move['amount_residual'], move['id'], 'manual', 'sent', '')
+                account._create_balance_log(student_name, parent['name'], parent_phone, balance_val, record['id'], self.document_type, 'sent', '')
                 success_count += 1
             except Exception as e:
-                account._create_balance_log(student_name, parent['name'], parent_phone, move['amount_residual'], move['id'], 'manual', 'failed', str(e))
+                account._create_balance_log(student_name, parent['name'], parent_phone, balance_val, record['id'], self.document_type, 'failed', str(e))
                 fail_count += 1
 
         return {

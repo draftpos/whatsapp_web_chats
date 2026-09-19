@@ -68,9 +68,30 @@
                         <div invisible="not allow_school_balances" class="mt-3 mb-3">
                             <button name="%(whatsapp_web_chats.action_send_school_balances_wizard)d" 
                                     type="action" 
-                                    string="Send Balances Manually" 
+                                    string="Send Manual Statement/Bill/Receipt" 
                                     class="btn btn-primary"
                                     icon="fa-paper-plane"/>
+                                    
+                            <button name="%(whatsapp_web_chats.action_send_school_balances_wizard)d" 
+                                    type="action" 
+                                    string="Auto Send Student Statements (All)" 
+                                    class="btn btn-warning ms-2"
+                                    context="{'default_document_type': 'statement', 'default_target_audience': 'school'}"
+                                    icon="fa-magic"/>
+                                    
+                            <button name="%(whatsapp_web_chats.action_send_school_balances_wizard)d" 
+                                    type="action" 
+                                    string="Auto Send Billing (By Date)" 
+                                    class="btn btn-info ms-2"
+                                    context="{'default_document_type': 'billing', 'default_target_audience': 'school'}"
+                                    icon="fa-calendar"/>
+                                    
+                            <button name="%(whatsapp_web_chats.action_send_school_balances_wizard)d" 
+                                    type="action" 
+                                    string="Auto Send Receipts (By Date)" 
+                                    class="btn btn-info ms-2 mt-2"
+                                    context="{'default_document_type': 'receipt', 'default_target_audience': 'school'}"
+                                    icon="fa-calendar"/>
                         </div>
                     </page>
                 </notebook>
