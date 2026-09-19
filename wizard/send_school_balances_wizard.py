@@ -190,21 +190,37 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     attachment = False
 
                 balance_val = record.amount_residual if hasattr(record, 'amount_residual') else record.amount
-                message = template.format(
-                    parent_name=parent.name,
-                    student_name=student.name,
-                    school=school_name,
-                    balance=balance_val,
-                    doc_type=dict(self._fields['document_type'].selection).get(self.document_type)
-                )
-                
+                doc_type_str = dict(self._fields['document_type'].selection).get(self.document_type)
+
                 msg_vals = {
                     'wa_account_id': account.id,
                     'mobile_number': phone,
-                    'body': message,
                     'state': 'outgoing',
                     'message_type': 'outbound'
                 }
+
+                if account.school_balance_wa_template_id:
+                    import json
+                    wa_template = account.school_balance_wa_template_id
+                    free_text_json = {
+                        "1": parent.name or '',
+                        "2": student.name or '',
+                        "3": school_name or '',
+                        "4": str(balance_val),
+                        "5": doc_type_str or ''
+                    }
+                    msg_vals['wa_template_id'] = wa_template.id
+                    msg_vals['free_text_json'] = json.dumps(free_text_json)
+                    msg_vals['body'] = f'[WhatsApp Template Sent: {wa_template.template_name}]'
+                else:
+                    message = template.format(
+                        parent_name=parent.name,
+                        student_name=student.name,
+                        school=school_name,
+                        balance=balance_val,
+                        doc_type=doc_type_str
+                    )
+                    msg_vals['body'] = message
                 if attachment:
                     msg_vals['attachment_id'] = attachment.id
                     
@@ -391,21 +407,37 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     _logger.error(f"Failed to fetch PDF remotely for {student_name}: {e}")
                     attachment = False
 
-                message = template.format(
-                    parent_name=parent_name,
-                    student_name=student_name,
-                    school=school_name,
-                    balance=balance_val,
-                    doc_type=dict(self._fields['document_type'].selection).get(self.document_type)
-                )
-                
+                doc_type_str = dict(self._fields['document_type'].selection).get(self.document_type)
+
                 msg_vals = {
                     'wa_account_id': account.id,
                     'mobile_number': phone,
-                    'body': message,
                     'state': 'outgoing',
                     'message_type': 'outbound'
                 }
+
+                if account.school_balance_wa_template_id:
+                    import json
+                    wa_template = account.school_balance_wa_template_id
+                    free_text_json = {
+                        "1": parent_name or '',
+                        "2": student_name or '',
+                        "3": school_name or '',
+                        "4": str(balance_val),
+                        "5": doc_type_str or ''
+                    }
+                    msg_vals['wa_template_id'] = wa_template.id
+                    msg_vals['free_text_json'] = json.dumps(free_text_json)
+                    msg_vals['body'] = f'[WhatsApp Template Sent: {wa_template.template_name}]'
+                else:
+                    message = template.format(
+                        parent_name=parent_name,
+                        student_name=student_name,
+                        school=school_name,
+                        balance=balance_val,
+                        doc_type=doc_type_str
+                    )
+                    msg_vals['body'] = message
                 if attachment:
                     msg_vals['attachment_id'] = attachment.id
                     

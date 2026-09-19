@@ -61,6 +61,7 @@
                             <field name="school_db_name" invisible="not allow_school_balances or school_integration_type != 'remote'"/>
                             <field name="school_username" invisible="not allow_school_balances or school_integration_type != 'remote'"/>
                             <field name="school_password" password="True" invisible="not allow_school_balances or school_integration_type != 'remote'"/>
+                            <field name="school_balance_wa_template_id" invisible="not allow_school_balances" options="{'no_create': True}"/>
                             <field name="school_balance_template" invisible="not allow_school_balances"/>
                             <field name="school_auto_send_frequency" invisible="not allow_school_balances"/>
                             <field name="school_auto_send_custom_date" invisible="not allow_school_balances or school_auto_send_frequency != 'custom'" required="school_auto_send_frequency == 'custom'"/>
