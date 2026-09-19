@@ -210,8 +210,14 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     
                 wa_msg = self.env['whatsapp.message'].create(msg_vals)
                 wa_msg._send(force_send_by_cron=False)
-                account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record.id, self.document_type, 'sent', '')
-                success_count += 1
+                
+                if wa_msg.state == 'error':
+                    error_msg = getattr(wa_msg, 'failure_reason', 'Failed to send (Meta API rejection)')
+                    account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record.id, self.document_type, 'failed', str(error_msg))
+                    fail_count += 1
+                else:
+                    account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record.id, self.document_type, 'sent', '')
+                    success_count += 1
             except Exception as e:
                 account._create_balance_log(student.name, parent.name, parent_phone, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', str(e))
                 fail_count += 1
@@ -405,8 +411,14 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     
                 wa_msg = self.env['whatsapp.message'].create(msg_vals)
                 wa_msg._send(force_send_by_cron=False)
-                account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'sent', '')
-                success_count += 1
+                
+                if wa_msg.state == 'error':
+                    error_msg = getattr(wa_msg, 'failure_reason', 'Failed to send (Meta API rejection)')
+                    account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'failed', str(error_msg))
+                    fail_count += 1
+                else:
+                    account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'sent', '')
+                    success_count += 1
             except Exception as e:
                 account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'failed', str(e))
                 fail_count += 1
