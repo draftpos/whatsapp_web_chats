@@ -62,13 +62,7 @@ class WhatsAppAccount(models.Model):
     school_balance_template = fields.Text(
         string="Balance Message Template", 
         default="Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}.",
-        help="Use {student_name}, {parent_name}, {balance}, {school} (Fallback for within 24h)"
-    )
-    school_balance_wa_template_id = fields.Many2one(
-        'whatsapp.template', 
-        string="Approved Balance Template",
-        domain="[('status', '=', 'approved')]",
-        help="Used to bypass 24-hour rule. Variables must be: {{1}}: Parent Name, {{2}}: Student Name, {{3}}: School Name, {{4}}: Balance, {{5}}: Doc Type"
+        help="Use placeholders: {parent_name}, {student_name}, {school}, {balance}"
     )
     school_auto_send_frequency = fields.Selection([
         ('manual', 'Manual Only'),
