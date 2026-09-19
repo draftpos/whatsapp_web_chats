@@ -72,13 +72,23 @@ class SendSchoolBalancesWizard(models.TransientModel):
             # Find payments generated on the filter_date
             domain = [('date', '=', self.filter_date), ('state', '=', 'posted')]
 
-        # Apply audience filters (assume model is account.move or account.payment linked to student via havano_student_id)
+        # Apply audience filters by finding matching students and their partner_ids
+        student_domain = []
         if self.target_audience == 'class' and self.class_name:
-            domain.append(('havano_student_id.havano_class_id.name', 'ilike', self.class_name))
+            student_domain.append(('havano_class_id.name', 'ilike', self.class_name))
         elif self.target_audience == 'section' and self.section_name:
-            domain.append(('havano_student_id.havano_section_id.name', 'ilike', self.section_name))
+            student_domain.append(('havano_section_id.name', 'ilike', self.section_name))
         elif self.target_audience == 'student' and self.student_name:
-            domain.append(('havano_student_id.name', 'ilike', self.student_name))
+            student_domain.append(('name', 'ilike', self.student_name))
+            
+        if student_domain:
+            students = self.env['havano.student'].search(student_domain)
+            if not students:
+                raise UserError("No students found matching the selected criteria.")
+            partner_ids = students.mapped('partner_id').ids
+            if not partner_ids:
+                raise UserError("Found students, but they have no linked partner records.")
+            domain.append(('partner_id', 'in', partner_ids))
 
         if self.document_type in ['statement', 'billing']:
             records = self.env['account.move'].search(domain, order='id desc')
@@ -94,28 +104,17 @@ class SendSchoolBalancesWizard(models.TransientModel):
         success_count = 0
         fail_count = 0
 
-        for move in moves:
-            student = move.havano_student_id
-            if not student:
-                continue
 
-            parent = self.env['havano.parent'].search([('student_ids', 'in', student.id)], limit=1)
-            if not parent:
-                fail_count += 1
-                account._create_balance_log(student.name, 'Unknown', False, move.amount_residual, move.id, 'manual', 'failed', 'No parent found.')
-                continue
-
-            try:
-                parent_phone = parent.mobile or parent.phone or parent.partner_id.mobile or parent.partner_id.phone
-            except AttributeError:
-                parent_phone = parent.phone or getattr(parent.partner_id, 'mobile', False) or parent.partner_id.phone
-                
         import datetime
         today_date = datetime.date.today()
 
         for record in records:
             # record could be account.move or account.payment
-            student = record.havano_student_id
+            partner = record.partner_id
+            if not partner:
+                continue
+
+            student = self.env['havano.student'].search([('partner_id', '=', partner.id)], limit=1)
             if not student:
                 continue
 
@@ -258,14 +257,18 @@ class SendSchoolBalancesWizard(models.TransientModel):
             student_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.student', 'search', [student_domain])
             if not student_ids:
                 raise UserError("No students found matching the criteria in the remote database.")
-            domain.append(('havano_student_id', 'in', student_ids))
+            students = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.student', 'read', [student_ids], {'fields': ['partner_id']})
+            partner_ids = [s['partner_id'][0] for s in students if s.get('partner_id')]
+            if not partner_ids:
+                raise UserError("Found students in remote database, but they have no linked partner records.")
+            domain.append(('partner_id', 'in', partner_ids))
 
         target_model = 'account.move' if self.document_type in ['statement', 'billing'] else 'account.payment'
         record_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, target_model, 'search', [domain], {'order': 'id desc'})
         if not record_ids:
             raise UserError(f"No records found for the selected criteria ({self.document_type}).")
 
-        read_fields = ['partner_id', 'amount_residual', 'havano_student_id', 'name'] if self.document_type in ['statement', 'billing'] else ['partner_id', 'amount', 'havano_student_id', 'name']
+        read_fields = ['partner_id', 'amount_residual', 'name'] if self.document_type in ['statement', 'billing'] else ['partner_id', 'amount', 'name']
         records = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, target_model, 'read', [record_ids], {'fields': read_fields})
         
         template = account.school_balance_template or "Dear {parent_name}, please find attached the {doc_type} for {student_name} at {school}. Balance: {balance}."
@@ -287,11 +290,13 @@ class SendSchoolBalancesWizard(models.TransientModel):
                 continue
 
             # Find student
-            student_id = record.get('havano_student_id')
-            if not student_id:
+            student_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.student', 'search', [[('partner_id', '=', partner_id)]], {'limit': 1})
+            if not student_ids:
                 continue
                 
-            student_name = student_id[1]
+            student = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.student', 'read', [student_ids], {'fields': ['name']})
+            student_name = student[0]['name']
+            student_id = student_ids  # for parent search compat
             
             # Find parent
             parent_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.parent', 'search', [[('student_ids', 'in', student_id[0])]], {'limit': 1})
