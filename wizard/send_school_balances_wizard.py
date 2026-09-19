@@ -118,20 +118,26 @@ class SendSchoolBalancesWizard(models.TransientModel):
             if not student:
                 continue
 
-            parent = self.env['havano.parent'].search([('student_ids', 'in', student.id)], limit=1)
-            if not parent:
-                fail_count += 1
-                account._create_balance_log(student.name, 'Unknown', False, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', 'No parent found.')
-                continue
+            parent = self.env['havano.parent'].search([('student_ids', '=', student.id)], limit=1)
+            parent_name = parent.name if parent else 'Unknown'
+            
+            parent_phone = False
+            if parent:
+                try:
+                    parent_phone = parent.mobile or parent.phone or parent.partner_id.mobile or parent.partner_id.phone
+                except AttributeError:
+                    parent_phone = parent.phone or getattr(parent.partner_id, 'mobile', False) or parent.partner_id.phone
+                    
+            if not parent_phone:
+                parent_phone = getattr(student, 'parent_phone', False) or getattr(student, 'guardian_1_phone', False)
+                if getattr(student, 'parent_name', False):
+                    parent_name = student.parent_name
+                elif getattr(student, 'guardian_1_name', False):
+                    parent_name = student.guardian_1_name
 
-            try:
-                parent_phone = parent.mobile or parent.phone or parent.partner_id.mobile or parent.partner_id.phone
-            except AttributeError:
-                parent_phone = parent.phone or getattr(parent.partner_id, 'mobile', False) or parent.partner_id.phone
-                
             if not parent_phone:
                 fail_count += 1
-                account._create_balance_log(student.name, parent.name, False, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', 'Parent has no phone number.')
+                account._create_balance_log(student.name, parent_name, False, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', 'No parent found or missing phone.')
                 continue
 
             # Check for duplicate dispatch today
@@ -299,29 +305,41 @@ class SendSchoolBalancesWizard(models.TransientModel):
             student_id = student_ids  # for parent search compat
             
             # Find parent
-            parent_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.parent', 'search', [[('student_ids', 'in', student_id[0])]], {'limit': 1})
-            if not parent_ids:
-                fail_count += 1
-                account._create_balance_log(student_name, 'Unknown', False, balance_val, record['id'], self.document_type, 'failed', 'No parent found in remote db.')
-                continue
-
-            parents = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.parent', 'read', [parent_ids], {'fields': ['name', 'mobile', 'phone', 'partner_id']})
-            parent = parents[0]
+            parent_name = 'Unknown'
+            parent_phone = False
             
-            parent_phone = parent.get('mobile') or parent.get('phone')
-            if not parent_phone and parent.get('partner_id'):
-                parent_partners = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'res.partner', 'read', [[parent['partner_id'][0]]], {'fields': ['mobile', 'phone']})
-                if parent_partners:
-                    parent_phone = parent_partners[0].get('mobile') or parent_partners[0].get('phone')
-                    
+            parent_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.parent', 'search', [[('student_ids', '=', student_id[0])]], {'limit': 1})
+            
+            if parent_ids:
+                parents = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.parent', 'read', [parent_ids], {'fields': ['name', 'mobile', 'phone', 'partner_id']})
+                if parents:
+                    parent = parents[0]
+                    parent_name = parent.get('name', 'Unknown')
+                    parent_phone = parent.get('mobile') or parent.get('phone')
+                    if not parent_phone and parent.get('partner_id'):
+                        parent_partners = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'res.partner', 'read', [[parent['partner_id'][0]]], {'fields': ['mobile', 'phone']})
+                        if parent_partners:
+                            parent_phone = parent_partners[0].get('mobile') or parent_partners[0].get('phone')
+
+            if not parent_phone:
+                # Fallback to student fields
+                students = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.student', 'read', [student_id], {'fields': ['parent_name', 'guardian_1_name', 'parent_phone', 'guardian_1_phone']})
+                if students:
+                    stud = students[0]
+                    parent_phone = stud.get('parent_phone') or stud.get('guardian_1_phone')
+                    if stud.get('parent_name'):
+                        parent_name = stud['parent_name']
+                    elif stud.get('guardian_1_name'):
+                        parent_name = stud['guardian_1_name']
+
             if not parent_phone:
                 fail_count += 1
-                account._create_balance_log(student_name, parent['name'], False, balance_val, record['id'], self.document_type, 'failed', 'Parent has no phone number.')
+                account._create_balance_log(student_name, parent_name, False, balance_val, record['id'], self.document_type, 'failed', 'No parent found or missing phone.')
                 continue
 
             # Check deduplication locally
             if self._check_duplicate(student_name, self.document_type, today_date):
-                account._create_balance_log(student_name, parent['name'], parent_phone, balance_val, record['id'], self.document_type, 'failed', 'Skipped: Duplicate sent today.')
+                account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'failed', 'Skipped: Duplicate sent today.')
                 continue
 
             try:
@@ -366,7 +384,7 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     attachment = False
 
                 message = template.format(
-                    parent_name=parent['name'],
+                    parent_name=parent_name,
                     student_name=student_name,
                     school=school_name,
                     balance=balance_val,
@@ -383,10 +401,10 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     msg_vals['attachment_id'] = attachment.id
                     
                 self.env['whatsapp.message'].create(msg_vals)
-                account._create_balance_log(student_name, parent['name'], parent_phone, balance_val, record['id'], self.document_type, 'sent', '')
+                account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'sent', '')
                 success_count += 1
             except Exception as e:
-                account._create_balance_log(student_name, parent['name'], parent_phone, balance_val, record['id'], self.document_type, 'failed', str(e))
+                account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'failed', str(e))
                 fail_count += 1
 
         return {
