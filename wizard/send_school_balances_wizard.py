@@ -203,11 +203,11 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     import json
                     wa_template = account.school_balance_wa_template_id
                     free_text_json = {
-                        "1": parent.name or '',
-                        "2": student.name or '',
-                        "3": school_name or '',
-                        "4": str(balance_val),
-                        "5": doc_type_str or ''
+                        "free_text_1": parent.name or '',
+                        "free_text_2": student.name or '',
+                        "free_text_3": school_name or '',
+                        "free_text_4": str(balance_val),
+                        "free_text_5": doc_type_str or ''
                     }
                     msg_vals['wa_template_id'] = wa_template.id
                     msg_vals['free_text_json'] = json.dumps(free_text_json)
@@ -420,11 +420,11 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     import json
                     wa_template = account.school_balance_wa_template_id
                     free_text_json = {
-                        "1": parent_name or '',
-                        "2": student_name or '',
-                        "3": school_name or '',
-                        "4": str(balance_val),
-                        "5": doc_type_str or ''
+                        "free_text_1": parent_name or '',
+                        "free_text_2": student_name or '',
+                        "free_text_3": school_name or '',
+                        "free_text_4": str(balance_val),
+                        "free_text_5": doc_type_str or ''
                     }
                     msg_vals['wa_template_id'] = wa_template.id
                     msg_vals['free_text_json'] = json.dumps(free_text_json)
