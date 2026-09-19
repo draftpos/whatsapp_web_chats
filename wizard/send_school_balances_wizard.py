@@ -202,12 +202,14 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     'wa_account_id': account.id,
                     'mobile_number': phone,
                     'body': message,
-                    'state': 'sent'
+                    'state': 'outgoing',
+                    'message_type': 'outbound'
                 }
                 if attachment:
                     msg_vals['attachment_id'] = attachment.id
                     
-                self.env['whatsapp.message'].create(msg_vals)
+                wa_msg = self.env['whatsapp.message'].create(msg_vals)
+                wa_msg._send(force_send_by_cron=False)
                 account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record.id, self.document_type, 'sent', '')
                 success_count += 1
             except Exception as e:
@@ -395,12 +397,14 @@ class SendSchoolBalancesWizard(models.TransientModel):
                     'wa_account_id': account.id,
                     'mobile_number': phone,
                     'body': message,
-                    'state': 'sent'
+                    'state': 'outgoing',
+                    'message_type': 'outbound'
                 }
                 if attachment:
                     msg_vals['attachment_id'] = attachment.id
                     
-                self.env['whatsapp.message'].create(msg_vals)
+                wa_msg = self.env['whatsapp.message'].create(msg_vals)
+                wa_msg._send(force_send_by_cron=False)
                 account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'sent', '')
                 success_count += 1
             except Exception as e:
