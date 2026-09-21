@@ -16,18 +16,12 @@ def main():
         sftp.put(r'c:\odoo19\addons\whatsapp_web_chats\models\whatsapp_account.py', '/tmp/whatsapp_account.py')
         sftp.close()
 
-        cmd = (
-            f"echo '{PASSWORD}' | sudo -S docker cp /tmp/chats.js {CONTAINER}:/mnt/extra-addons/whatsapp_web_chats/static/src/js/chats.js && "
-            f"echo '{PASSWORD}' | sudo -S docker cp /tmp/chats_template.xml {CONTAINER}:/mnt/extra-addons/whatsapp_web_chats/static/src/xml/chats_template.xml && "
-            f"echo '{PASSWORD}' | sudo -S docker cp /tmp/whatsapp_account.py {CONTAINER}:/mnt/extra-addons/whatsapp_web_chats/models/whatsapp_account.py && "
-            f"echo '{PASSWORD}' | sudo -S docker exec -u root {CONTAINER} chown odoo:odoo /mnt/extra-addons/whatsapp_web_chats/static/src/js/chats.js && "
-            f"echo '{PASSWORD}' | sudo -S docker exec -u root {CONTAINER} chown odoo:odoo /mnt/extra-addons/whatsapp_web_chats/static/src/xml/chats_template.xml && "
-            f"echo '{PASSWORD}' | sudo -S docker exec -u root {CONTAINER} chown odoo:odoo /mnt/extra-addons/whatsapp_web_chats/models/whatsapp_account.py && "
-            f"echo '{PASSWORD}' | sudo -S docker restart {CONTAINER}"
-        )
-        stdin, stdout, stderr = client.exec_command(cmd, timeout=60)
-        out = stdout.read().decode('utf-8', 'ignore').strip()
-        print(out if out else "Uploaded and restarted.")
+        script = "env['ir.module.module'].search([('name', '=', 'whatsapp_web_chats')]).button_immediate_upgrade()\nenv.cr.commit()\n"
+        cmd = f"echo '{script}' > /tmp/upgrade_script.py && docker cp /tmp/upgrade_script.py {CONTAINER}:/tmp/upgrade_script.py && docker exec -u root {CONTAINER} odoo shell -c /etc/odoo/odoo.conf -d demo1 --no-http < /tmp/upgrade_script.py"
+        stdin, stdout, stderr = client.exec_command(f"echo '{PASSWORD}' | sudo -S sh -c \"{cmd}\"", timeout=120)
+        print("Upgrade Output:")
+        print(stdout.read().decode('utf-8'))
+        
     finally:
         client.close()
 

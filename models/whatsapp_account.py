@@ -65,6 +65,13 @@ class WhatsAppAccount(models.Model):
         domain="[('status', '=', 'approved')]",
         help="Used to bypass 24-hour rule. Variables must be: {{1}}: Parent Name, {{2}}: Student Name, {{3}}: School Name, {{4}}: Balance, {{5}}: Doc Type"
     )
+    
+    # Fallback field in case older/custom views still reference it
+    school_balance_template = fields.Many2one(
+        'whatsapp.template',
+        related='school_balance_wa_template_id',
+        readonly=False
+    )
     school_auto_send_frequency = fields.Selection([
         ('manual', 'Manual Only'),
         ('daily', 'Daily'),
