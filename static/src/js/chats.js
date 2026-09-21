@@ -1764,6 +1764,7 @@ export class WhatsAppChatsAction extends Component {
                         return (!t.bodyText && !serverMsg.bodyText) || (t.bodyText === serverMsg.bodyText);
                     });
                     if (matchingTemp) {
+                        serverMsg.noAnimate = true;
                         matchingTemp._merged = true;
                         const tempAtt = matchingTemp.attachment_ids.find(a => a.localBlobUrl || a.dataUrl);
                         if (tempAtt) {
@@ -1807,11 +1808,15 @@ export class WhatsAppChatsAction extends Component {
                             );
                             return !alreadyReceived;
                         } else if (m.bodyText) {
-                            const alreadyReceived = this.state.messages.some(serverMsg => 
+                            const matchingServerMsg = this.state.messages.find(serverMsg => 
                                 serverMsg.isMe === true && 
                                 serverMsg.bodyText === m.bodyText
                             );
-                            return !alreadyReceived;
+                            if (matchingServerMsg) {
+                                matchingServerMsg.noAnimate = true;
+                                return false;
+                            }
+                            return true;
                         }
                         return true;
                     }
