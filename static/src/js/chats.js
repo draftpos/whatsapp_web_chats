@@ -16,7 +16,7 @@ export class WhatsAppChatsAction extends Component {
         this.state = useState({
             channels: [],
             channelsOffset: 0,
-            channelsLimit: 100,
+            channelsLimit: 10000,
             isLoadingMoreChannels: false,
             hasMoreChannels: true,
             selectedChannel: null,
@@ -1726,8 +1726,13 @@ export class WhatsAppChatsAction extends Component {
                         isSystem = true;
                     }
                 }
-                if (!msg.author_id && !msg.wa_state) {
-                    isSystem = true; // No author and not a WhatsApp message
+                if (!msg.author_id && (!msg.wa_state || msg.message_type === 'notification')) {
+                    isSystem = true; 
+                }
+                
+                // If the message body contains typical "joined" or "created" text and it's a system action
+                if (bodyText.toLowerCase().includes("joined using this group's invite link") || bodyText.toLowerCase().includes("created group")) {
+                    isSystem = true;
                 }
                 
                 // If it's a system message, we don't want it to be considered as 'me' or 'other' visually
