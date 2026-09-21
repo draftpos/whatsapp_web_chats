@@ -493,7 +493,7 @@ class WhatsAppAccount(models.Model):
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
         
-        channels = self.env['discuss.channel'].sudo().search(domain)
+        channels = self.env['discuss.channel'].sudo().search(domain, limit=300, order='id desc')
         
         res = []
         for c in channels:
@@ -504,10 +504,6 @@ class WhatsAppAccount(models.Model):
             
             sort_date_obj = last_message.date if last_message else c.write_date
             sort_date = sort_date_obj.strftime('%Y-%m-%dT%H:%M:%SZ') if sort_date_obj else ''
-            
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.info("get_whatsapp_web_channels channel %s. Last msg ID: %s", c.id, last_message.id if last_message else None)
             
             import re
             last_msg_body = ''
@@ -800,7 +796,8 @@ class WhatsAppAccount(models.Model):
         else:
             domain = domain[1:]
             
-        messages = self.env['mail.message'].sudo().search(domain, order='id asc')
+        messages = self.env['mail.message'].sudo().search(domain, order='id desc', limit=150)
+        messages = messages.sorted(key=lambda m: m.id)
         
         import re
         def clean_name(n):
