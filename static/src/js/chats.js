@@ -2145,7 +2145,7 @@ export class WhatsAppChatsAction extends Component {
                 "whatsapp.account",
                 "get_whatsapp_web_channels",
                 [],
-                { wa_account_id: this.state.selectedAccount },
+                { wa_account_id: this.state.selectedAccount, limit: 100 },
                 { silent: true }
             );
             const freshChannels = response.channels || [];
