@@ -478,7 +478,7 @@ class WhatsAppAccount(models.Model):
         return False
 
     @api.model
-    def get_whatsapp_web_channels(self, wa_account_id=None, limit=100, offset=0, filter_type='all', search_query=''):
+    def get_whatsapp_web_channels(self, wa_account_id=None, limit=5000, offset=0):
         current_company = self.env.company
         domain = [
             ('channel_type', '=', 'whatsapp'),
@@ -492,37 +492,6 @@ class WhatsAppAccount(models.Model):
         if not self.env.is_admin():
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
-                
-        # Apply filter type
-        if filter_type == 'unread':
-            domain.append('|')
-            domain.append(('wa_is_unread_global', '=', True))
-            domain.append(('message_needaction_counter', '>', 0))
-        elif filter_type == 'favourites':
-            domain.append(('wa_is_favourite', '=', True))
-        elif filter_type == 'done':
-            domain.append(('wa_is_done', '=', True))
-            domain.append(('wa_is_blocked', '=', False))
-        elif filter_type == 'archived':
-            domain.append(('wa_is_done', '=', True))
-            domain.append(('wa_is_blocked', '=', False))
-        elif filter_type == 'urgent':
-            domain.append(('wa_is_urgent', '=', True))
-            domain.append(('wa_is_blocked', '=', False))
-        elif str(filter_type).startswith('tag_'):
-            tag_id = int(str(filter_type).replace('tag_', ''))
-            domain.append(('wa_tags', 'in', [tag_id]))
-            domain.append(('wa_is_blocked', '=', False))
-        else:
-            # Inbox view
-            domain.append(('wa_is_done', '=', False))
-            domain.append(('wa_is_blocked', '=', False))
-            
-        # Apply search query
-        if search_query:
-            domain.append('|')
-            domain.append(('name', 'ilike', search_query))
-            domain.append(('whatsapp_number', 'ilike', search_query))
         
         channels = self.env['discuss.channel'].sudo().search(domain, limit=int(limit), offset=int(offset), order='id desc')
         
@@ -654,49 +623,6 @@ class WhatsAppAccount(models.Model):
             'channels': res,
             'show_labels': show_labels
         }
-
-    @api.model
-    def get_whatsapp_web_channel_counts(self, wa_account_id=None):
-        current_company = self.env.company
-        base_domain = [
-            ('channel_type', '=', 'whatsapp'),
-            '|', ('whatsapp_partner_id', '!=', False), ('whatsapp_number', '!=', False),
-            '|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id),
-        ]
-        if wa_account_id:
-            base_domain.append(('wa_account_id', '=', int(wa_account_id)))
-            
-        if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
-            base_domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
-
-        counts = {}
-        channel_model = self.env['discuss.channel'].sudo()
-        
-        # Inbox
-        counts['all'] = channel_model.search_count(base_domain + [('wa_is_done', '=', False), ('wa_is_blocked', '=', False)])
-        
-        # Unread
-        counts['unread'] = channel_model.search_count(base_domain + ['|', ('wa_is_unread_global', '=', True), ('message_needaction_counter', '>', 0)])
-        
-        # Favourites
-        counts['favourites'] = channel_model.search_count(base_domain + [('wa_is_favourite', '=', True)])
-        
-        # Done
-        counts['done'] = channel_model.search_count(base_domain + [('wa_is_done', '=', True), ('wa_is_blocked', '=', False)])
-        
-        # Archived
-        counts['archived'] = counts['done']
-        
-        # Urgent
-        counts['urgent'] = channel_model.search_count(base_domain + [('wa_is_urgent', '=', True), ('wa_is_blocked', '=', False)])
-        
-        # Tags
-        tags = self.get_all_chat_tags()
-        counts['tags'] = {}
-        for tag in tags:
-            counts['tags'][str(tag['id'])] = channel_model.search_count(base_domain + [('wa_tags', 'in', [tag['id']]), ('wa_is_blocked', '=', False)])
-            
-        return counts
 
     @api.model
     def get_all_chat_tags(self):

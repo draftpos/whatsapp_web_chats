@@ -1,22 +1,18 @@
-import paramiko
-
-HOST = '173.249.39.201'
-USER = 'amakoni'
-PASSWORD = 'Ashley@#$1234'
-CONTAINER = 'odoo_demo1_havano_pro_cpsmddqqvbceafpdpqoknnae'
+import odoo
+import sys
 
 def main():
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        client.connect(HOST, username=USER, password=PASSWORD, timeout=15)
-        # Fetch logs, looking for whatsapp error logs
-        cmd = f"echo '{PASSWORD}' | sudo -S docker logs {CONTAINER} --tail 2000 | grep -iE 'whatsapp|error|traceback' | tail -n 100"
-        stdin, stdout, stderr = client.exec_command(cmd, timeout=30)
-        out = stdout.read().decode('utf-8', 'ignore')
-        print(out)
-    finally:
-        client.close()
+    odoo.tools.config.parse_config(['-c', '/etc/odoo/odoo.conf'])
+    registry = odoo.registry('demo1')
+    with registry.cursor() as cr:
+        env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+        wa_model = env['whatsapp.account']
+        try:
+            print("Testing get_whatsapp_web_channel_counts...")
+            res = wa_model.get_whatsapp_web_channel_counts()
+            print("Success:", res)
+        except Exception as e:
+            print("Failed:", e)
 
 if __name__ == '__main__':
     main()

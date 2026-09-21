@@ -74,7 +74,6 @@ export class WhatsAppChatsAction extends Component {
             showMessageDropdownId: null,
             chatFilter: "all",
             showLabels: true,
-            filterCounts: {},
             availableTags: [],
             fullscreenMedia: null, // {id: att_id, type: 'image' | 'video'}
             isRecording: false,
@@ -137,7 +136,6 @@ export class WhatsAppChatsAction extends Component {
                 this.loadTags(),
                 this.loadQuickReplies(),
                 this._preloadActionIds(),
-                this.loadFilterCounts(),
             ]);
         });
         
@@ -299,23 +297,6 @@ export class WhatsAppChatsAction extends Component {
             }
         }
         return newArr;
-    }
-
-    async loadFilterCounts() {
-        try {
-            const counts = await this.orm.call(
-                "whatsapp.account",
-                "get_whatsapp_web_channel_counts",
-                [],
-                { wa_account_id: this.state.selectedAccount },
-                { silent: true }
-            );
-            if (counts) {
-                this.state.filterCounts = counts;
-            }
-        } catch (e) {
-            console.warn("Failed to load filter counts", e);
-        }
     }
 
     async loadTags() {
@@ -788,9 +769,7 @@ export class WhatsAppChatsAction extends Component {
             const kwargs = {
                 wa_account_id: this.state.selectedAccount,
                 limit: append ? this.state.channelsLimit : (this.state.channelsLimit + this.state.channelsOffset),
-                offset: append ? this.state.channelsOffset : 0,
-                filter_type: this.state.chatFilter || 'all',
-                search_query: this.searchQuery
+                offset: append ? this.state.channelsOffset : 0
             };
             response = await this.orm.call(
                 "whatsapp.account",
@@ -811,7 +790,6 @@ export class WhatsAppChatsAction extends Component {
         if (response.show_labels !== undefined) {
             this.state.showLabels = response.show_labels;
         }
-        await this.loadFilterCounts();
         
         if (channels.length > 0) {
             const partnerIds = channels.map(c => c.whatsapp_partner_id && c.whatsapp_partner_id[0]).filter(id => id);
@@ -945,25 +923,10 @@ export class WhatsAppChatsAction extends Component {
     async setChatFilter(filterType) {
         if (this.state.chatFilter === filterType) return;
         this.state.chatFilter = filterType;
-        this.state.channelsOffset = 0;
-        this.state.channels = [];
-        this.state.hasMoreChannels = true;
-        this.state.isLoadingMoreChannels = true;
-        await this.loadChannels(false);
     }
 
     onChatSearchInput(ev) {
         this.state.chatSearch = ev.target.value;
-        if (this.searchTimeout) {
-            clearTimeout(this.searchTimeout);
-        }
-        this.searchTimeout = setTimeout(async () => {
-            this.state.channelsOffset = 0;
-            this.state.channels = [];
-            this.state.hasMoreChannels = true;
-            this.state.isLoadingMoreChannels = true;
-            await this.loadChannels(false);
-        }, 400); // 400ms debounce
     }
 
     toggleInChatSearch() {
@@ -1036,36 +999,72 @@ export class WhatsAppChatsAction extends Component {
     }
 
     get inboxChannelsCount() {
-        return this.state.filterCounts?.all || 0;
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => !c.wa_is_done && !c.wa_is_blocked).length;
     }
 
     get totalUnreadChannels() {
-        return this.state.filterCounts?.unread || 0;
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_unread_global || (c.unread_count && c.unread_count > 0) || (c.message_needaction_counter && c.message_needaction_counter > 0)).length;
     }
 
     get totalFavouriteChannels() {
-        return this.state.filterCounts?.favourites || 0;
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_favourite).length;
     }
 
     get totalDoneChannels() {
-        return this.state.filterCounts?.done || 0;
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_done && !c.wa_is_blocked).length;
     }
 
     get totalUrgentChannels() {
-        return this.state.filterCounts?.urgent || 0;
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_urgent && !c.wa_is_blocked).length;
     }
 
     get totalArchivedChannels() {
-        return this.state.filterCounts?.archived || 0;
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => c.wa_is_done && !c.wa_is_blocked).length;
     }
 
     getTagCount(tagId) {
-        return this.state.filterCounts?.tags?.[tagId] || 0;
+        if (!this.state.channels) return 0;
+        return this.state.channels.filter(c => !c.wa_is_blocked && c.wa_tags && c.wa_tags.some(t => t.id === tagId)).length;
     }
 
     get filteredChannels() {
-        if (!this.state.channels) return [];
-        return this.state.channels;
+        let channels = this.state.channels || [];
+        
+        // Apply search
+        const query = this.searchQuery;
+        if (query) {
+            channels = channels.filter(c => 
+                (c.name && c.name.toLowerCase().includes(query)) ||
+                (c.whatsapp_number && c.whatsapp_number.toLowerCase().includes(query))
+            );
+        }
+
+        // Apply filter
+        switch(this.state.chatFilter) {
+            case 'unread':
+                return channels.filter(c => c.wa_is_unread_global || (c.unread_count && c.unread_count > 0) || (c.message_needaction_counter && c.message_needaction_counter > 0));
+            case 'favourites':
+                return channels.filter(c => c.wa_is_favourite);
+            case 'done':
+                return channels.filter(c => c.wa_is_done && !c.wa_is_blocked);
+            case 'archived':
+                return channels.filter(c => c.wa_is_done && !c.wa_is_blocked);
+            case 'urgent':
+                return channels.filter(c => c.wa_is_urgent && !c.wa_is_blocked);
+            case 'all':
+            default:
+                if (this.state.chatFilter && this.state.chatFilter.startsWith('tag_')) {
+                    const tagId = parseInt(this.state.chatFilter.replace('tag_', ''));
+                    return channels.filter(c => !c.wa_is_blocked && c.wa_tags && c.wa_tags.some(t => t.id === tagId));
+                }
+                return channels.filter(c => !c.wa_is_done && !c.wa_is_blocked);
+        }
     }
 
     get groupedMessages() {
@@ -2175,7 +2174,6 @@ export class WhatsAppChatsAction extends Component {
             }
 
             this.state.channels = this.mergeArrayStable(this.state.channels, validFresh, 'id');
-            this.loadFilterCounts();
         } catch(e) {
             console.warn("Poll error", e);
         }
