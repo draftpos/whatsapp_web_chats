@@ -59,11 +59,6 @@ class WhatsAppAccount(models.Model):
     school_username = fields.Char(string="School Username/Email")
     school_password = fields.Char(string="School Password")
     
-    school_balance_template = fields.Text(
-        string="Balance Message Template", 
-        default="Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}.",
-        help="Use {student_name}, {parent_name}, {balance}, {school} (Fallback for within 24h)"
-    )
     school_balance_wa_template_id = fields.Many2one(
         'whatsapp.template', 
         string="Approved Balance Template",
@@ -113,7 +108,10 @@ class WhatsAppAccount(models.Model):
             ('state', '=', 'posted')
         ], order='id desc', limit=100) # Process latest 100 to avoid long crons
 
-        template = self.school_balance_template or "Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}."
+        wa_template = self.school_balance_wa_template_id
+        if not wa_template:
+            _logger.warning("School balance auto-sync skipped: no approved WhatsApp template configured on account %s.", self.name)
+            return
         school_name = self.company_id.name or 'Our School'
 
         for move in moves:
@@ -183,27 +181,46 @@ class WhatsAppAccount(models.Model):
                     _logger.error(f"Failed to generate PDF for {student.name}: {e}")
                     attachment = False
 
-                message = template.format(
-                    parent_name=parent.name,
-                    student_name=student.name,
-                    school=school_name,
-                    balance=move.amount_residual
+                free_text_json = {
+                    'free_text_1': parent.name or 'Parent',
+                    'free_text_2': student.name or 'Student',
+                    'free_text_3': school_name or 'School',
+                    'free_text_4': str(move.amount_residual),
+                    'free_text_5': 'Statement'
+                }
+                local_partner = self.env['res.partner'].search([('mobile', '=', parent_phone)], limit=1)
+                if not local_partner:
+                    local_partner = self.env.user.partner_id
+                    
+                target_model = wa_template.model_id.model or 'res.partner'
+                target_record = self.env[target_model].sudo().search([], limit=1)
+                if not target_record:
+                    if target_model == 'account.move':
+                        target_record = self.env[target_model].sudo().create({'partner_id': self.env.user.partner_id.id, 'move_type': 'out_invoice'})
+                    else:
+                        target_record = local_partner
+
+                mail_msg = target_record.sudo().message_post(
+                    body=f'[WhatsApp Template Sent: {wa_template.template_name}]',
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_note',
+                    author_id=self.env.user.partner_id.id,
                 )
-                
                 msg_vals = {
                     'wa_account_id': self.id,
                     'mobile_number': phone,
-                    'body': message,
-                    'state': 'sent'
+                    'wa_template_id': wa_template.id,
+                    'free_text_json': free_text_json,
+                    'mail_message_id': mail_msg.id,
+                    'body': f'[WhatsApp Template Sent: {wa_template.template_name}]',
+                    'state': 'outgoing',
+                    'message_type': 'outbound',
                 }
                 if attachment:
                     msg_vals['attachment_id'] = attachment.id
-                    
-                self.env['whatsapp.message'].create(msg_vals)
-                # Note: In reality, you'd call the api to send, or let the queue handle it.
-                # Assuming creating whatsapp.message with state 'sent' or calling a specific send function.
-                # Since I don't know the exact send function, I will just create the record.
-                # A safer approach for whatsapp_web_chats is usually calling its send_message logic.
+
+                wa_msg = self.env['whatsapp.message'].create(msg_vals)
+                wa_msg._send(force_send_by_cron=False)
                 
                 self._create_balance_log(student.name, parent.name, parent_phone, move.amount_residual, move.id, 'billing', 'sent', '')
             except Exception as e:
@@ -236,7 +253,10 @@ class WhatsAppAccount(models.Model):
 
         moves = models.execute_kw(self.school_db_name, uid, self.school_password, 'account.move', 'read', [move_ids], {'fields': ['partner_id', 'amount_residual']})
         
-        template = self.school_balance_template or "Dear {parent_name}, the outstanding balance for {student_name} at {school} is {balance}."
+        wa_template = self.school_balance_wa_template_id
+        if not wa_template:
+            _logger.warning("School balance remote auto-sync skipped: no approved WhatsApp template configured on account %s.", self.name)
+            return
         school_name = self.company_id.name or 'Our School'
 
         for move in moves:
@@ -278,21 +298,43 @@ class WhatsAppAccount(models.Model):
                 self._create_balance_log(student_name, parent['name'], False, move['amount_residual'], move['id'], 'billing', 'failed', 'Parent has no phone number.')
                 continue
 
-            message = template.format(
-                parent_name=parent['name'],
-                student_name=student_name,
-                school=school_name,
-                balance=move['amount_residual']
-            )
-            
             try:
                 phone = parent_phone.replace(' ', '').replace('+', '')
+                local_partner = self.env['res.partner'].search([('mobile', '=', parent_phone)], limit=1)
+                if not local_partner:
+                    local_partner = self.env.user.partner_id
+                    
+                target_model = wa_template.model_id.model or 'res.partner'
+                target_record = self.env[target_model].sudo().search([], limit=1)
+                if not target_record:
+                    if target_model == 'account.move':
+                        target_record = self.env[target_model].sudo().create({'partner_id': self.env.user.partner_id.id, 'move_type': 'out_invoice'})
+                    else:
+                        target_record = local_partner
+                        
+                free_text_json = {
+                    'free_text_1': parent['name'] or 'Parent',
+                    'free_text_2': student_name or 'Student',
+                    'free_text_3': school_name or 'School',
+                    'free_text_4': str(move['amount_residual']),
+                    'free_text_5': 'Statement'
+                }
+                mail_msg = target_record.sudo().message_post(
+                    body=f'[WhatsApp Template Sent: {wa_template.template_name}]',
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_note',
+                    author_id=self.env.user.partner_id.id,
+                )
                 self.env['whatsapp.message'].create({
                     'wa_account_id': self.id,
                     'mobile_number': phone,
-                    'body': message,
-                    'state': 'sent'
-                })
+                    'wa_template_id': wa_template.id,
+                    'free_text_json': free_text_json,
+                    'mail_message_id': mail_msg.id,
+                    'body': f'[WhatsApp Template Sent: {wa_template.template_name}]',
+                    'state': 'outgoing',
+                    'message_type': 'outbound',
+                })._send(force_send_by_cron=False)
                 self._create_balance_log(student_name, parent['name'], parent_phone, move['amount_residual'], move['id'], 'billing', 'sent', '')
             except Exception as e:
                 self._create_balance_log(student_name, parent['name'], parent_phone, move['amount_residual'], move['id'], 'billing', 'failed', str(e))
@@ -542,7 +584,7 @@ class WhatsAppAccount(models.Model):
             
             import logging
             _logger = logging.getLogger(__name__)
-            _logger.error("DEBUG unread: channel=%s, seen_id=%s, domain=%s, unread_count=%s", c.id, seen_id, domain_unread, unread_count)
+            _logger.debug("DEBUG unread: channel=%s, seen_id=%s, domain=%s, unread_count=%s", c.id, seen_id, domain_unread, unread_count)
 
             
             import re

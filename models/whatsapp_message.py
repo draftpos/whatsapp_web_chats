@@ -241,7 +241,9 @@ class WhatsAppMessage(models.Model):
                     
             clean_body = html2plaintext(msg.body or '').strip()
             
-            if not has_attachments and (not clean_body or clean_body == 'False'):
+            if not has_attachments and not msg.wa_template_id and (not clean_body or clean_body == 'False'):
+                import logging
+                logging.getLogger(__name__).warning("Silently cancelling empty message %s", msg.id)
                 msg.write({'state': 'cancel'})
                 
             # Meta API doesn't support 'caption' on audio. Odoo standard adds it if body exists.
@@ -274,8 +276,14 @@ class WhatsAppMessage(models.Model):
             return
 
         records = self.browse(locked_ids)
-        # Call the core _send_message logic
-        records._send_message(with_commit=not self.env.registry.in_test_mode())
+        # Call the core _send_message logic.
+        # Note: Registry.in_test_mode() was removed in Odoo 17. We always commit in
+        # production cron context; tests use their own transaction rollback mechanisms.
+        try:
+            in_test_mode = self.env.registry.in_test_mode()
+        except AttributeError:
+            in_test_mode = getattr(self.env.registry, '_is_test_mode', False)
+        records._send_message(with_commit=not in_test_mode)
         
         if len(records) == 500:
             self.env.ref('whatsapp.ir_cron_send_whatsapp_queue')._trigger()

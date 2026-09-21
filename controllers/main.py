@@ -16,3 +16,4 @@ class WhatsAppSignup(AuthSignupHome):
                     response.headers['Location'] = '/web#action=whatsapp_web_chats.action_whatsapp_web_chats'
                     
         return response
+

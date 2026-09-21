@@ -98,19 +98,46 @@ class SendSchoolBalancesWizard(models.TransientModel):
         if not records:
             raise UserError(f"No records found for the selected criteria ({self.document_type}).")
 
-        template = account.school_balance_template or "Dear {parent_name}, please find attached the {doc_type} for {student_name} at {school}. Balance: {balance}."
+        items_to_process = []
+        if self.document_type == 'statement':
+            partner_invoices = {}
+            for rec in records:
+                if rec.partner_id not in partner_invoices:
+                    partner_invoices[rec.partner_id] = {'moves': self.env['account.move'], 'balance': 0.0}
+                partner_invoices[rec.partner_id]['moves'] |= rec
+                partner_invoices[rec.partner_id]['balance'] += rec.amount_residual
+            for p, data in partner_invoices.items():
+                items_to_process.append({
+                    'partner': p,
+                    'balance': data['balance'],
+                    'first_record': data['moves'][0],
+                    'record_id': data['moves'][0].id,
+                })
+        else:
+            for rec in records:
+                items_to_process.append({
+                    'partner': rec.partner_id,
+                    'balance': rec.amount_residual if hasattr(rec, 'amount_residual') else rec.amount,
+                    'first_record': rec,
+                    'record_id': rec.id,
+                })
+
+        if not account.school_balance_wa_template_id:
+            raise UserError("No approved WhatsApp template is configured. Please set the 'Approved Balance Template' on the WhatsApp account settings before sending.")
         school_name = account.company_id.name or 'Our School'
 
         success_count = 0
         fail_count = 0
 
-
         import datetime
         today_date = datetime.date.today()
 
-        for record in records:
-            # record could be account.move or account.payment
-            partner = record.partner_id
+        for item in items_to_process:
+            partner = item['partner']
+            balance_val = item['balance']
+            record = item['first_record']
+            record_id = item['record_id']
+
             if not partner:
                 continue
 
@@ -137,13 +164,13 @@ class SendSchoolBalancesWizard(models.TransientModel):
 
             if not parent_phone:
                 fail_count += 1
-                account._create_balance_log(student.name, parent_name, False, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', 'No parent found or missing phone.')
+                account._create_balance_log(student.name, parent_name, False, balance_val, record_id, self.document_type, 'failed', 'No parent found or missing phone.')
                 continue
 
             # Check for duplicate dispatch today
             if self._check_duplicate(student.name, self.document_type, today_date):
                 # We already sent this document type to this student today
-                account._create_balance_log(student.name, parent.name, parent_phone, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', 'Skipped: Duplicate sent today.')
+                account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record_id, self.document_type, 'failed', 'Skipped: Duplicate sent today.')
                 continue
 
             try:
@@ -151,30 +178,32 @@ class SendSchoolBalancesWizard(models.TransientModel):
                 attachment = False
                 
                 # Document PDF Generation
+                # Note: In Odoo 17+, _render_qweb_pdf is on ir.actions.report, not ir.ui.view.
+                # Use self.env['ir.actions.report']._get_report_from_name(xmlid) or env.ref on the action.
                 try:
                     import base64
                     if self.document_type == 'statement':
                         from dateutil.relativedelta import relativedelta
                         start_date = today_date.replace(day=1) - relativedelta(months=1)
-                        wizard = self.env['customer.statement.wizard'].create({
+                        stmt_wizard = self.env['customer.statement.wizard'].create({
                             'partner_id': parent.partner_id.id if hasattr(parent, 'partner_id') and parent.partner_id else parent.id,
                             'start_date': start_date,
                             'end_date': today_date
                         })
-                        report = self.env.ref('havano_schools_odoo.statement_receipt')
-                        pdf_content, _ = report._render_qweb_pdf(wizard.id)
+                        report = self.env['ir.actions.report']._get_report_from_name('havano_schools_odoo.statement_receipt')
+                        pdf_content, _ = report._render_qweb_pdf([stmt_wizard.id])
                         pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
                         attach_name = f"Statement_{student.name}_{today_date}.pdf"
                     
                     elif self.document_type == 'billing':
-                        report = self.env.ref('account.account_invoices')
-                        pdf_content, _ = report._render_qweb_pdf(record.id)
+                        report = self.env['ir.actions.report']._get_report_from_name('account.report_invoice')
+                        pdf_content, _ = report._render_qweb_pdf([record.id])
                         pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
                         attach_name = f"Invoice_{student.name}_{record.name.replace('/', '_')}.pdf"
                         
                     elif self.document_type == 'receipt':
-                        report = self.env.ref('account.action_report_payment_receipt')
-                        pdf_content, _ = report._render_qweb_pdf(record.id)
+                        report = self.env['ir.actions.report']._get_report_from_name('account.report_payment_receipt')
+                        pdf_content, _ = report._render_qweb_pdf([record.id])
                         pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
                         attach_name = f"Receipt_{student.name}_{record.name.replace('/', '_')}.pdf"
 
@@ -188,9 +217,20 @@ class SendSchoolBalancesWizard(models.TransientModel):
                 except Exception as e:
                     _logger.error(f"Failed to generate PDF for {student.name}: {e}")
                     attachment = False
-
-                balance_val = record.amount_residual if hasattr(record, 'amount_residual') else record.amount
                 doc_type_str = dict(self._fields['document_type'].selection).get(self.document_type)
+
+                # Determine the partner to post the mail.message on (required for template sends)
+                partner = student.partner_id if hasattr(student, 'partner_id') and student.partner_id else record.partner_id
+                
+                wa_template = account.school_balance_wa_template_id
+
+                target_model = wa_template.model_id.model if wa_template and wa_template.model_id else 'res.partner'
+                target_record = self.env[target_model].sudo().search([], limit=1)
+                if not target_record:
+                    if target_model == 'account.move':
+                        target_record = self.env[target_model].sudo().create({'partner_id': self.env.user.partner_id.id, 'move_type': 'out_invoice'})
+                    else:
+                        target_record = partner
 
                 msg_vals = {
                     'wa_account_id': account.id,
@@ -200,27 +240,26 @@ class SendSchoolBalancesWizard(models.TransientModel):
                 }
 
                 if account.school_balance_wa_template_id:
-                    import json
                     wa_template = account.school_balance_wa_template_id
                     free_text_json = {
-                        "free_text_1": parent.name or '',
-                        "free_text_2": student.name or '',
-                        "free_text_3": school_name or '',
-                        "free_text_4": str(balance_val),
-                        "free_text_5": doc_type_str or ''
+                        'free_text_1': parent.name or '',
+                        'free_text_2': student.name or '',
+                        'free_text_3': school_name or '',
+                        'free_text_4': str(balance_val),
+                        'free_text_5': doc_type_str or ''
                     }
-                    msg_vals['wa_template_id'] = wa_template.id
-                    msg_vals['free_text_json'] = json.dumps(free_text_json)
-                    msg_vals['body'] = f'[WhatsApp Template Sent: {wa_template.template_name}]'
-                else:
-                    message = template.format(
-                        parent_name=parent.name,
-                        student_name=student.name,
-                        school=school_name,
-                        balance=balance_val,
-                        doc_type=doc_type_str
+                    # Post a log note on the target_record so whatsapp.message has a mail_message_id
+                    # (required by the core Odoo WA engine to build the Meta API template payload)
+                    mail_msg = target_record.sudo().message_post(
+                        body=f'[WhatsApp Template Sent: {wa_template.template_name}]',
+                        message_type='comment',
+                        subtype_xmlid='mail.mt_note',
+                        author_id=self.env.user.partner_id.id,
                     )
-                    msg_vals['body'] = message
+                    msg_vals['wa_template_id'] = wa_template.id
+                    msg_vals['free_text_json'] = free_text_json
+                    msg_vals['mail_message_id'] = mail_msg.id
+                    msg_vals['body'] = f'[WhatsApp Template Sent: {wa_template.template_name}]'
                 if attachment:
                     msg_vals['attachment_id'] = attachment.id
                     
@@ -229,13 +268,13 @@ class SendSchoolBalancesWizard(models.TransientModel):
                 
                 if wa_msg.state == 'error':
                     error_msg = getattr(wa_msg, 'failure_reason', 'Failed to send (Meta API rejection)')
-                    account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record.id, self.document_type, 'failed', str(error_msg))
+                    account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record_id, self.document_type, 'failed', str(error_msg))
                     fail_count += 1
                 else:
-                    account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record.id, self.document_type, 'sent', '')
+                    account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record_id, self.document_type, 'sent', '')
                     success_count += 1
             except Exception as e:
-                account._create_balance_log(student.name, parent.name, parent_phone, record.amount_residual if hasattr(record, 'amount_residual') else record.amount, record.id, self.document_type, 'failed', str(e))
+                account._create_balance_log(student.name, parent.name, parent_phone, balance_val, record_id, self.document_type, 'failed', str(e))
                 fail_count += 1
 
         return {
@@ -301,7 +340,8 @@ class SendSchoolBalancesWizard(models.TransientModel):
         read_fields = ['partner_id', 'amount_residual', 'name'] if self.document_type in ['statement', 'billing'] else ['partner_id', 'amount', 'name']
         records = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, target_model, 'read', [record_ids], {'fields': read_fields})
         
-        template = account.school_balance_template or "Dear {parent_name}, please find attached the {doc_type} for {student_name} at {school}. Balance: {balance}."
+        if not account.school_balance_wa_template_id:
+            raise UserError("No approved WhatsApp template is configured. Please set the 'Approved Balance Template' on the WhatsApp account settings before sending.")
         school_name = account.company_id.name or 'Our School'
 
         success_count = 0
@@ -310,14 +350,46 @@ class SendSchoolBalancesWizard(models.TransientModel):
         import datetime
         today_date = datetime.date.today()
 
-        for record in records:
-            balance_val = record.get('amount_residual', 0) if self.document_type in ['statement', 'billing'] else record.get('amount', 0)
-            if self.document_type == 'statement' and balance_val <= 0:
-                continue
+        items_to_process = []
+        if self.document_type == 'statement':
+            partner_invoices = {}
+            for rec in records:
+                balance = rec.get('amount_residual', 0)
+                if balance <= 0:
+                    continue
+                partner_id = rec['partner_id'][0] if rec.get('partner_id') else False
+                if not partner_id:
+                    continue
+                if partner_id not in partner_invoices:
+                    partner_invoices[partner_id] = {'moves': [], 'balance': 0.0}
+                partner_invoices[partner_id]['moves'].append(rec)
+                partner_invoices[partner_id]['balance'] += balance
+            
+            for pid, data in partner_invoices.items():
+                items_to_process.append({
+                    'partner_id': pid,
+                    'balance': data['balance'],
+                    'first_record': data['moves'][0],
+                    'record_id': data['moves'][0]['id'],
+                })
+        else:
+            for rec in records:
+                balance = rec.get('amount', 0)
+                partner_id = rec['partner_id'][0] if rec.get('partner_id') else False
+                if not partner_id:
+                    continue
+                items_to_process.append({
+                    'partner_id': partner_id,
+                    'balance': balance,
+                    'first_record': rec,
+                    'record_id': rec['id'],
+                })
 
-            partner_id = record['partner_id'][0] if record.get('partner_id') else False
-            if not partner_id:
-                continue
+        for item in items_to_process:
+            balance_val = item['balance']
+            partner_id = item['partner_id']
+            record = item['first_record']
+            record_id = item['record_id']
 
             # Find student
             student_ids = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'havano.student', 'search', [[('partner_id', '=', partner_id)]], {'limit': 1})
@@ -358,41 +430,47 @@ class SendSchoolBalancesWizard(models.TransientModel):
 
             if not parent_phone:
                 fail_count += 1
-                account._create_balance_log(student_name, parent_name, False, balance_val, record['id'], self.document_type, 'failed', 'No parent found or missing phone.')
+                account._create_balance_log(student_name, parent_name, False, balance_val, record_id, self.document_type, 'failed', 'No parent found or missing phone.')
                 continue
 
             # Check deduplication locally
             if self._check_duplicate(student_name, self.document_type, today_date):
-                account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'failed', 'Skipped: Duplicate sent today.')
+                account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record_id, self.document_type, 'failed', 'Skipped: Duplicate sent today.')
                 continue
 
             try:
                 phone = parent_phone.replace(' ', '').replace('+', '')
                 
-                # Fetch PDF from Remote DB
+                # Fetch PDF from Remote DB via XMLRPC report service
                 attachment = False
                 try:
                     import base64
                     pdf_base64 = False
+                    report_proxy = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/report')
                     if self.document_type == 'statement':
-                        report_proxy = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/report')
-                        pdf_content, _ = report_proxy.render_qweb_pdf(account.school_db_name, uid, account.school_password, 'havano_schools_odoo.statement_receipt', [record['id']])
+                        # For statements remotely, we need to create a customer.statement.wizard first
+                        from dateutil.relativedelta import relativedelta
+                        start_date = today_date.replace(day=1) - relativedelta(months=1)
+                        stmt_wizard_id = models_proxy.execute_kw(account.school_db_name, uid, account.school_password, 'customer.statement.wizard', 'create', [{
+                            'partner_id': partner_id,
+                            'start_date': start_date.strftime('%Y-%m-%d'),
+                            'end_date': today_date.strftime('%Y-%m-%d')
+                        }])
+                        pdf_content = report_proxy.render_report(account.school_db_name, uid, account.school_password, 'havano_schools_odoo.statement_receipt', [stmt_wizard_id])
                         if pdf_content:
-                            pdf_base64 = base64.b64encode(pdf_content.data).decode('utf-8')
+                            pdf_base64 = pdf_content if isinstance(pdf_content, str) else base64.b64encode(bytes(pdf_content)).decode('utf-8')
                         attach_name = f"Statement_{student_name}_{today_date}.pdf"
                     
                     elif self.document_type == 'billing':
-                        report_proxy = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/report')
-                        pdf_content, _ = report_proxy.render_qweb_pdf(account.school_db_name, uid, account.school_password, 'account.account_invoices', [record['id']])
+                        pdf_content = report_proxy.render_report(account.school_db_name, uid, account.school_password, 'account.report_invoice', [record_id])
                         if pdf_content:
-                            pdf_base64 = base64.b64encode(pdf_content.data).decode('utf-8')
+                            pdf_base64 = pdf_content if isinstance(pdf_content, str) else base64.b64encode(bytes(pdf_content)).decode('utf-8')
                         attach_name = f"Invoice_{student_name}_{record.get('name', '').replace('/', '_')}.pdf"
                         
                     elif self.document_type == 'receipt':
-                        report_proxy = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/report')
-                        pdf_content, _ = report_proxy.render_qweb_pdf(account.school_db_name, uid, account.school_password, 'account.action_report_payment_receipt', [record['id']])
+                        pdf_content = report_proxy.render_report(account.school_db_name, uid, account.school_password, 'account.report_payment_receipt', [record_id])
                         if pdf_content:
-                            pdf_base64 = base64.b64encode(pdf_content.data).decode('utf-8')
+                            pdf_base64 = pdf_content if isinstance(pdf_content, str) else base64.b64encode(bytes(pdf_content)).decode('utf-8')
                         attach_name = f"Receipt_{student_name}_{record.get('name', '').replace('/', '_')}.pdf"
 
                     if pdf_base64:
@@ -409,6 +487,20 @@ class SendSchoolBalancesWizard(models.TransientModel):
 
                 doc_type_str = dict(self._fields['document_type'].selection).get(self.document_type)
 
+                # Find the partner record locally for mail_message_id posting
+                local_partner = self.env['res.partner'].search([('mobile', '=', parent_phone)], limit=1)
+                if not local_partner:
+                    local_partner = self.env.user.partner_id
+                    
+                wa_template = account.school_balance_wa_template_id
+                target_model = wa_template.model_id.model if wa_template and wa_template.model_id else 'res.partner'
+                target_record = self.env[target_model].sudo().search([], limit=1)
+                if not target_record:
+                    if target_model == 'account.move':
+                        target_record = self.env[target_model].sudo().create({'partner_id': self.env.user.partner_id.id, 'move_type': 'out_invoice'})
+                    else:
+                        target_record = local_partner
+
                 msg_vals = {
                     'wa_account_id': account.id,
                     'mobile_number': phone,
@@ -417,27 +509,25 @@ class SendSchoolBalancesWizard(models.TransientModel):
                 }
 
                 if account.school_balance_wa_template_id:
-                    import json
-                    wa_template = account.school_balance_wa_template_id
                     free_text_json = {
-                        "free_text_1": parent_name or '',
-                        "free_text_2": student_name or '',
-                        "free_text_3": school_name or '',
-                        "free_text_4": str(balance_val),
-                        "free_text_5": doc_type_str or ''
+                        'free_text_1': parent_name or 'Parent',
+                        'free_text_2': student_name or 'Student',
+                        'free_text_3': school_name or 'School',
+                        'free_text_4': str(balance_val),
+                        'free_text_5': doc_type_str or 'Statement'
                     }
-                    msg_vals['wa_template_id'] = wa_template.id
-                    msg_vals['free_text_json'] = json.dumps(free_text_json)
-                    msg_vals['body'] = f'[WhatsApp Template Sent: {wa_template.template_name}]'
-                else:
-                    message = template.format(
-                        parent_name=parent_name,
-                        student_name=student_name,
-                        school=school_name,
-                        balance=balance_val,
-                        doc_type=doc_type_str
+                    # Post a log note on the partner so whatsapp.message has a mail_message_id
+                    # (required by the core Odoo WA engine to build the Meta API template payload)
+                    mail_msg = target_record.sudo().message_post(
+                        body=f'[WhatsApp Template Sent: {wa_template.template_name}]',
+                        message_type='comment',
+                        subtype_xmlid='mail.mt_note',
+                        author_id=self.env.user.partner_id.id,
                     )
-                    msg_vals['body'] = message
+                    msg_vals['wa_template_id'] = wa_template.id
+                    msg_vals['free_text_json'] = free_text_json
+                    msg_vals['mail_message_id'] = mail_msg.id
+                    msg_vals['body'] = f'[WhatsApp Template Sent: {wa_template.template_name}]'
                 if attachment:
                     msg_vals['attachment_id'] = attachment.id
                     
@@ -446,13 +536,13 @@ class SendSchoolBalancesWizard(models.TransientModel):
                 
                 if wa_msg.state == 'error':
                     error_msg = getattr(wa_msg, 'failure_reason', 'Failed to send (Meta API rejection)')
-                    account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'failed', str(error_msg))
+                    account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record_id, self.document_type, 'failed', str(error_msg))
                     fail_count += 1
                 else:
-                    account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'sent', '')
+                    account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record_id, self.document_type, 'sent', '')
                     success_count += 1
             except Exception as e:
-                account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record['id'], self.document_type, 'failed', str(e))
+                account._create_balance_log(student_name, parent_name, parent_phone, balance_val, record_id, self.document_type, 'failed', str(e))
                 fail_count += 1
 
         return {
