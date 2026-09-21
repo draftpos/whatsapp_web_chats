@@ -625,6 +625,13 @@ class WhatsAppAccount(models.Model):
         }
 
     @api.model
+    def get_whatsapp_web_channel_total(self, wa_account_id=None):
+        domain = [('channel_type', '=', 'whatsapp')]
+        if wa_account_id:
+            domain.append(('wa_account_id', '=', wa_account_id))
+        return self.env['discuss.channel'].sudo().search_count(domain)
+
+    @api.model
     def get_all_chat_tags(self):
         current_company = self.env.company
         # Show tags for this company OR unassigned legacy tags

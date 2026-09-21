@@ -16,9 +16,12 @@ export class WhatsAppChatsAction extends Component {
         this.state = useState({
             channels: [],
             channelsOffset: 0,
-            channelsLimit: 10000,
+            channelsLimit: 500,
             isLoadingMoreChannels: false,
             hasMoreChannels: true,
+            isDownloadingHistory: false,
+            downloadProgress: 0,
+            totalChannels: 0,
             selectedChannel: null,
             messages: [],
             newMessage: "",
@@ -760,111 +763,118 @@ export class WhatsAppChatsAction extends Component {
             }
         }
 
-        let response = { channels: [], show_labels: false };
-        
-        const loadId = new Date().getTime();
-        this.currentChannelLoadId = loadId;
+        if (!this.state.selectedAccount) return;
         
         try {
-            const kwargs = {
-                wa_account_id: this.state.selectedAccount,
-                limit: append ? this.state.channelsLimit : (this.state.channelsLimit + this.state.channelsOffset),
-                offset: append ? this.state.channelsOffset : 0
-            };
-            response = await this.orm.call(
-                "whatsapp.account",
-                "get_whatsapp_web_channels",
-                [],
-                kwargs,
-                { silent: true }
-            );
-        } catch (e) {
-            console.warn("Offline or failed to fetch channels", e);
-        }
-        
-        if (this.currentChannelLoadId !== loadId) {
-            return;
-        }
-        
-        const channels = response.channels || [];
-        if (response.show_labels !== undefined) {
-            this.state.showLabels = response.show_labels;
-        }
-        
-        if (channels.length > 0) {
-            const partnerIds = channels.map(c => c.whatsapp_partner_id && c.whatsapp_partner_id[0]).filter(id => id);
-            if (partnerIds.length > 0) {
-                const partners = await this.orm.searchRead("res.partner", [["id", "in", partnerIds]], ["id", "phone"]);
-                const partnerMap = {};
-                for (const p of partners) {
-                    partnerMap[p.id] = { phone: p.phone };
+            if (!append) {
+                // First load: get total count
+                try {
+                    const total = await this.orm.call(
+                        "whatsapp.account",
+                        "get_whatsapp_web_channel_total",
+                        [],
+                        { wa_account_id: this.state.selectedAccount },
+                        { silent: true }
+                    );
+                    this.state.totalChannels = total || 0;
+                    this.state.isDownloadingHistory = true;
+                    this.state.downloadProgress = 0;
+                } catch (e) {
+                    console.warn("Failed to get total count", e);
                 }
-                for (const c of channels) {
-                    if (c.whatsapp_partner_id) {
-                        const pData = partnerMap[c.whatsapp_partner_id[0]];
-                        if (pData) {
-                            c.customer_phone = pData.phone;
+            }
+
+            let allChannels = append ? this.state.channels : [];
+            let currentOffset = append ? this.state.channelsOffset : 0;
+            let limit = this.state.channelsLimit;
+            let hasMore = true;
+
+            // Loop to fetch all channels in chunks of 500 for the initial load
+            while (hasMore) {
+                const kwargs = {
+                    wa_account_id: this.state.selectedAccount,
+                    limit: limit,
+                    offset: currentOffset
+                };
+                const response = await this.orm.call(
+                    "whatsapp.account",
+                    "get_whatsapp_web_channels",
+                    [],
+                    kwargs,
+                    { silent: true }
+                );
+                
+                const fetchedChannels = response.channels || [];
+                if (response.show_labels !== undefined) {
+                    this.state.showLabels = response.show_labels;
+                }
+                
+                if (fetchedChannels.length > 0) {
+                    const partnerIds = fetchedChannels.map(c => c.whatsapp_partner_id && c.whatsapp_partner_id[0]).filter(id => id);
+                    if (partnerIds.length > 0) {
+                        try {
+                            const partners = await this.orm.searchRead(
+                                "res.partner",
+                                [["id", "in", partnerIds]],
+                                ["id", "avatar_128", "write_date"]
+                            );
+                            const avatars = {};
+                            partners.forEach(p => {
+                                avatars[p.id] = p.avatar_128 ? p.write_date : false;
+                            });
+                            fetchedChannels.forEach(c => {
+                                if (c.whatsapp_partner_id) {
+                                    c.avatar_write_date = avatars[c.whatsapp_partner_id[0]];
+                                }
+                            });
+                        } catch(e) {
+                            console.warn("Failed to load avatars", e);
                         }
                     }
-                    if (c.wa_account_id) {
-                        c.wa_account_id = c.wa_account_id[0];
+                    
+                    allChannels = [...allChannels, ...fetchedChannels];
+                    currentOffset += fetchedChannels.length;
+                    
+                    const validChannels = allChannels.filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
+                    validChannels.sort((a, b) => {
+                        if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
+                        if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
+                        return (b.write_date || '').localeCompare(a.write_date || '');
+                    });
+
+                    if (this.state.selectedChannel) {
+                        const currentId = this.state.selectedChannel.id;
+                        const updated = validChannels.find(c => c.id === currentId);
+                        if (updated) {
+                            updated.unread_count = 0;
+                            updated.wa_is_unread_global = false;
+                            updated.message_needaction_counter = 0;
+                            this.state.selectedChannel = updated;
+                        }
                     }
+
+                    this.state.channels = validChannels;
+                    
+                    if (this.state.totalChannels > 0) {
+                        this.state.downloadProgress = Math.min(100, Math.round((currentOffset / this.state.totalChannels) * 100));
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
-            } else {
-                for (const c of channels) {
-                    if (c.wa_account_id) {
-                        c.wa_account_id = c.wa_account_id[0];
-                    }
+                
+                if (fetchedChannels.length < limit || append) {
+                    hasMore = false;
                 }
             }
             
-            const validChannels = channels.filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
-            validChannels.sort((a, b) => {
-                if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
-                if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
-                return (b.write_date || '').localeCompare(a.write_date || '');
-            });
-
-            if (this.state.selectedChannel) {
-                const currentId = this.state.selectedChannel.id;
-                const updated = validChannels.find(c => c.id === currentId);
-                if (updated) {
-                    updated.unread_count = 0;
-                    updated.wa_is_unread_global = false;
-                    updated.message_needaction_counter = 0;
-                    this.state.selectedChannel = updated;
-                } else {
-                    this.state.selectedChannel = null;
-                }
-            }
-
-            if (append) {
-                const currentMap = new Map();
-                this.state.channels.forEach(c => currentMap.set(c.id, c));
-                for (const c of validChannels) {
-                    if (currentMap.has(c.id)) {
-                        Object.assign(currentMap.get(c.id), c);
-                    } else {
-                        this.state.channels.push(c);
-                    }
-                }
-                if (validChannels.length < this.state.channelsLimit) {
-                    this.state.hasMoreChannels = false;
-                }
-            } else {
-                this.state.channels = this.mergeArrayStable(this.state.channels, validChannels, 'id');
-                // Only reset hasMoreChannels on initial load, not poll
-            }
-            
+            this.state.channelsOffset = currentOffset;
+            this.state.hasMoreChannels = false;
+            this.state.isDownloadingHistory = false;
+        } catch(e) {
+            console.error("Error loading channels:", e);
+            this.state.isDownloadingHistory = false;
+        } finally {
             this.state.isLoadingMoreChannels = false;
-            
-            try {
-                if (!append) {
-                    localStorage.setItem(cacheKey, JSON.stringify(validChannels));
-                }
-            } catch (e) {}
-        } else if (!this.state.channels || this.state.channels.length === 0) {
-            this.state.selectedChannel = null;
         }
     }
 
@@ -1738,6 +1748,12 @@ export class WhatsAppChatsAction extends Component {
                 // If it's a system message, we don't want it to be considered as 'me' or 'other' visually
                 if (isSystem) {
                     isMe = false;
+                }
+
+                // If it's a broadcast message telling customers to join our group, it should be outgoing
+                if (bodyText.toLowerCase().includes("join our group") || bodyText.toLowerCase().includes("joiner our group")) {
+                    isMe = true;
+                    isSystem = false;
                 }
 
                 let isContactCard = false;
