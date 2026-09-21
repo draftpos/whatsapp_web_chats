@@ -96,6 +96,7 @@
                         <i class="fa fa-search" style="color: #8696a0; font-size: 15px;"/>
                         <input type="text"
                                t-model="state.chatSearch"
+                               t-on-input="onChatSearchInput"
                                placeholder="Search or start new chat"
                                style="border: none; outline: none; flex: 1; font-size: 14px; color: #111b21; background: transparent; min-width: 0;"/>
                         <i t-if="state.chatSearch" class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 13px;" t-on-click="() => this.state.chatSearch = ''"/>

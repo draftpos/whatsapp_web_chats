@@ -11,7 +11,7 @@ ssh.connect(host, port=22, username=user, password=password, timeout=15)
 
 # The command to upgrade the module. We use -d for db name and -u for module. 
 # We don't need --stop-after-init if we just run odoo in the container? Wait, if we use --stop-after-init it might conflict if the db is in use? No, usually it's fine.
-cmd = f"echo '{password}' | sudo -S docker exec odoo_demo1_havano_pro_cpsmddqqvbceafpdpqoknnae odoo -d demo1_havano_pro_cpsmddqqvbceafpdpqoknnae -u whatsapp_web_chats --stop-after-init --no-http"
+cmd = f"echo '{password}' | sudo -S docker exec odoo_demo1_havano_pro_cpsmddqqvbceafpdpqoknnae /usr/bin/odoo -d demo1_havano_pro_cpsmddqqvbceafpdpqoknnae -u whatsapp_web_chats --stop-after-init --no-http"
 
 print(f"Running upgrade command...")
 stdin, stdout, stderr = ssh.exec_command(cmd)

@@ -478,7 +478,7 @@ class WhatsAppAccount(models.Model):
         return False
 
     @api.model
-    def get_whatsapp_web_channels(self, wa_account_id=None, limit=100, offset=0):
+    def get_whatsapp_web_channels(self, wa_account_id=None, limit=100, offset=0, filter_type='all', search_query=''):
         current_company = self.env.company
         domain = [
             ('channel_type', '=', 'whatsapp'),
@@ -492,6 +492,37 @@ class WhatsAppAccount(models.Model):
         if not self.env.is_admin():
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
+                
+        # Apply filter type
+        if filter_type == 'unread':
+            domain.append('|')
+            domain.append(('wa_is_unread_global', '=', True))
+            domain.append(('message_needaction_counter', '>', 0))
+        elif filter_type == 'favourites':
+            domain.append(('wa_is_favourite', '=', True))
+        elif filter_type == 'done':
+            domain.append(('wa_is_done', '=', True))
+            domain.append(('wa_is_blocked', '=', False))
+        elif filter_type == 'archived':
+            domain.append(('wa_is_done', '=', True))
+            domain.append(('wa_is_blocked', '=', False))
+        elif filter_type == 'urgent':
+            domain.append(('wa_is_urgent', '=', True))
+            domain.append(('wa_is_blocked', '=', False))
+        elif str(filter_type).startswith('tag_'):
+            tag_id = int(str(filter_type).replace('tag_', ''))
+            domain.append(('wa_tags', 'in', [tag_id]))
+            domain.append(('wa_is_blocked', '=', False))
+        else:
+            # Inbox view
+            domain.append(('wa_is_done', '=', False))
+            domain.append(('wa_is_blocked', '=', False))
+            
+        # Apply search query
+        if search_query:
+            domain.append('|')
+            domain.append(('name', 'ilike', search_query))
+            domain.append(('whatsapp_number', 'ilike', search_query))
         
         channels = self.env['discuss.channel'].sudo().search(domain, limit=int(limit), offset=int(offset), order='id desc')
         

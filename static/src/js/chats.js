@@ -769,7 +769,9 @@ export class WhatsAppChatsAction extends Component {
             const kwargs = {
                 wa_account_id: this.state.selectedAccount,
                 limit: append ? this.state.channelsLimit : (this.state.channelsLimit + this.state.channelsOffset),
-                offset: append ? this.state.channelsOffset : 0
+                offset: append ? this.state.channelsOffset : 0,
+                filter_type: this.state.chatFilter || 'all',
+                search_query: this.searchQuery
             };
             response = await this.orm.call(
                 "whatsapp.account",
@@ -920,9 +922,28 @@ export class WhatsAppChatsAction extends Component {
         });
     }
 
-    setChatFilter(filterType) {
+    async setChatFilter(filterType) {
+        if (this.state.chatFilter === filterType) return;
         this.state.chatFilter = filterType;
-        this.state.chatSearch = '';
+        this.state.channelsOffset = 0;
+        this.state.channels = [];
+        this.state.hasMoreChannels = true;
+        this.state.isLoadingMoreChannels = true;
+        await this.loadChannels(false);
+    }
+
+    onChatSearchInput(ev) {
+        this.state.chatSearch = ev.target.value;
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+        }
+        this.searchTimeout = setTimeout(async () => {
+            this.state.channelsOffset = 0;
+            this.state.channels = [];
+            this.state.hasMoreChannels = true;
+            this.state.isLoadingMoreChannels = true;
+            await this.loadChannels(false);
+        }, 400); // 400ms debounce
     }
 
     toggleInChatSearch() {
@@ -1034,49 +1055,7 @@ export class WhatsAppChatsAction extends Component {
 
     get filteredChannels() {
         if (!this.state.channels) return [];
-        let filtered = this.state.channels;
-        
-        switch (this.state.chatFilter) {
-            case 'unread':
-                filtered = filtered.filter(c => c.wa_is_unread_global || (c.unread_count && c.unread_count > 0) || (c.message_needaction_counter && c.message_needaction_counter > 0));
-                break;
-            case 'favourites':
-                filtered = filtered.filter(c => c.wa_is_favourite);
-                break;
-            case 'done':
-                filtered = filtered.filter(c => c.wa_is_done && !c.wa_is_blocked);
-                break;
-            case 'archived':
-                filtered = filtered.filter(c => c.wa_is_done && !c.wa_is_blocked);
-                break;
-            case 'urgent':
-                filtered = filtered.filter(c => c.wa_is_urgent && !c.wa_is_blocked);
-                break;
-            case 'all':
-            default:
-                if (this.state.chatFilter && this.state.chatFilter.startsWith('tag_')) {
-                    const tagId = parseInt(this.state.chatFilter.replace('tag_', ''));
-                    filtered = filtered.filter(c => !c.wa_is_blocked && c.wa_tags && c.wa_tags.some(t => t.id === tagId));
-                } else {
-                    // Inbox view: hide archived and blocked chats
-                    filtered = filtered.filter(c => !c.wa_is_done && !c.wa_is_blocked);
-                }
-                break;
-        }
-
-        // Apply search query
-        if (this.searchQuery) {
-            const formattedQuery = this.formatWhatsAppNumber(this.searchQuery);
-            filtered = filtered.filter(c => {
-                const name = (c.name || "").toLowerCase();
-                const phone = (c.whatsapp_number || c.customer_phone || "").toLowerCase();
-                const formattedPhone = this.formatWhatsAppNumber(c.whatsapp_number || c.customer_phone || "");
-                const preview = (c.last_message_preview || "").toLowerCase();
-                return name.includes(this.searchQuery) || phone.includes(this.searchQuery) || formattedPhone.includes(formattedQuery) || preview.includes(this.searchQuery);
-            });
-        }
-        
-        return filtered;
+        return this.state.channels;
     }
 
     get groupedMessages() {
