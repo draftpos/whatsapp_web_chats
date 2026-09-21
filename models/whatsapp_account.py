@@ -656,6 +656,49 @@ class WhatsAppAccount(models.Model):
         }
 
     @api.model
+    def get_whatsapp_web_channel_counts(self, wa_account_id=None):
+        current_company = self.env.company
+        base_domain = [
+            ('channel_type', '=', 'whatsapp'),
+            '|', ('whatsapp_partner_id', '!=', False), ('whatsapp_number', '!=', False),
+            '|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id),
+        ]
+        if wa_account_id:
+            base_domain.append(('wa_account_id', '=', int(wa_account_id)))
+            
+        if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+            base_domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
+
+        counts = {}
+        channel_model = self.env['discuss.channel'].sudo()
+        
+        # Inbox
+        counts['all'] = channel_model.search_count(base_domain + [('wa_is_done', '=', False), ('wa_is_blocked', '=', False)])
+        
+        # Unread
+        counts['unread'] = channel_model.search_count(base_domain + ['|', ('wa_is_unread_global', '=', True), ('message_needaction_counter', '>', 0)])
+        
+        # Favourites
+        counts['favourites'] = channel_model.search_count(base_domain + [('wa_is_favourite', '=', True)])
+        
+        # Done
+        counts['done'] = channel_model.search_count(base_domain + [('wa_is_done', '=', True), ('wa_is_blocked', '=', False)])
+        
+        # Archived
+        counts['archived'] = counts['done']
+        
+        # Urgent
+        counts['urgent'] = channel_model.search_count(base_domain + [('wa_is_urgent', '=', True), ('wa_is_blocked', '=', False)])
+        
+        # Tags
+        tags = self.get_all_chat_tags()
+        counts['tags'] = {}
+        for tag in tags:
+            counts['tags'][str(tag['id'])] = channel_model.search_count(base_domain + [('wa_tags', 'in', [tag['id']]), ('wa_is_blocked', '=', False)])
+            
+        return counts
+
+    @api.model
     def get_all_chat_tags(self):
         current_company = self.env.company
         # Show tags for this company OR unassigned legacy tags
