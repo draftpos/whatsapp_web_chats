@@ -570,17 +570,28 @@ export class WhatsAppChatsAction extends Component {
         this.state.isProfileModalOpen = false;
     }
 
+    formatWhatsAppNumber(number) {
+        if (!number) return '';
+        let cleaned = number.toString().replace(/[\s\-\(\)\+]/g, '');
+        if (cleaned.startsWith('0')) {
+            cleaned = '263' + cleaned.substring(1);
+        }
+        return cleaned;
+    }
+
     onContactSearch(ev) {
         const query = ev.target.value.toLowerCase();
         if (!query) {
             this.state.filteredContacts = this.state.contacts;
             this.state.newNumberQuery = null;
         } else {
-            this.state.filteredContacts = this.state.contacts.filter(c => 
-                (c.name && c.name.toLowerCase().includes(query)) ||
-                (c.phone && c.phone.toLowerCase().includes(query)) ||
-                (c.mobile && c.mobile.toLowerCase().includes(query))
-            );
+            const formattedQuery = this.formatWhatsAppNumber(query);
+            this.state.filteredContacts = this.state.contacts.filter(c => {
+                const nameMatch = c.name ? c.name.toLowerCase().includes(query) : false;
+                const phoneMatch = c.phone ? this.formatWhatsAppNumber(c.phone).includes(formattedQuery) || c.phone.toLowerCase().includes(query) : false;
+                const mobileMatch = c.mobile ? this.formatWhatsAppNumber(c.mobile).includes(formattedQuery) || c.mobile.toLowerCase().includes(query) : false;
+                return nameMatch || phoneMatch || mobileMatch;
+            });
             
             const isNumber = /^\+?\d+$/.test(query.replace(/\s+/g, ''));
             if (isNumber) {
@@ -594,11 +605,13 @@ export class WhatsAppChatsAction extends Component {
     async startChatWithNumber(number) {
         if (!this.state.selectedAccount) return;
         
+        const formattedNumber = this.formatWhatsAppNumber(number);
+        
         try {
             const result = await this.orm.call(
                 "whatsapp.account",
                 "create_chat_from_number",
-                [number, parseInt(this.state.selectedAccount)]
+                [formattedNumber, parseInt(this.state.selectedAccount)]
             );
             
             if (result.success && result.channel_id) {
@@ -1053,11 +1066,13 @@ export class WhatsAppChatsAction extends Component {
 
         // Apply search query
         if (this.searchQuery) {
+            const formattedQuery = this.formatWhatsAppNumber(this.searchQuery);
             filtered = filtered.filter(c => {
                 const name = (c.name || "").toLowerCase();
                 const phone = (c.whatsapp_number || c.customer_phone || "").toLowerCase();
+                const formattedPhone = this.formatWhatsAppNumber(c.whatsapp_number || c.customer_phone || "");
                 const preview = (c.last_message_preview || "").toLowerCase();
-                return name.includes(this.searchQuery) || phone.includes(this.searchQuery) || preview.includes(this.searchQuery);
+                return name.includes(this.searchQuery) || phone.includes(this.searchQuery) || formattedPhone.includes(formattedQuery) || preview.includes(this.searchQuery);
             });
         }
         
