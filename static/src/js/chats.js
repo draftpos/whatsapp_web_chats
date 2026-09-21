@@ -1716,6 +1716,19 @@ export class WhatsAppChatsAction extends Component {
                 if (msg.message_type === 'outbound' || (msg.wa_state && msg.wa_state !== 'received' && msg.wa_state !== 'error')) {
                     isMe = true;
                 }
+                // Preserve local image data across polling sweeps to prevent flickering
+                if (msg.attachment_ids && msg.attachment_ids.length > 0) {
+                    const existingMsg = oldMessages.find(m => m.id === msg.id);
+                    if (existingMsg && existingMsg.attachment_ids) {
+                        msg.attachment_ids.forEach((att, idx) => {
+                            const exAtt = existingMsg.attachment_ids[idx] || existingMsg.attachment_ids.find(a => a.id === att.id);
+                            if (exAtt) {
+                                if (exAtt.dataUrl) att.dataUrl = exAtt.dataUrl;
+                                if (exAtt.localBlobUrl) att.localBlobUrl = exAtt.localBlobUrl;
+                            }
+                        });
+                    }
+                }
                 
                 return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
             });
@@ -1743,11 +1756,12 @@ export class WhatsAppChatsAction extends Component {
                         if (t.attachment_ids && t.attachment_ids.length > 0) {
                             const tName = t.attachment_ids[0].name;
                             const sName = serverAtt.name;
-                            if (tName && sName) {
-                                return tName.split('.')[0] === sName.split('.')[0];
+                            if (tName && sName && tName.split('.')[0] === sName.split('.')[0]) {
+                                return true;
                             }
                         }
-                        return (t.bodyText === serverMsg.bodyText || (!t.bodyText && !serverMsg.bodyText));
+                        // Fallback: if both have no body text, assume they match (useful when attachment names get altered)
+                        return (!t.bodyText && !serverMsg.bodyText) || (t.bodyText === serverMsg.bodyText);
                     });
                     if (matchingTemp) {
                         matchingTemp._merged = true;
