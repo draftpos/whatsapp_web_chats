@@ -11,12 +11,12 @@ def main():
     try:
         client.connect(HOST, username=USER, password=PASSWORD, timeout=15)
         sftp = client.open_sftp()
-        sftp.put(r'c:\odoo19\addons\whatsapp_web_chats\check_docker_logs.py', '/tmp/test_counts.py')
+        sftp.put(r'c:\odoo19\addons\whatsapp_web_chats\check_demo1_failures.py', '/tmp/check_msgs.py')
         sftp.close()
 
         cmd = (
-            f"echo '{PASSWORD}' | sudo -S docker cp /tmp/test_counts.py {CONTAINER}:/tmp/test_counts.py && "
-            f"echo '{PASSWORD}' | sudo -S docker exec {CONTAINER} python3 /tmp/test_counts.py"
+            f"echo '{PASSWORD}' | sudo -S docker cp /tmp/check_msgs.py {CONTAINER}:/tmp/check_msgs.py && "
+            f"echo '{PASSWORD}' | sudo -S docker exec {CONTAINER} python3 /tmp/check_msgs.py"
         )
         stdin, stdout, stderr = client.exec_command(cmd, timeout=60)
         output = stdout.read().decode('utf-8')
