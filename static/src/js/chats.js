@@ -1719,7 +1719,21 @@ export class WhatsAppChatsAction extends Component {
                     });
                 }
                 // --- End Menu Detection ---
-                let isSystem = msg.message_type === 'notification' && !msg.wa_state;
+                let isSystem = msg.message_type === 'notification' || msg.message_type === 'auto_comment';
+                if (!isSystem && msg.author_id) {
+                    let authorName = (msg.author_id[1] || "").toLowerCase();
+                    if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system") {
+                        isSystem = true;
+                    }
+                }
+                if (!msg.author_id && !msg.wa_state) {
+                    isSystem = true; // No author and not a WhatsApp message
+                }
+                
+                // If it's a system message, we don't want it to be considered as 'me' or 'other' visually
+                if (isSystem) {
+                    isMe = false;
+                }
 
                 let isContactCard = false;
                 let contactCardName = "";
