@@ -59,9 +59,9 @@ class WhatsAppAccount(models.Model):
     school_username = fields.Char(string="School Username/Email")
     school_password = fields.Char(string="School Password")
     
-    school_balance_wa_template_id = fields.Many2one(
+    school_balance_template = fields.Many2one(
         'whatsapp.template', 
-        string="Approved Balance Template",
+        string="School Balance Template",
         domain="[('status', '=', 'approved')]",
         help="Used to bypass 24-hour rule. Variables must be: {{1}}: Parent Name, {{2}}: Student Name, {{3}}: School Name, {{4}}: Balance, {{5}}: Doc Type"
     )
@@ -108,7 +108,7 @@ class WhatsAppAccount(models.Model):
             ('state', '=', 'posted')
         ], order='id desc', limit=100) # Process latest 100 to avoid long crons
 
-        wa_template = self.school_balance_wa_template_id
+        wa_template = self.school_balance_template
         if not wa_template:
             _logger.warning("School balance auto-sync skipped: no approved WhatsApp template configured on account %s.", self.name)
             return
@@ -253,7 +253,7 @@ class WhatsAppAccount(models.Model):
 
         moves = models.execute_kw(self.school_db_name, uid, self.school_password, 'account.move', 'read', [move_ids], {'fields': ['partner_id', 'amount_residual']})
         
-        wa_template = self.school_balance_wa_template_id
+        wa_template = self.school_balance_template
         if not wa_template:
             _logger.warning("School balance remote auto-sync skipped: no approved WhatsApp template configured on account %s.", self.name)
             return

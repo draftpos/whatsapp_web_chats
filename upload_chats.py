@@ -12,13 +12,16 @@ def main():
         client.connect(HOST, username=USER, password=PASSWORD, timeout=15)
         sftp = client.open_sftp()
         sftp.put(r'c:\odoo19\addons\whatsapp_web_chats\static\src\js\chats.js', '/tmp/chats.js')
+        sftp.put(r'c:\odoo19\addons\whatsapp_web_chats\static\src\xml\chats_template.xml', '/tmp/chats_template.xml')
         sftp.put(r'c:\odoo19\addons\whatsapp_web_chats\models\whatsapp_account.py', '/tmp/whatsapp_account.py')
         sftp.close()
 
         cmd = (
             f"echo '{PASSWORD}' | sudo -S docker cp /tmp/chats.js {CONTAINER}:/mnt/extra-addons/whatsapp_web_chats/static/src/js/chats.js && "
+            f"echo '{PASSWORD}' | sudo -S docker cp /tmp/chats_template.xml {CONTAINER}:/mnt/extra-addons/whatsapp_web_chats/static/src/xml/chats_template.xml && "
             f"echo '{PASSWORD}' | sudo -S docker cp /tmp/whatsapp_account.py {CONTAINER}:/mnt/extra-addons/whatsapp_web_chats/models/whatsapp_account.py && "
             f"echo '{PASSWORD}' | sudo -S docker exec -u root {CONTAINER} chown odoo:odoo /mnt/extra-addons/whatsapp_web_chats/static/src/js/chats.js && "
+            f"echo '{PASSWORD}' | sudo -S docker exec -u root {CONTAINER} chown odoo:odoo /mnt/extra-addons/whatsapp_web_chats/static/src/xml/chats_template.xml && "
             f"echo '{PASSWORD}' | sudo -S docker exec -u root {CONTAINER} chown odoo:odoo /mnt/extra-addons/whatsapp_web_chats/models/whatsapp_account.py && "
             f"echo '{PASSWORD}' | sudo -S docker restart {CONTAINER}"
         )
