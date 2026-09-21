@@ -15,6 +15,10 @@ export class WhatsAppChatsAction extends Component {
         
         this.state = useState({
             channels: [],
+            channelsOffset: 0,
+            channelsLimit: 100,
+            isLoadingMoreChannels: false,
+            hasMoreChannels: true,
             selectedChannel: null,
             messages: [],
             newMessage: "",
@@ -697,7 +701,7 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
-    async loadChannels() {
+    async loadChannels(append = false) {
         if (!this.myPartnerId) {
             try {
                 // Attempt to get the current user's partner ID directly from the server
@@ -729,16 +733,18 @@ export class WhatsAppChatsAction extends Component {
         }
 
         const cacheKey = 'wa_channels_' + (this.state.selectedAccount || '');
-        try {
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed && parsed.length > 0 && this.state.channels.length === 0) {
-                    this.state.channels = parsed;
+        if (!append) {
+            try {
+                const cached = localStorage.getItem(cacheKey);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (parsed && parsed.length > 0 && this.state.channels.length === 0) {
+                        this.state.channels = parsed;
+                    }
                 }
+            } catch (e) {
+                console.warn("Failed to load cached channels", e);
             }
-        } catch (e) {
-            console.warn("Failed to load cached channels", e);
         }
 
         let response = { channels: [], show_labels: false };
@@ -747,11 +753,16 @@ export class WhatsAppChatsAction extends Component {
         this.currentChannelLoadId = loadId;
         
         try {
+            const kwargs = {
+                wa_account_id: this.state.selectedAccount,
+                limit: append ? this.state.channelsLimit : (this.state.channelsLimit + this.state.channelsOffset),
+                offset: append ? this.state.channelsOffset : 0
+            };
             response = await this.orm.call(
                 "whatsapp.account",
                 "get_whatsapp_web_channels",
                 [],
-                { wa_account_id: this.state.selectedAccount },
+                kwargs,
                 { silent: true }
             );
         } catch (e) {
@@ -814,10 +825,30 @@ export class WhatsAppChatsAction extends Component {
                 }
             }
 
-            this.state.channels = this.mergeArrayStable(this.state.channels, validChannels, 'id');
+            if (append) {
+                const currentMap = new Map();
+                this.state.channels.forEach(c => currentMap.set(c.id, c));
+                for (const c of validChannels) {
+                    if (currentMap.has(c.id)) {
+                        Object.assign(currentMap.get(c.id), c);
+                    } else {
+                        this.state.channels.push(c);
+                    }
+                }
+                if (validChannels.length < this.state.channelsLimit) {
+                    this.state.hasMoreChannels = false;
+                }
+            } else {
+                this.state.channels = this.mergeArrayStable(this.state.channels, validChannels, 'id');
+                // Only reset hasMoreChannels on initial load, not poll
+            }
+            
+            this.state.isLoadingMoreChannels = false;
             
             try {
-                localStorage.setItem(cacheKey, JSON.stringify(validChannels));
+                if (!append) {
+                    localStorage.setItem(cacheKey, JSON.stringify(validChannels));
+                }
             } catch (e) {}
         } else if (!this.state.channels || this.state.channels.length === 0) {
             this.state.selectedChannel = null;
@@ -827,9 +858,25 @@ export class WhatsAppChatsAction extends Component {
     async changeChatAccount(ev) {
         if (!this.state.selectedChannel) return;
         const newAccountId = parseInt(ev.target.value);
-        this.state.selectedChannel.wa_account_id = newAccountId;
-        // The UI updates automatically via reactivity.
-        // We could also attempt to update the backend channel record here if needed.
+        try {
+            await this.orm.write("discuss.channel", [this.state.selectedChannel.id], { wa_account_id: newAccountId });
+            this.state.selectedChannel.wa_account_id = newAccountId;
+            this.env.services.notification.add("WhatsApp account updated successfully.", { type: "success" });
+        } catch (e) {
+            this.env.services.notification.add("Failed to update WhatsApp account.", { type: "danger" });
+        }
+    }
+
+    async onChatsScroll(ev) {
+        const target = ev.target;
+        // Check if we are near the bottom (within 50px)
+        if (target.scrollTop + target.clientHeight >= target.scrollHeight - 50) {
+            if (!this.state.isLoadingMoreChannels && this.state.hasMoreChannels) {
+                this.state.isLoadingMoreChannels = true;
+                this.state.channelsOffset += this.state.channelsLimit;
+                await this.loadChannels(true);
+            }
+        }
     }
 
     setChatState(channelId, field, value, ev) {
