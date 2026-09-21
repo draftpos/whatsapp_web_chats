@@ -2761,10 +2761,10 @@ export class WhatsAppChatsAction extends Component {
                             kwargs
                         );
                         tempMsg.wa_state = 'sent';
-                        await new Promise(r => setTimeout(r, 400));
-                        await this.loadMessages();
+                        // await new Promise(r => setTimeout(r, 400));
+                        // await this.loadMessages(); // Removed to prevent race conditions during bulk uploads
                         this.scrollToBottom();
-                        await this.loadChannels();
+                        // await this.loadChannels();
                     } catch (err) {
                         console.error("Failed to send message:", err);
                         tempMsg.wa_state = 'error';
@@ -2870,8 +2870,7 @@ export class WhatsAppChatsAction extends Component {
                             );
 
                             tempMsg.wa_state = 'sent';
-                            await new Promise(r => setTimeout(r, 400));
-                            await this.loadMessages();
+                            // await this.loadMessages(); // Removed to prevent race conditions during bulk uploads
                             this.scrollToBottom();
                         } catch (err) {
                             console.error("Failed to send attachment:", err);
