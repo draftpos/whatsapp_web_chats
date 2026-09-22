@@ -24,6 +24,42 @@
     align-items: center;
 }
 
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #54656f;
+    margin: 0;
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 8px 12px;
+    border: 1px solid #d1d7db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #111b21;
+    background-color: #f0f2f5;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    border-color: #00a884;
+    box-shadow: 0 0 0 2px rgba(0, 168, 132, 0.2);
+    background-color: #ffffff;
+}
+
+.wa-dashboard-filters button:hover {
+    background-color: #008f6f !important;
+}
+
 .wa-dashboard-content {
     padding: 30px;
     display: grid;
