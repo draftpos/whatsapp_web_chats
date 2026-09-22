@@ -1668,6 +1668,8 @@ class WhatsAppAccount(models.Model):
                                     wa_msg._send(force_send_by_cron=False)
                                 except Exception as send_err:
                                     _logger.warning("Could not send whatsapp message in background %s: %s", wa_msg.id, send_err)
+                        except Exception as e:
+                            _logger.error("Error in whatsapp background thread: %s", e)
 
                     thread = threading.Thread(target=run_process)
                     thread.start()
