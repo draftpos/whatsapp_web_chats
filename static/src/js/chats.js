@@ -19,6 +19,7 @@ export class WhatsAppChatsAction extends Component {
             chatFilter: 'all', // 'all' or 'unread'
             channelsOffset: 0,
             channelsLimit: 50000,
+            channelsDisplayLimit: 50,
             isLoadingMoreChannels: false,
             hasMoreChannels: true,
             isDownloadingHistory: false,
@@ -260,8 +261,12 @@ export class WhatsAppChatsAction extends Component {
         });
         
         onWillDestroy(() => {
+            this.isDestroyed = true;
             if (this.pollInterval) {
                 clearInterval(this.pollInterval);
+            }
+            if (this._pollingTimeout) {
+                clearTimeout(this._pollingTimeout);
             }
             if (this._onDocumentClick) {
                 document.removeEventListener('click', this._onDocumentClick, true);
@@ -718,6 +723,7 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async loadChannels(append = false) {
+        if (this.isDestroyed) return;
         if (!this.myPartnerId) {
             try {
                 // Attempt to get the current user's partner ID directly from the server
@@ -922,7 +928,11 @@ export class WhatsAppChatsAction extends Component {
         const target = ev.target;
         // Check if we are near the bottom (within 50px)
         if (target.scrollTop + target.clientHeight >= target.scrollHeight - 50) {
-            if (!this.state.isLoadingMoreChannels && this.state.hasMoreChannels) {
+            if (this.state.channelsDisplayLimit < this.filteredChannels.length) {
+                // Progressive rendering: Show more of the already-fetched channels
+                this.state.channelsDisplayLimit += 50;
+            } else if (!this.state.isLoadingMoreChannels && this.state.hasMoreChannels) {
+                // If we've displayed all fetched channels and more exist on server, fetch them
                 this.state.isLoadingMoreChannels = true;
                 this.state.channelsOffset += this.state.channelsLimit;
                 await this.loadChannels(true);
@@ -1103,6 +1113,10 @@ export class WhatsAppChatsAction extends Component {
                 }
                 return channels.filter(c => !c.wa_is_done && !c.wa_is_blocked);
         }
+    }
+
+    get displayedChannels() {
+        return this.filteredChannels.slice(0, this.state.channelsDisplayLimit);
     }
 
     get groupedMessages() {
@@ -2199,6 +2213,7 @@ export class WhatsAppChatsAction extends Component {
     }
 
     async pollMessages() {
+        if (this.isDestroyed) return;
         this.flushOfflineQueue();
         // Only reload channels in background to check for NEW channels/messages
         // but do NOT call loadChannels() as it overwrites locally-cleared unread counts.
