@@ -74,6 +74,8 @@
                                 <div class="chat-dropdown-item" t-on-click="sidebarConfig">Configuration</div>
                             </t>
                             <t t-if="state.isMobile">
+                                <div class="chat-dropdown-item" t-on-click="openNewContactModal">New Contact</div>
+                                <div class="chat-dropdown-item" t-on-click="openQuickChatModal">Start Quick Chat</div>
                                 <div class="chat-dropdown-item" t-on-click="() => this.navigateTo('whatsapp.whatsapp_message_action')">Messages</div>
                                 <div class="chat-dropdown-item" t-on-click="() => this.navigateTo('whatsapp.whatsapp_account_action')">WhatsApp Business Accounts</div>
                                 <div class="chat-dropdown-item" t-on-click="() => this.navigateTo('whatsapp_web_chats.whatsapp_quick_reply_config_action')">Quick Replies</div>
@@ -1634,7 +1636,7 @@
         <!-- Quick Chat Modal -->
         <t t-if="state.isQuickChatModalOpen">
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                <div class="modal-content" style="background: #1c1c1c; width: 450px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); color: #e0e0e0; font-family: Roboto, Arial, sans-serif;">
+                <div class="modal-content" style="background: #1c1c1c; width: 90%; max-width: 450px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); color: #e0e0e0; font-family: Roboto, Arial, sans-serif;">
                     <div class="modal-header" style="background: #1c1c1c; padding: 20px 24px 10px; display: flex; align-items: center; justify-content: space-between;">
                         <span style="font-size: 20px; font-weight: 500;">Start Quick Chat</span>
                         <i class="fa fa-times" t-on-click="closeQuickChatModal" style="cursor: pointer; color: #a0a0a0; font-size: 20px;"></i>
@@ -1675,7 +1677,7 @@
         <!-- New Contact Modal -->
         <t t-if="state.isNewContactModalOpen">
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                <div class="modal-content" style="background: #1c1c1c; width: 450px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); color: #e0e0e0; font-family: Roboto, Arial, sans-serif;">
+                <div class="modal-content" style="background: #1c1c1c; width: 90%; max-width: 450px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); color: #e0e0e0; font-family: Roboto, Arial, sans-serif;">
                     <div class="modal-header" style="background: #1c1c1c; padding: 20px 24px 10px; display: flex; align-items: center; justify-content: space-between;">
                         <span style="font-size: 20px; font-weight: 500;">New Contact</span>
                         <i class="fa fa-times" t-on-click="closeNewContactModal" style="cursor: pointer; color: #a0a0a0; font-size: 20px;"></i>
