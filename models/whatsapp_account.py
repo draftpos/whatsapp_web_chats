@@ -1559,24 +1559,18 @@ class WhatsAppAccount(models.Model):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         if channel.exists():
             attachment_ids = kwargs.get('attachment_ids', [])
-            has_uncompressed_videos = False
-            videos_to_compress = []
-            has_audio = False
+            heavy_media_att_ids = []
             
-            # Synchronously compress audio attachments before creating the message
             for att_id in attachment_ids:
                 att = self.env['ir.attachment'].sudo().browse(int(att_id))
                 if att.exists():
-                    # python-magic often forces WebM audio files to 'video/webm'. Check the name to disambiguate.
                     is_audio = att.mimetype and att.mimetype.startswith('audio/')
                     if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
                         is_audio = True
                         
-                    if is_audio:
-                        has_audio = True
-                        self._compress_audio_attachment(att)
-                    elif att.mimetype and att.mimetype.startswith('video/'):
-                        self._compress_video_attachment(att)
+                    if is_audio or (att.mimetype and att.mimetype.startswith('video/')):
+                        heavy_media_att_ids.append(att.id)
+
             if 'author_id' not in kwargs:
                 kwargs['author_id'] = self.env.user.partner_id.id
             
@@ -1592,22 +1586,62 @@ class WhatsAppAccount(models.Model):
                 
             msg_id = channel.message_post(**kwargs).id
 
-            # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
-            wa_msgs = self.env['whatsapp.message'].sudo().search([
-                ('mail_message_id', '=', msg_id),
-                ('state', '=', 'outgoing')
-            ])
-            for wa_msg in wa_msgs:
-                _logger.info(f"PRE-SEND WA MSG {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
-                # If Odoo mistakenly created a text message with no body, cancel it to prevent Meta API error!
-                if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
-                    _logger.info(f"Cancelling bogus empty text message {wa_msg.id} to avoid Meta API error.")
-                    wa_msg.write({'state': 'cancel'})
-                    continue
-                try:
-                    wa_msg._send(force_send_by_cron=False)
-                except Exception as send_err:
-                    _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
+            if heavy_media_att_ids:
+                dbname = self.env.cr.dbname
+                def background_process_media():
+                    import threading
+                    import odoo
+                    def run_process():
+                        with odoo.api.Environment.manage(), odoo.registry(dbname).cursor() as new_cr:
+                            new_env = odoo.api.Environment(new_cr, odoo.SUPERUSER_ID, {})
+                            whatsapp_account = new_env['whatsapp.account']
+                            
+                            for att_id in heavy_media_att_ids:
+                                att = new_env['ir.attachment'].browse(att_id)
+                                if att.exists():
+                                    is_audio = att.mimetype and att.mimetype.startswith('audio/')
+                                    if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
+                                        is_audio = True
+                                    if is_audio:
+                                        whatsapp_account._compress_audio_attachment(att)
+                                    elif att.mimetype and att.mimetype.startswith('video/'):
+                                        whatsapp_account._compress_video_attachment(att)
+                            
+                            wa_msgs = new_env['whatsapp.message'].search([
+                                ('mail_message_id', '=', msg_id),
+                                ('state', '=', 'outgoing')
+                            ])
+                            for wa_msg in wa_msgs:
+                                _logger.info(f"PRE-SEND WA MSG BACKGROUND {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
+                                if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
+                                    wa_msg.write({'state': 'cancel'})
+                                    continue
+                                try:
+                                    wa_msg._send(force_send_by_cron=False)
+                                except Exception as send_err:
+                                    _logger.warning("Could not send whatsapp message in background %s: %s", wa_msg.id, send_err)
+
+                    thread = threading.Thread(target=run_process)
+                    thread.start()
+
+                self.env.cr.after_commit(background_process_media)
+            else:
+                # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
+                wa_msgs = self.env['whatsapp.message'].sudo().search([
+                    ('mail_message_id', '=', msg_id),
+                    ('state', '=', 'outgoing')
+                ])
+                for wa_msg in wa_msgs:
+                    _logger.info(f"PRE-SEND WA MSG {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
+                    # If Odoo mistakenly created a text message with no body, cancel it to prevent Meta API error!
+                    if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
+                        _logger.info(f"Cancelling bogus empty text message {wa_msg.id} to avoid Meta API error.")
+                        wa_msg.write({'state': 'cancel'})
+                        continue
+                    try:
+                        wa_msg._send(force_send_by_cron=False)
+                    except Exception as send_err:
+                        _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
             return msg_id
         return False
 
