@@ -503,16 +503,55 @@ class WhatsAppAccount(models.Model):
         channels = self.env['discuss.channel'].sudo().search(domain, limit=int(limit), offset=int(offset), order='id desc')
         
         res = []
+        if not channels:
+            return res
+
+        # 1. Bulk fetch last message for each channel
+        channel_ids = tuple(channels.ids)
+        self.env.cr.execute("""
+            SELECT res_id, MAX(id) as last_msg_id
+            FROM mail_message
+            WHERE model = 'discuss.channel' AND res_id IN %s
+            GROUP BY res_id
+        """, [channel_ids])
+        last_msg_ids = {row[0]: row[1] for row in self.env.cr.fetchall()}
+        
+        last_messages = {}
+        if last_msg_ids:
+            msg_recs = self.env['mail.message'].sudo().search([('id', 'in', list(last_msg_ids.values()))])
+            for m in msg_recs:
+                last_messages[m.res_id] = m
+                
+        # 2. Bulk fetch whatsapp message states
+        wa_states = {}
+        if last_msg_ids:
+            wa_msgs = self.env['whatsapp.message'].sudo().search([('mail_message_id', 'in', list(last_msg_ids.values()))])
+            for w in wa_msgs:
+                wa_states[w.mail_message_id.id] = w.state
+                
+        # 3. Bulk fetch channel members for current user
+        members = self.env['discuss.channel.member'].sudo().search([
+            ('channel_id', 'in', channels.ids),
+            ('partner_id', '=', self.env.user.partner_id.id)
+        ])
+        seen_ids = {m.channel_id.id: (m.seen_message_id.id if m.seen_message_id else 0) for m in members}
+        
+        # 4. Prepare excluded partners
+        try:
+            excluded = self.env.ref('base.group_user').sudo().users.mapped('partner_id').ids
+        except Exception:
+            excluded = [self.env.user.partner_id.id]
+        public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
+        if public_partner:
+            excluded.append(public_partner.id)
+
+        import re
         for c in channels:
-            last_message = self.env['mail.message'].sudo().search([
-                ('model', '=', 'discuss.channel'),
-                ('res_id', '=', c.id)
-            ], order='id desc', limit=1)
+            last_message = last_messages.get(c.id)
             
             sort_date_obj = last_message.date if last_message else c.write_date
             sort_date = sort_date_obj.strftime('%Y-%m-%dT%H:%M:%SZ') if sort_date_obj else ''
             
-            import re
             last_msg_body = ''
             last_msg_time = ''
             last_msg_is_me = False
@@ -523,8 +562,7 @@ class WhatsAppAccount(models.Model):
                 last_msg_time = last_message.date.strftime('%Y-%m-%dT%H:%M:%SZ') if last_message.date else ''
                 
                 # Fetch whatsapp.message state
-                wa_msg = self.env['whatsapp.message'].sudo().search([('mail_message_id', '=', last_message.id)], limit=1)
-                last_msg_wa_state = wa_msg.state if wa_msg else False
+                last_msg_wa_state = wa_states.get(last_message.id, False)
                 
                 # Determine is_me
                 if last_message.author_id and last_message.author_id.id == self.env.user.partner_id.id:
@@ -536,7 +574,6 @@ class WhatsAppAccount(models.Model):
                         if c.whatsapp_partner_id and last_message.author_id.id == c.whatsapp_partner_id.id:
                             last_msg_is_me = False
                         else:
-                            public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
                             if public_partner and last_message.author_id.id == public_partner.id:
                                 last_msg_is_me = False
                             else:
@@ -549,40 +586,21 @@ class WhatsAppAccount(models.Model):
                     else:
                         last_msg_is_me = False
             
-            member = self.env['discuss.channel.member'].sudo().search([
-                ('channel_id', '=', c.id),
-                ('partner_id', '=', self.env.user.partner_id.id)
-            ], limit=1)
+            seen_id = seen_ids.get(c.id, 0)
             
             unread_count = 0
-            seen_id = 0
-            if member:
-                seen_id = member.seen_message_id.id if member.seen_message_id else 0
-
-            # Always compute real inbound unread count (not just when Odoo says >0)
-            domain_unread = [
-                ('model', '=', 'discuss.channel'),
-                ('res_id', '=', c.id),
-                ('id', '>', seen_id),
-                ('message_type', 'not in', ['notification', 'user_notification']),
-            ]
-            # Exclude all internal users (agents) and system/public users
-            try:
-                excluded = self.env.ref('base.group_user').sudo().users.mapped('partner_id').ids
-            except Exception:
-                excluded = [self.env.user.partner_id.id]
-            public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
-            if public_partner:
-                excluded.append(public_partner.id)
-            
-            # OR condition: author is either False (unlinked customer) or NOT in excluded (not an agent)
-            domain_unread = ['|', ('author_id', '=', False), ('author_id', 'not in', excluded)] + domain_unread
-
             if not c.wa_is_unread_global or last_msg_is_me:
                 unread_count = 0
                 if c.wa_is_unread_global:
                     c.sudo().write({'wa_is_unread_global': False})
             else:
+                domain_unread = [
+                    ('model', '=', 'discuss.channel'),
+                    ('res_id', '=', c.id),
+                    ('id', '>', seen_id),
+                    ('message_type', 'not in', ['notification', 'user_notification']),
+                ]
+                domain_unread = ['|', ('author_id', '=', False), ('author_id', 'not in', excluded)] + domain_unread
                 unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
             
             import logging
