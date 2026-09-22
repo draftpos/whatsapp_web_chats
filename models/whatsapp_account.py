@@ -500,7 +500,7 @@ class WhatsAppAccount(models.Model):
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
         
-        channels = self.env['discuss.channel'].sudo().search(domain, limit=int(limit), offset=int(offset), order='id desc')
+        channels = self.env['discuss.channel'].sudo().search(domain, limit=int(limit), offset=int(offset), order='write_date desc, id desc')
         
         res = []
         if not channels:
