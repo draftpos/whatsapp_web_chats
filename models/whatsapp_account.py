@@ -1601,110 +1601,115 @@ class WhatsAppAccount(models.Model):
     @api.model
     def post_whatsapp_message(self, channel_id, **kwargs):
         """ Wrapper to allow standard users to post messages without discuss.channel record rules blocking them """
-        channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
-        if channel.exists():
-            attachment_ids = kwargs.get('attachment_ids', [])
-            heavy_media_att_ids = []
+        try:
+            channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
+            if channel.exists():
+                attachment_ids = kwargs.get('attachment_ids', [])
+                heavy_media_att_ids = []
             
-            for att_id in attachment_ids:
-                att = self.env['ir.attachment'].sudo().browse(int(att_id))
-                if att.exists():
-                    is_audio = att.mimetype and att.mimetype.startswith('audio/')
-                    if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
-                        is_audio = True
+                for att_id in attachment_ids:
+                    att = self.env['ir.attachment'].sudo().browse(int(att_id))
+                    if att.exists():
+                        is_audio = att.mimetype and att.mimetype.startswith('audio/')
+                        if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
+                            is_audio = True
                         
-                    if is_audio or (att.mimetype and (att.mimetype.startswith('video/') or att.mimetype.startswith('image/'))):
-                        heavy_media_att_ids.append(att.id)
+                        if is_audio or (att.mimetype and (att.mimetype.startswith('video/') or att.mimetype.startswith('image/'))):
+                            heavy_media_att_ids.append(att.id)
 
-            if 'author_id' not in kwargs:
-                kwargs['author_id'] = self.env.user.partner_id.id
+                if 'author_id' not in kwargs:
+                    kwargs['author_id'] = self.env.user.partner_id.id
             
-            # Clean empty bodies to avoid 'text.body is required' API errors from Meta
-            # But DO NOT set it to ' ' if there are attachments, otherwise Odoo splits it into 2 messages!
-            body = kwargs.get('body', '')
-            if not body or body == '<p><br></p>' or not str(body).strip():
-                # Only force a space if there are NO attachments (so it's a pure text message)
-                if not attachment_ids:
-                    kwargs['body'] = ' '
-                else:
-                    kwargs['body'] = ''
+                # Clean empty bodies to avoid 'text.body is required' API errors from Meta
+                # But DO NOT set it to ' ' if there are attachments, otherwise Odoo splits it into 2 messages!
+                body = kwargs.get('body', '')
+                if not body or body == '<p><br></p>' or not str(body).strip():
+                    # Only force a space if there are NO attachments (so it's a pure text message)
+                    if not attachment_ids:
+                        kwargs['body'] = ' '
+                    else:
+                        kwargs['body'] = ''
                 
-            msg_id = channel.with_context(wa_web_chats_defer_send=True).message_post(**kwargs).id
+                msg_id = channel.with_context(wa_web_chats_defer_send=True).message_post(**kwargs).id
 
-            if heavy_media_att_ids:
-                dbname = self.env.cr.dbname
-                def background_process_media():
-                    import threading
-                    import odoo
-                    def run_process():
-                        try:
-                            with odoo.registry(dbname).cursor() as new_cr:
-                                new_env = odoo.api.Environment(new_cr, odoo.SUPERUSER_ID, {})
-                                whatsapp_account = new_env['whatsapp.account']
+                if heavy_media_att_ids:
+                    dbname = self.env.cr.dbname
+                    def background_process_media():
+                        import threading
+                        import odoo
+                        def run_process():
+                            try:
+                                with odoo.registry(dbname).cursor() as new_cr:
+                                    new_env = odoo.api.Environment(new_cr, odoo.SUPERUSER_ID, {})
+                                    whatsapp_account = new_env['whatsapp.account']
                             
-                            for att_id in heavy_media_att_ids:
-                                att = new_env['ir.attachment'].browse(att_id)
-                                if att.exists():
-                                    is_audio = att.mimetype and att.mimetype.startswith('audio/')
-                                    if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
-                                        is_audio = True
-                                    if is_audio:
-                                        whatsapp_account._compress_audio_attachment(att)
-                                    elif att.mimetype and att.mimetype.startswith('video/'):
-                                        whatsapp_account._compress_video_attachment(att)
-                                    elif att.mimetype and att.mimetype.startswith('image/'):
-                                        whatsapp_account._fix_image_attachment(att)
+                                for att_id in heavy_media_att_ids:
+                                    att = new_env['ir.attachment'].browse(att_id)
+                                    if att.exists():
+                                        is_audio = att.mimetype and att.mimetype.startswith('audio/')
+                                        if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
+                                            is_audio = True
+                                        if is_audio:
+                                            whatsapp_account._compress_audio_attachment(att)
+                                        elif att.mimetype and att.mimetype.startswith('video/'):
+                                            whatsapp_account._compress_video_attachment(att)
+                                        elif att.mimetype and att.mimetype.startswith('image/'):
+                                            whatsapp_account._fix_image_attachment(att)
                             
-                            wa_msgs = new_env['whatsapp.message'].search([
-                                ('mail_message_id', '=', msg_id),
-                                ('state', '=', 'outgoing')
-                            ])
-                            for wa_msg in wa_msgs:
-                                _logger.info(f"PRE-SEND WA MSG BACKGROUND {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
-                                if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
-                                    wa_msg.write({'state': 'cancel'})
-                                    continue
-                                try:
-                                    wa_msg._send(force_send_by_cron=False)
-                                except Exception as send_err:
-                                    _logger.warning("Could not send whatsapp message in background %s: %s", wa_msg.id, send_err)
-                        except Exception as e:
-                            _logger.error("Error in whatsapp background thread: %s", e)
+                                wa_msgs = new_env['whatsapp.message'].search([
+                                    ('mail_message_id', '=', msg_id),
+                                    ('state', '=', 'outgoing')
+                                ])
+                                for wa_msg in wa_msgs:
+                                    _logger.info(f"PRE-SEND WA MSG BACKGROUND {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
+                                    if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
+                                        wa_msg.write({'state': 'cancel'})
+                                        continue
+                                    try:
+                                        wa_msg._send(force_send_by_cron=False)
+                                    except Exception as send_err:
+                                        _logger.warning("Could not send whatsapp message in background %s: %s", wa_msg.id, send_err)
+                            except Exception as e:
+                                _logger.error("Error in whatsapp background thread: %s", e)
 
-                    thread = threading.Thread(target=run_process)
-                    thread.start()
+                        thread = threading.Thread(target=run_process)
+                        thread.start()
 
-                if hasattr(self.env.cr, 'postcommit'):
-                    self.env.cr.postcommit.add(background_process_media)
-                elif hasattr(self.env.cr, 'after_commit'):
-                    self.env.cr.after_commit(background_process_media)
+                    if hasattr(self.env.cr, 'postcommit'):
+                        self.env.cr.postcommit.add(background_process_media)
+                    elif hasattr(self.env.cr, 'after_commit'):
+                        self.env.cr.after_commit(background_process_media)
+                    else:
+                        def delayed_run():
+                            import time
+                            time.sleep(1.5) # Wait for transaction to commit
+                            background_process_media()
+                        thread = threading.Thread(target=delayed_run)
+                        thread.start()
                 else:
-                    def delayed_run():
-                        import time
-                        time.sleep(1.5) # Wait for transaction to commit
-                        background_process_media()
-                    thread = threading.Thread(target=delayed_run)
-                    thread.start()
-            else:
-                # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
-                wa_msgs = self.env['whatsapp.message'].sudo().search([
-                    ('mail_message_id', '=', msg_id),
-                    ('state', '=', 'outgoing')
-                ])
-                for wa_msg in wa_msgs:
-                    _logger.info(f"PRE-SEND WA MSG {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
-                    # If Odoo mistakenly created a text message with no body, cancel it to prevent Meta API error!
-                    if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
-                        _logger.info(f"Cancelling bogus empty text message {wa_msg.id} to avoid Meta API error.")
-                        wa_msg.write({'state': 'cancel'})
-                        continue
-                    try:
-                        wa_msg._send(force_send_by_cron=False)
-                    except Exception as send_err:
-                        _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
-            return msg_id
-        return False
+                    # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
+                    wa_msgs = self.env['whatsapp.message'].sudo().search([
+                        ('mail_message_id', '=', msg_id),
+                        ('state', '=', 'outgoing')
+                    ])
+                    for wa_msg in wa_msgs:
+                        _logger.info(f"PRE-SEND WA MSG {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
+                        # If Odoo mistakenly created a text message with no body, cancel it to prevent Meta API error!
+                        if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
+                            _logger.info(f"Cancelling bogus empty text message {wa_msg.id} to avoid Meta API error.")
+                            wa_msg.write({'state': 'cancel'})
+                            continue
+                        try:
+                            wa_msg._send(force_send_by_cron=False)
+                        except Exception as send_err:
+                            _logger.warning("Could not immediately send whatsapp message %s: %s", wa_msg.id, send_err)
+                return msg_id
+            return False
 
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error("post_whatsapp_message failed: %s", e, exc_info=True)
+            raise
     @api.model
     def mark_whatsapp_web_messages_read(self, channel_id):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
