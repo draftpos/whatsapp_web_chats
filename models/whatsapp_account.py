@@ -1637,9 +1637,10 @@ class WhatsAppAccount(models.Model):
                     import threading
                     import odoo
                     def run_process():
-                        with odoo.api.Environment.manage(), odoo.registry(dbname).cursor() as new_cr:
-                            new_env = odoo.api.Environment(new_cr, odoo.SUPERUSER_ID, {})
-                            whatsapp_account = new_env['whatsapp.account']
+                        try:
+                            with odoo.registry(dbname).cursor() as new_cr:
+                                new_env = odoo.api.Environment(new_cr, odoo.SUPERUSER_ID, {})
+                                whatsapp_account = new_env['whatsapp.account']
                             
                             for att_id in heavy_media_att_ids:
                                 att = new_env['ir.attachment'].browse(att_id)
