@@ -36,6 +36,9 @@ export class DashboardAction extends Component {
                 not_delivered_count: 0,
                 inbound_media: {images: 0, videos: 0, documents: 0},
                 outbound_media: {images: 0, videos: 0, documents: 0},
+                total_chats_active: 0,
+                replied_chats_count: 0,
+                not_replied_chats_count: 0,
             }
         });
 
@@ -76,6 +79,9 @@ export class DashboardAction extends Component {
                     not_delivered_count: results.not_delivered_count || 0,
                     inbound_media: results.inbound_media || {images: 0, videos: 0, documents: 0},
                     outbound_media: results.outbound_media || {images: 0, videos: 0, documents: 0},
+                    total_chats_active: results.total_chats_active || 0,
+                    replied_chats_count: results.replied_chats_count || 0,
+                    not_replied_chats_count: results.not_replied_chats_count || 0,
                 };
                 
                 // Render charts after state update
@@ -99,6 +105,17 @@ export class DashboardAction extends Component {
             dateTo: today,
         };
         this.fetchDashboardStats();
+    }
+    
+    viewErrorLogs() {
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            name: "Failed WhatsApp Messages",
+            res_model: "whatsapp.message",
+            view_mode: "list,form",
+            domain: [['state', 'in', ['error', 'cancel', 'bounced']]],
+            target: "current",
+        });
     }
 
     renderCharts(timeseries) {

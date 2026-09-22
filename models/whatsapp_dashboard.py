@@ -50,8 +50,19 @@ class WhatsappDashboard(models.AbstractModel):
             fav_domain.append(('wa_account_id', '=', int(account_id)))
         total_favorites = self.env['discuss.channel'].search_count(fav_domain)
         
-        # Total Contacts
-        total_contacts = self.env['res.partner'].search_count([])
+        # Total Contacts (WhatsApp Channels)
+        total_contacts_domain = [('channel_type', '=', 'whatsapp')]
+        if account_id:
+            total_contacts_domain.append(('wa_account_id', '=', int(account_id)))
+        total_contacts = self.env['discuss.channel'].search_count(total_contacts_domain)
+        
+        # Chats Activity
+        inbound_channel_ids = set(all_inbound.mapped('mail_message_id.res_id'))
+        outbound_channel_ids = set(all_outbound.mapped('mail_message_id.res_id'))
+        
+        total_chats_active = len(inbound_channel_ids.union(outbound_channel_ids))
+        replied_chats_count = len(inbound_channel_ids.intersection(outbound_channel_ids))
+        not_replied_chats_count = total_chats_active - replied_chats_count
         
         # Timeseries data for graphs
         # Group inbound messages by day
@@ -98,4 +109,7 @@ class WhatsappDashboard(models.AbstractModel):
             'timeseries': timeseries,
             'inbound_media': inbound_media,
             'outbound_media': outbound_media,
+            'total_chats_active': total_chats_active,
+            'replied_chats_count': replied_chats_count,
+            'not_replied_chats_count': not_replied_chats_count,
         }

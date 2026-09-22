@@ -47,6 +47,38 @@
             <t t-else="">
                 <div class="wa-dashboard-content">
                     
+                    <!-- Card 0: Active Chats -->
+                    <div class="wa-stat-card" style="border-left: 5px solid #00a884;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #54656f; font-size: 15px; font-weight: 600;">Active Chats</span>
+                            <div style="background: #e6f6f2; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-comments" style="color: #00a884; font-size: 18px;"></i>
+                            </div>
+                        </div>
+                        <span style="color: #111b21; font-size: 32px; font-weight: 700;"><t t-esc="state.stats.total_chats_active"/></span>
+                        <span style="color: #667781; font-size: 13px;">Total active conversations in period</span>
+                    </div>
+
+                    <!-- Card 0.5: Chats Replied vs Not Replied -->
+                    <div class="wa-stat-card" style="border-left: 5px solid #ff9800; grid-column: span 2;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <span style="color: #54656f; font-size: 15px; font-weight: 600;">Chat Engagement</span>
+                            <div style="background: #fff3e0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-exchange" style="color: #ff9800; font-size: 18px;"></i>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 40px; margin-top: 10px;">
+                            <div>
+                                <span style="display: block; color: #111b21; font-size: 28px; font-weight: 700;"><t t-esc="state.stats.replied_chats_count"/></span>
+                                <span style="color: #667781; font-size: 14px;"><i class="fa fa-check-circle" style="color: #25D366;"></i> Replied</span>
+                            </div>
+                            <div>
+                                <span style="display: block; color: #111b21; font-size: 28px; font-weight: 700;"><t t-esc="state.stats.not_replied_chats_count"/></span>
+                                <span style="color: #667781; font-size: 14px;"><i class="fa fa-clock-o" style="color: #ea4335;"></i> Not Replied</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Card 1: New Inbound Messages -->
                     <div class="wa-stat-card" style="border-left: 5px solid #25D366;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -146,13 +178,13 @@
                     <!-- Card 7: Total Contacts -->
                     <div class="wa-stat-card" style="border-left: 5px solid #8e24aa;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="color: #54656f; font-size: 15px; font-weight: 600;">Total Odoo Contacts</span>
+                            <span style="color: #54656f; font-size: 15px; font-weight: 600;">Total Contacts</span>
                             <div style="background: #f4e8f6; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                 <i class="fa fa-users" style="color: #8e24aa; font-size: 18px;"></i>
                             </div>
                         </div>
                         <span style="color: #111b21; font-size: 32px; font-weight: 700;"><t t-esc="state.stats.total_contacts"/></span>
-                        <span style="color: #667781; font-size: 13px;">Partners registered in database</span>
+                        <span style="color: #667781; font-size: 13px;">Partners in your chat list</span>
                     </div>
 
                 </div>
@@ -167,7 +199,10 @@
 
                     <!-- Doughnut Chart: Outbound Status -->
                     <div class="wa-chart-card">
-                        <h4 style="color: #54656f; font-size: 16px; font-weight: 600; margin-top: 0; margin-bottom: 15px;">Outbound Status</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="color: #54656f; font-size: 16px; font-weight: 600; margin: 0;">Outbound Status</h4>
+                            <button t-on-click="viewErrorLogs" style="background: none; border: none; color: #ea4335; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline;">View Logs</button>
+                        </div>
                         <canvas t-ref="doughnutChartCanvas"></canvas>
                     </div>
                 </div>
