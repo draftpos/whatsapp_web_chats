@@ -1,13 +1,18 @@
 /** @odoo-module **/
 
-import { Component, useState, onMounted } from "@odoo/owl";
+import { Component, useState, onMounted, useRef } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { loadJS } from "@web/core/assets";
 
 export class DashboardAction extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        
+        this.lineChartCanvas = useRef("lineChartCanvas");
+        this.doughnutChartCanvas = useRef("doughnutChartCanvas");
+        this.charts = { line: null, doughnut: null };
         
         // Initialize state with default filters (today)
         const today = new Date().toISOString().split('T')[0];
@@ -68,6 +73,12 @@ export class DashboardAction extends Component {
                     delivered_count: results.delivered_count || 0,
                     not_delivered_count: results.not_delivered_count || 0,
                 };
+                
+                // Render charts after state update
+                setTimeout(async () => {
+                    await loadJS("/web/static/lib/Chart/Chart.js");
+                    this.renderCharts(results.timeseries);
+                }, 100);
             }
         } catch (error) {
             console.error("Failed to fetch dashboard stats", error);
@@ -84,6 +95,82 @@ export class DashboardAction extends Component {
             dateTo: today,
         };
         this.fetchDashboardStats();
+    }
+
+    renderCharts(timeseries) {
+        if (!window.Chart) return;
+        
+        if (this.charts.line) this.charts.line.destroy();
+        if (this.charts.doughnut) this.charts.doughnut.destroy();
+
+        // Prepare line chart data
+        let labels = [];
+        let inboundData = [];
+        let outboundData = [];
+        
+        if (timeseries) {
+            // Merge all dates from both inbound and outbound
+            let dateSet = new Set();
+            timeseries.inbound.forEach(d => dateSet.add(d.date));
+            timeseries.outbound.forEach(d => dateSet.add(d.date));
+            labels = Array.from(dateSet).sort();
+            
+            labels.forEach(date => {
+                const inb = timeseries.inbound.find(d => d.date === date);
+                const outb = timeseries.outbound.find(d => d.date === date);
+                inboundData.push(inb ? inb.count : 0);
+                outboundData.push(outb ? outb.count : 0);
+            });
+        }
+
+        // Render Line Chart
+        if (this.lineChartCanvas.el) {
+            this.charts.line = new window.Chart(this.lineChartCanvas.el, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Inbound',
+                            data: inboundData,
+                            borderColor: '#25D366',
+                            backgroundColor: 'rgba(37, 211, 102, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Outbound',
+                            data: outboundData,
+                            borderColor: '#4285f4',
+                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // Render Doughnut Chart
+        if (this.doughnutChartCanvas.el) {
+            this.charts.doughnut = new window.Chart(this.doughnutChartCanvas.el, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Read', 'Delivered', 'Failed/Other'],
+                    datasets: [{
+                        data: [
+                            this.state.stats.read_count, 
+                            this.state.stats.delivered_count, 
+                            this.state.stats.not_delivered_count
+                        ],
+                        backgroundColor: ['#4285f4', '#fbbc04', '#ea4335'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
     }
 }
 

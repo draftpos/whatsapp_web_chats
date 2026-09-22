@@ -3,16 +3,16 @@
     <t t-name="whatsapp_web_chats.DashboardAction" owl="1">
         <div class="wa-dashboard-container" style="background-color: #f0f2f5; height: 100%; display: flex; flex-direction: column; overflow-y: auto;">
             <!-- Header with Filters -->
-            <div class="wa-dashboard-header" style="background-color: #ffffff; padding: 20px 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
+            <div class="wa-dashboard-header">
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <i class="fa fa-pie-chart" style="font-size: 24px; color: #00a884;"></i>
-                    <h2 style="margin: 0; color: #111b21; font-size: 20px; font-weight: 600;">WhatsApp Analytics Dashboard</h2>
+                    <h2 style="margin: 0; color: #111b21; font-size: 20px; font-weight: 600;">WhatsApp Analytics</h2>
                 </div>
                 
-                <div class="wa-dashboard-filters" style="display: flex; gap: 15px; align-items: center;">
-                    <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
-                        <label style="color: #54656f; font-weight: 500; margin: 0; font-size: 14px;">WhatsApp Account:</label>
-                        <select t-model="state.filters.accountId" t-on-change="fetchDashboardStats" style="padding: 8px 12px; border: 1px solid #d1d7db; border-radius: 8px; font-size: 14px; color: #111b21; outline: none; background: #f0f2f5;">
+                <div class="wa-dashboard-filters">
+                    <div class="filter-group">
+                        <label>Account:</label>
+                        <select t-model="state.filters.accountId" t-on-change="fetchDashboardStats">
                             <option value="">All Accounts</option>
                             <t t-foreach="state.accounts" t-as="acc" t-key="acc.id">
                                 <option t-att-value="acc.id"><t t-esc="acc.name"/></option>
@@ -20,14 +20,14 @@
                         </select>
                     </div>
                     
-                    <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
-                        <label style="color: #54656f; font-weight: 500; margin: 0; font-size: 14px;">From:</label>
-                        <input type="date" t-model="state.filters.dateFrom" t-on-change="fetchDashboardStats" style="padding: 8px 12px; border: 1px solid #d1d7db; border-radius: 8px; font-size: 14px; color: #111b21; outline: none; background: #f0f2f5;"/>
+                    <div class="filter-group">
+                        <label>From:</label>
+                        <input type="date" t-model="state.filters.dateFrom" t-on-change="fetchDashboardStats"/>
                     </div>
                     
-                    <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
-                        <label style="color: #54656f; font-weight: 500; margin: 0; font-size: 14px;">To:</label>
-                        <input type="date" t-model="state.filters.dateTo" t-on-change="fetchDashboardStats" style="padding: 8px 12px; border: 1px solid #d1d7db; border-radius: 8px; font-size: 14px; color: #111b21; outline: none; background: #f0f2f5;"/>
+                    <div class="filter-group">
+                        <label>To:</label>
+                        <input type="date" t-model="state.filters.dateTo" t-on-change="fetchDashboardStats"/>
                     </div>
                     
                     <button t-on-click="resetFilters" style="padding: 8px 16px; background-color: #00a884; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: background 0.2s;">
@@ -45,10 +45,10 @@
             
             <!-- Dashboard Content -->
             <t t-else="">
-                <div class="wa-dashboard-content" style="padding: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="wa-dashboard-content">
                     
                     <!-- Card 1: New Inbound Messages -->
-                    <div class="wa-stat-card" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px; border-left: 5px solid #25D366;">
+                    <div class="wa-stat-card" style="border-left: 5px solid #25D366;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #54656f; font-size: 15px; font-weight: 600;">New Inbound Messages</span>
                             <div style="background: #e7f8ef; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
@@ -60,7 +60,7 @@
                     </div>
 
                     <!-- Card 2: Delivered but Not Read (Unreplied) -->
-                    <div class="wa-stat-card" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px; border-left: 5px solid #fbbc04;">
+                    <div class="wa-stat-card" style="border-left: 5px solid #fbbc04;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #54656f; font-size: 15px; font-weight: 600;">Delivered (Not Read)</span>
                             <div style="background: #fef7e0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
@@ -72,7 +72,7 @@
                     </div>
 
                     <!-- Card 3: Sent Messages (Read vs Unread) -->
-                    <div class="wa-stat-card" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px; border-left: 5px solid #4285f4; grid-column: span 2;">
+                    <div class="wa-stat-card" style="border-left: 5px solid #4285f4; grid-column: span 2;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                             <span style="color: #54656f; font-size: 15px; font-weight: 600;">Outbound Messages Breakdown</span>
                             <div style="background: #e8f0fe; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
@@ -111,7 +111,7 @@
                     </div>
 
                     <!-- Card 4: Total Favorites -->
-                    <div class="wa-stat-card" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px; border-left: 5px solid #ff4b4b;">
+                    <div class="wa-stat-card" style="border-left: 5px solid #ff4b4b;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #54656f; font-size: 15px; font-weight: 600;">Favorited Chats</span>
                             <div style="background: #ffeeee; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
@@ -123,7 +123,7 @@
                     </div>
 
                     <!-- Card 5: Total Contacts -->
-                    <div class="wa-stat-card" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px; border-left: 5px solid #8e24aa;">
+                    <div class="wa-stat-card" style="border-left: 5px solid #8e24aa;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #54656f; font-size: 15px; font-weight: 600;">Total Odoo Contacts</span>
                             <div style="background: #f4e8f6; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
@@ -134,6 +134,21 @@
                         <span style="color: #667781; font-size: 13px;">Partners registered in database</span>
                     </div>
 
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="wa-dashboard-charts">
+                    <!-- Line Chart: Messages Over Time -->
+                    <div class="wa-chart-card">
+                        <h4 style="color: #54656f; font-size: 16px; font-weight: 600; margin-top: 0; margin-bottom: 15px;">Messages Over Time</h4>
+                        <canvas t-ref="lineChartCanvas"></canvas>
+                    </div>
+
+                    <!-- Doughnut Chart: Outbound Status -->
+                    <div class="wa-chart-card">
+                        <h4 style="color: #54656f; font-size: 16px; font-weight: 600; margin-top: 0; margin-bottom: 15px;">Outbound Status</h4>
+                        <canvas t-ref="doughnutChartCanvas"></canvas>
+                    </div>
                 </div>
             </t>
         </div>

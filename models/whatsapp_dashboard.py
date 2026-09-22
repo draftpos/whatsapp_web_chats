@@ -51,6 +51,25 @@ class WhatsappDashboard(models.AbstractModel):
         # Total Contacts
         total_contacts = self.env['res.partner'].search_count([])
         
+        # Timeseries data for graphs
+        # Group inbound messages by day
+        inbound_groups = self.env['whatsapp.message'].read_group(
+            inbound_domain,
+            fields=['create_date:day', 'id:count'],
+            groupby=['create_date:day']
+        )
+        # Group outbound messages by day
+        outbound_groups = self.env['whatsapp.message'].read_group(
+            outbound_domain,
+            fields=['create_date:day', 'id:count'],
+            groupby=['create_date:day']
+        )
+        
+        timeseries = {
+            'inbound': [{'date': g['create_date:day'], 'count': g['id']} for g in inbound_groups if g['create_date:day']],
+            'outbound': [{'date': g['create_date:day'], 'count': g['id']} for g in outbound_groups if g['create_date:day']]
+        }
+        
         return {
             'accounts': accounts,
             'new_inbound': new_inbound,
@@ -61,4 +80,5 @@ class WhatsappDashboard(models.AbstractModel):
             'read_count': read_count,
             'delivered_count': delivered_count,
             'not_delivered_count': not_delivered_count,
+            'timeseries': timeseries,
         }
