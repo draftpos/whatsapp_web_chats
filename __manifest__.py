@@ -1,6 +1,6 @@
 {
     'name': 'WhatsApp Web Chats',
-    'version': '1.4',
+    'version': '1.5',
     'category': 'Discuss',
     'summary': 'Provides a WhatsApp Web-like interface for managing WhatsApp chats.',
     'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup', 'dev_whatsapp_chatbot_ent'],

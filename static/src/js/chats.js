@@ -1936,7 +1936,7 @@ export class WhatsAppChatsAction extends Component {
                 }
                 
                 return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
-            });
+            }).filter(msg => !msg.isSystem || (msg.isSystem && msg.bodyText && msg.bodyText.trim() !== ''));
                 const currentMessages = [...this.state.messages];
                 mappedMessages.reverse(); // Older messages come first in display
                 
@@ -2175,7 +2175,7 @@ export class WhatsAppChatsAction extends Component {
                 }
                 
                 return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
-            });
+            }).filter(msg => !msg.isSystem || (msg.isSystem && msg.bodyText && msg.bodyText.trim() !== ''));
             this.state.messages = this.mergeArrayStable(this.state.messages, mappedMessages, 'id');
             } // end if messages.length > 0
             
