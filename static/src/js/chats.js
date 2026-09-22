@@ -749,6 +749,7 @@ export class WhatsAppChatsAction extends Component {
         }
 
         const cacheKey = 'wa_channels_' + (this.state.selectedAccount || '');
+        let loadedFromCache = false;
         if (!append) {
             try {
                 const cached = localStorage.getItem(cacheKey);
@@ -756,6 +757,7 @@ export class WhatsAppChatsAction extends Component {
                     const parsed = JSON.parse(cached);
                     if (parsed && parsed.length > 0 && this.state.channels.length === 0) {
                         this.state.channels = parsed;
+                        loadedFromCache = true;
                     }
                 }
             } catch (e) {
@@ -853,7 +855,18 @@ export class WhatsAppChatsAction extends Component {
                         }
                     }
 
-                    this.state.channels = validChannels;
+                    if (loadedFromCache && !append) {
+                        const merged = this.mergeArrayStable(this.state.channels, validChannels, 'id');
+                        merged.sort((a, b) => {
+                            if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
+                            if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
+                            return (b.write_date || '').localeCompare(a.write_date || '');
+                        });
+                        this.state.channels = merged;
+                        hasMore = false;
+                    } else {
+                        this.state.channels = validChannels;
+                    }
                     
                     if (this.state.totalChannels > 0) {
                         this.state.downloadProgress = Math.min(100, Math.round((currentOffset / this.state.totalChannels) * 100));
@@ -865,10 +878,21 @@ export class WhatsAppChatsAction extends Component {
                 if (fetchedChannels.length < limit || append) {
                     hasMore = false;
                 }
+                
+                // Track for hasMoreChannels assignment outside loop
+                this._lastFetchedCount = fetchedChannels.length;
+            }
+            
+            if (!append || loadedFromCache) {
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(this.state.channels));
+                } catch(e) {
+                    console.warn("Could not cache channels", e);
+                }
             }
             
             this.state.channelsOffset = currentOffset;
-            this.state.hasMoreChannels = false;
+            this.state.hasMoreChannels = (this._lastFetchedCount === limit);
             this.state.isDownloadingHistory = false;
         } catch(e) {
             console.error("Error loading channels:", e);
