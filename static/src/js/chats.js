@@ -1775,7 +1775,7 @@ export class WhatsAppChatsAction extends Component {
                 let isSystem = msg.message_type === 'notification' || msg.message_type === 'auto_comment';
                 if (!isSystem && msg.author_id) {
                     let authorName = (msg.author_id[1] || "").toLowerCase();
-                    if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system" || authorName === "administrator") {
+                    if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system") {
                         isSystem = true;
                     }
                 }
