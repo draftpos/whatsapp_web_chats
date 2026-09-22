@@ -1666,11 +1666,13 @@
                                 <div style="flex: 1; display: flex; flex-direction: column;">
                                     <label style="color: #a0a0a0; font-size: 12px; margin-bottom: 4px;">Country</label>
                                     <select t-model="state.newContactData.countryCode" style="background: transparent; border: none; border-bottom: 2px solid #555; color: white; padding: 8px 0; font-size: 16px; outline: none; cursor: pointer; appearance: none;">
-                                        <option value="+263" style="background: #2a2a2a;">ZW +263</option>
-                                        <option value="+27" style="background: #2a2a2a;">ZA +27</option>
-                                        <option value="+44" style="background: #2a2a2a;">UK +44</option>
-                                        <option value="+1" style="background: #2a2a2a;">US +1</option>
-                                        <option value="" style="background: #2a2a2a;">Other</option>
+                                        <t t-foreach="state.countries || []" t-as="country" t-key="country.id">
+                                            <t t-if="country.phone_code">
+                                                <option t-att-value="'+' + country.phone_code" style="background: #2a2a2a;">
+                                                    <t t-esc="country.code + ' +' + country.phone_code"/>
+                                                </option>
+                                            </t>
+                                        </t>
                                     </select>
                                 </div>
                                 <div style="flex: 2; display: flex; flex-direction: column;">

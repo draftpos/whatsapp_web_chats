@@ -61,6 +61,7 @@ export class WhatsAppChatsAction extends Component {
             },
             contacts: [],
             filteredContacts: [],
+            countries: [],
             selectedChannels: [],
             selectedMessages: [],
             selectedContacts: [],
@@ -145,10 +146,12 @@ export class WhatsAppChatsAction extends Component {
         onWillStart(async () => {
             // Fire and forget loadChannels so it doesn't block component mounting while fetching 50k chats over network
             this.loadChannels();
+            this.loadChannels();
             await Promise.all([
                 this.loadProducts(),
                 this.loadTemplates(),
                 this.loadTags(),
+                this.loadCountries(),
                 this.loadQuickReplies(),
                 this._preloadActionIds(),
             ]);
@@ -321,6 +324,15 @@ export class WhatsAppChatsAction extends Component {
             this.state.availableTags = await this.orm.call("whatsapp.account", "get_all_chat_tags", [], {}, { silent: true });
         } catch (e) {
             console.error("Failed to load tags", e);
+        }
+    }
+
+    async loadCountries() {
+        try {
+            this.state.countries = await this.orm.call("res.country", "search_read", [[]], { fields: ["name", "code", "phone_code"] }, { silent: true });
+        } catch (e) {
+            console.error("Failed to load countries", e);
+            this.state.countries = [];
         }
     }
 
