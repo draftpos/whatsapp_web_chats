@@ -952,7 +952,9 @@ export class WhatsAppChatsAction extends Component {
                         const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
                         if (aUnread && !bUnread) return -1;
                         if (!aUnread && bUnread) return 1;
-                        return (b.write_date || '').localeCompare(a.write_date || '');
+                        const aTime = a.last_message_time || a.write_date || '';
+                        const bTime = b.last_message_time || b.write_date || '';
+                        return bTime.localeCompare(aTime);
                     });
 
                     if (this.state.selectedChannel) {
@@ -975,7 +977,9 @@ export class WhatsAppChatsAction extends Component {
                             const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
                             if (aUnread && !bUnread) return -1;
                             if (!aUnread && bUnread) return 1;
-                            return (b.write_date || '').localeCompare(a.write_date || '');
+                            const aTime = a.last_message_time || a.write_date || '';
+                            const bTime = b.last_message_time || b.write_date || '';
+                            return bTime.localeCompare(aTime);
                         });
                         this.state.channels = merged;
                         
@@ -2190,6 +2194,25 @@ export class WhatsAppChatsAction extends Component {
             // --- Merge pending/recently sent messages ---
             const now = Date.now();
 
+            // Match text-only temp messages
+            const tempTextMsgs = oldMessages.filter(m => 
+                m.id && m.id.toString().startsWith('temp_') && 
+                (!m.attachment_ids || m.attachment_ids.length === 0)
+            );
+            if (tempTextMsgs.length > 0) {
+                for (const serverMsg of this.state.messages) {
+                    if (!serverMsg.isMe) continue;
+                    const matchingTemp = tempTextMsgs.find(t => {
+                        if (t._merged) return false;
+                        return t.bodyText && serverMsg.bodyText && t.bodyText.trim() === serverMsg.bodyText.trim();
+                    });
+                    if (matchingTemp) {
+                        serverMsg.noAnimate = true;
+                        matchingTemp._merged = true;
+                    }
+                }
+            }
+
             // ── Media-specific: carry over localBlobUrl and dataUrl from temp attachments ──
             // When the server message arrives, preserve the blob/data URL so the UI
             // doesn't flicker or reload while processing.
@@ -2566,7 +2589,9 @@ export class WhatsAppChatsAction extends Component {
                 const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
                 if (aUnread && !bUnread) return -1;
                 if (!aUnread && bUnread) return 1;
-                return (b.write_date || '').localeCompare(a.write_date || '');
+                const aTime = a.last_message_time || a.write_date || '';
+                const bTime = b.last_message_time || b.write_date || '';
+                return bTime.localeCompare(aTime);
             });
 
             // Keep selected channel in sync and clear unread BEFORE updating this.state.channels to prevent UI flicker
