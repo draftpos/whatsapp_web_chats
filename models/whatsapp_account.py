@@ -1383,6 +1383,19 @@ class WhatsAppAccount(models.Model):
             return {'success': False, 'error': str(e)}
 
     @api.model
+    def delete_message_for_me(self, message_id):
+        """ Deletes a message locally in Odoo without retracting via WhatsApp Cloud API """
+        if not (self.env.is_admin() or self.env.user.has_group('whatsapp.group_whatsapp_admin')):
+            return {'success': False, 'error': 'Only administrators can delete messages.'}
+        try:
+            message = self.env['mail.message'].sudo().browse(int(message_id))
+            if message.exists():
+                message.unlink()
+            return {'success': True}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @api.model
     def delete_message_for_everyone(self, message_id):
         """ Deletes a message in Odoo AND attempts to retract it via WhatsApp Cloud API """
         if not (self.env.is_admin() or self.env.user.has_group('whatsapp.group_whatsapp_admin')):

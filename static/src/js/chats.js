@@ -4214,7 +4214,7 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
-    deleteMessageForMe() {
+    async deleteMessageForMe() {
         const messageId = this.state.deleteMessageId;
         if (!messageId) return;
         
@@ -4222,6 +4222,17 @@ export class WhatsAppChatsAction extends Component {
         this.state.messages = this.state.messages.filter(m => m.id !== messageId);
         
         this.closeDeleteModal();
+        
+        const result = await this.orm.call("whatsapp.account", "delete_message_for_me", [parseInt(messageId)]);
+        if (result && result.success) {
+            if (this.state.selectedChannel && this.state.messages.length > 0) {
+                this.state.selectedChannel.last_message_preview = this.state.messages[this.state.messages.length - 1].body;
+            } else if (this.state.selectedChannel) {
+                this.state.selectedChannel.last_message_preview = "";
+            }
+        } else {
+            alert("Could not delete message. " + (result?.error || ""));
+        }
     }
 
     async confirmDeleteForEveryone() {
