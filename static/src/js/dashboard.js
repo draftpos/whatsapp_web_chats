@@ -119,7 +119,8 @@ export class DashboardAction extends Component {
     }
 
     renderCharts(timeseries) {
-        if (!window.Chart) return;
+        const ChartJS = window.Chart || (typeof Chart !== 'undefined' ? Chart : null);
+        if (!ChartJS) return;
         
         if (this.charts.line) this.charts.line.destroy();
         if (this.charts.doughnut) this.charts.doughnut.destroy();
@@ -134,7 +135,16 @@ export class DashboardAction extends Component {
             let dateSet = new Set();
             timeseries.inbound.forEach(d => dateSet.add(d.date));
             timeseries.outbound.forEach(d => dateSet.add(d.date));
-            labels = Array.from(dateSet).sort();
+            
+            // Try to parse dates to sort them chronologically, fallback to string sort
+            labels = Array.from(dateSet).sort((a, b) => {
+                const dateA = new Date(a);
+                const dateB = new Date(b);
+                if (!isNaN(dateA) && !isNaN(dateB)) {
+                    return dateA - dateB;
+                }
+                return a.localeCompare(b);
+            });
             
             labels.forEach(date => {
                 const inb = timeseries.inbound.find(d => d.date === date);
@@ -146,7 +156,7 @@ export class DashboardAction extends Component {
 
         // Render Line Chart
         if (this.lineChartCanvas.el) {
-            this.charts.line = new window.Chart(this.lineChartCanvas.el, {
+            this.charts.line = new ChartJS(this.lineChartCanvas.el, {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -175,7 +185,7 @@ export class DashboardAction extends Component {
 
         // Render Doughnut Chart
         if (this.doughnutChartCanvas.el) {
-            this.charts.doughnut = new window.Chart(this.doughnutChartCanvas.el, {
+            this.charts.doughnut = new ChartJS(this.doughnutChartCanvas.el, {
                 type: 'doughnut',
                 data: {
                     labels: ['Read', 'Delivered', 'Failed/Other'],

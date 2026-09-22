@@ -948,6 +948,10 @@ export class WhatsAppChatsAction extends Component {
                     validChannels.sort((a, b) => {
                         if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
                         if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
+                        const aUnread = a.wa_is_unread_global || (a.unread_count && a.unread_count > 0) || (a.message_needaction_counter && a.message_needaction_counter > 0);
+                        const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
+                        if (aUnread && !bUnread) return -1;
+                        if (!aUnread && bUnread) return 1;
                         return (b.write_date || '').localeCompare(a.write_date || '');
                     });
 
@@ -967,6 +971,10 @@ export class WhatsAppChatsAction extends Component {
                         merged.sort((a, b) => {
                             if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
                             if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
+                            const aUnread = a.wa_is_unread_global || (a.unread_count && a.unread_count > 0) || (a.message_needaction_counter && a.message_needaction_counter > 0);
+                            const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
+                            if (aUnread && !bUnread) return -1;
+                            if (!aUnread && bUnread) return 1;
                             return (b.write_date || '').localeCompare(a.write_date || '');
                         });
                         this.state.channels = merged;
@@ -2554,6 +2562,10 @@ export class WhatsAppChatsAction extends Component {
             validFresh.sort((a, b) => {
                 if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
                 if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
+                const aUnread = a.wa_is_unread_global || (a.unread_count && a.unread_count > 0) || (a.message_needaction_counter && a.message_needaction_counter > 0);
+                const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
+                if (aUnread && !bUnread) return -1;
+                if (!aUnread && bUnread) return 1;
                 return (b.write_date || '').localeCompare(a.write_date || '');
             });
 
