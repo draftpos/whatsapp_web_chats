@@ -1438,63 +1438,76 @@ class WhatsAppAccount(models.Model):
         try:
             import shutil
             ffmpeg_exe = shutil.which('ffmpeg') or '/usr/bin/ffmpeg'
-            import imageio_ffmpeg
-            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-        except ImportError:
-            _logger.info("imageio-ffmpeg not installed. Using system ffmpeg.")
+            try:
+                import imageio_ffmpeg
+                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+            except ImportError:
+                _logger.info("imageio-ffmpeg not installed. Using system ffmpeg.")
+        except Exception:
+            ffmpeg_exe = '/usr/bin/ffmpeg'
 
         try:
             raw_data = base64.b64decode(attachment.datas)
             # We MUST always re-encode to ensure H.264 / AAC. 
             # Modern phones use HEVC/H.265 (which is still video/mp4), and Meta API accepts the upload but silently drops the delivery.
             
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.mov') as temp_in:
+            with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_in:
                 temp_in.write(raw_data)
-                temp_in_path = temp_in.name
+                temp_in_name = temp_in.name
                 
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_out:
-                temp_out_path = temp_out.name
-                
+            temp_out_name = temp_in_name + "_out.mp4"
+            
             cmd = [
-                ffmpeg_exe, '-y', '-i', temp_in_path,
-                '-c:v', 'libx264', '-profile:v', 'baseline', '-level', '3.0',
-                '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-pix_fmt', 'yuv420p',
-                '-crf', '28', '-preset', 'fast',
-                '-c:a', 'aac', '-b:a', '128k',
-                '-f', 'mp4', '-movflags', '+faststart',
-                temp_out_path
+                ffmpeg_exe,
+                '-y',
+                '-i', temp_in_name,
+                '-c:v', 'libx264',
+                '-profile:v', 'baseline',
+                '-level', '3.0',
+                '-pix_fmt', 'yuv420p',
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-movflags', '+faststart',
+                temp_out_name
             ]
             
-            _logger.info("Running ffmpeg conversion: %s", " ".join(cmd))
-            try:
-                subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
-            except subprocess.CalledProcessError as e:
-                _logger.error("FFmpeg stdout: %s", e.stdout)
-                _logger.error("FFmpeg stderr: %s", e.stderr)
-                from odoo.exceptions import UserError
-                raise UserError(f"Video compression failed. FFmpeg error: {e.stderr}")
+            _logger.info(f"Running video conversion: {' '.join(cmd)}")
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             
-            with open(temp_out_path, 'rb') as f:
-                compressed_data = f.read()
-            
-            name = attachment.name or 'video'
-            if not name.endswith('.mp4'):
-                name += '.mp4'
+            if result.returncode == 0 and os.path.exists(temp_out_name):
+                with open(temp_out_name, 'rb') as f:
+                    new_data = f.read()
                 
-            attachment.sudo().write({
-                'datas': base64.b64encode(compressed_data),
-                'name': name
-            })
-            # Force the mimetype via SQL because Odoo's python-magic often incorrectly overrides it to video/quicktime
-            self.env.cr.execute("UPDATE ir_attachment SET mimetype='video/mp4' WHERE id=%s", (attachment.id,))
-            attachment.invalidate_recordset(['mimetype'])
+                name = attachment.name or 'video'
+                if not name.endswith('.mp4'):
+                    if '.' in name:
+                        name = name.rsplit('.', 1)[0] + '.mp4'
+                    else:
+                        name += '.mp4'
+
+                attachment.sudo().write({
+                    'datas': base64.b64encode(new_data),
+                    'mimetype': 'video/mp4',
+                    'name': name,
+                })
+                # Force the mimetype via SQL because Odoo's python-magic often incorrectly overrides it to video/quicktime
+                self.env.cr.execute("UPDATE ir_attachment SET mimetype='video/mp4' WHERE id=%s", (attachment.id,))
+                attachment.invalidate_recordset(['mimetype'])
+                _logger.info(f"Successfully converted video attachment {attachment.id}")
+            else:
+                _logger.error(f"Video conversion failed: {result.stderr}")
+                from odoo.exceptions import UserError
+                raise UserError(f"Video compression failed. FFmpeg error: {result.stderr}")
             
-            os.unlink(temp_in_path)
-            os.unlink(temp_out_path)
+            try:
+                os.unlink(temp_in_name)
+                if os.path.exists(temp_out_name):
+                    os.unlink(temp_out_name)
+            except OSError:
+                pass
+                
         except Exception as e:
-            _logger.error("Failed to compress video attachment %s: %s", attachment.id, str(e))
-            from odoo.exceptions import UserError
-            raise UserError(f"Failed to process video for WhatsApp: {str(e)}. Please check your ffmpeg installation.")
+            _logger.error("Exception during video compression: %s", e)
 
     def _compress_audio_attachment(self, attachment):
         import subprocess
@@ -1599,7 +1612,7 @@ class WhatsAppAccount(models.Model):
                     if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
                         is_audio = True
                         
-                    if is_audio or (att.mimetype and att.mimetype.startswith('video/')):
+                    if is_audio or (att.mimetype and (att.mimetype.startswith('video/') or att.mimetype.startswith('image/'))):
                         heavy_media_att_ids.append(att.id)
 
             if 'author_id' not in kwargs:
@@ -1637,6 +1650,8 @@ class WhatsAppAccount(models.Model):
                                         whatsapp_account._compress_audio_attachment(att)
                                     elif att.mimetype and att.mimetype.startswith('video/'):
                                         whatsapp_account._compress_video_attachment(att)
+                                    elif att.mimetype and att.mimetype.startswith('image/'):
+                                        whatsapp_account._fix_image_attachment(att)
                             
                             wa_msgs = new_env['whatsapp.message'].search([
                                 ('mail_message_id', '=', msg_id),
