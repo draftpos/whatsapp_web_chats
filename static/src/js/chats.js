@@ -861,7 +861,11 @@ export class WhatsAppChatsAction extends Component {
                             return (b.write_date || '').localeCompare(a.write_date || '');
                         });
                         this.state.channels = merged;
-                        hasMore = false;
+                        
+                        // Stop fetching if our local cache now contains all channels
+                        if (this.state.channels.length >= this.state.totalChannels) {
+                            hasMore = false;
+                        }
                     } else {
                         this.state.channels = validChannels;
                     }
