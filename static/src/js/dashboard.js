@@ -112,7 +112,7 @@ export class DashboardAction extends Component {
             type: "ir.actions.act_window",
             name: "Failed WhatsApp Messages",
             res_model: "whatsapp.message",
-            view_mode: "list,form",
+            views: [[false, "list"], [false, "form"]],
             domain: [['state', 'in', ['error', 'cancel', 'bounced']]],
             target: "current",
         });
