@@ -786,16 +786,17 @@ export class WhatsAppChatsAction extends Component {
             'dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword',
         ];
         try {
-            const results = await this.orm.call('ir.model.data', 'check_object_reference_many', [xmlIds]);
-            if (results) {
-                for (const xmlId of xmlIds) {
-                    if (results[xmlId]) {
-                        this._actionIds[xmlId] = results[xmlId][1];
-                    }
+            const modules = xmlIds.map(x => x.split('.')[0]);
+            const names = xmlIds.map(x => x.split('.')[1]);
+            const records = await this.orm.searchRead('ir.model.data', [['module', 'in', modules], ['name', 'in', names]], ['module', 'name', 'res_id']);
+            if (records && records.length > 0) {
+                for (const record of records) {
+                    const xmlId = record.module + '.' + record.name;
+                    this._actionIds[xmlId] = record.res_id;
                 }
             }
         } catch (e) {
-            // Silently fail — navigateTo will fall back to XML ID lookup
+            // Silently fail - navigateTo will fall back to XML ID lookup
             console.warn('Could not preload action IDs', e);
         }
     }
