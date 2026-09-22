@@ -15,8 +15,10 @@ export class WhatsAppChatsAction extends Component {
         
         this.state = useState({
             channels: [],
+            isSettingsOpen: false,
+            chatFilter: 'all', // 'all' or 'unread'
             channelsOffset: 0,
-            channelsLimit: 500,
+            channelsLimit: 50000,
             isLoadingMoreChannels: false,
             hasMoreChannels: true,
             isDownloadingHistory: false,
