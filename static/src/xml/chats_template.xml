@@ -69,6 +69,7 @@
                             <t t-if="!state.isMobile">
                                 <div class="chat-dropdown-item" t-on-click="sidebarNewChat">New Chat</div>
                                 <div class="chat-dropdown-item" t-on-click="openNewContactModal">New Contact</div>
+                                <div class="chat-dropdown-item" t-on-click="openQuickChatModal">Start Quick Chat</div>
                                 <div class="chat-dropdown-item" t-on-click="sidebarProfile">Profile Settings</div>
                                 <div class="chat-dropdown-item" t-on-click="sidebarConfig">Configuration</div>
                             </t>
@@ -1630,6 +1631,46 @@
             </div>
         </t>
 
+        <!-- Quick Chat Modal -->
+        <t t-if="state.isQuickChatModalOpen">
+            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div class="modal-content" style="background: #1c1c1c; width: 450px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); color: #e0e0e0; font-family: Roboto, Arial, sans-serif;">
+                    <div class="modal-header" style="background: #1c1c1c; padding: 20px 24px 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 20px; font-weight: 500;">Start Quick Chat</span>
+                        <i class="fa fa-times" t-on-click="closeQuickChatModal" style="cursor: pointer; color: #a0a0a0; font-size: 20px;"></i>
+                    </div>
+                    <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 30px;">
+                        <!-- Country & Phone -->
+                        <div style="display: flex; align-items: flex-end;">
+                            <i class="fa fa-whatsapp" style="color: #a0a0a0; font-size: 24px; width: 40px; text-align: center; margin-right: 16px; margin-bottom: 8px;"></i>
+                            <div style="display: flex; gap: 20px; flex: 1;">
+                                <div style="flex: 1; display: flex; flex-direction: column;">
+                                    <label style="color: #a0a0a0; font-size: 12px; margin-bottom: 4px;">Country</label>
+                                    <select t-model="state.quickChatData.countryCode" style="background: transparent; border: none; border-bottom: 2px solid #555; color: white; padding: 8px 0; font-size: 16px; outline: none; cursor: pointer; appearance: none;">
+                                        <t t-foreach="state.countries || []" t-as="country" t-key="country.id">
+                                            <t t-if="country.phone_code">
+                                                <option t-att-value="'+' + country.phone_code" style="background: #2a2a2a;">
+                                                    <t t-esc="country.code + ' +' + country.phone_code"/>
+                                                </option>
+                                            </t>
+                                        </t>
+                                    </select>
+                                </div>
+                                <div style="flex: 2; display: flex; flex-direction: column;">
+                                    <label style="color: #a0a0a0; font-size: 12px; margin-bottom: 4px;">Phone</label>
+                                    <input type="text" placeholder="Phone" t-model="state.quickChatData.phone" style="background: transparent; border: none; border-bottom: 2px solid #555; color: white; padding: 8px 0; font-size: 16px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#00a884'" onblur="this.style.borderColor='#555'"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 16px 24px 24px; display: flex; justify-content: flex-end; gap: 10px;">
+                        <button class="btn btn-secondary" t-on-click="closeQuickChatModal" style="background: transparent; border: none; color: #a0a0a0; font-weight: 500; cursor: pointer; padding: 8px 16px;">Cancel</button>
+                        <button class="btn btn-primary" t-on-click="submitQuickChat" style="background: #00a884; border: none; color: white; font-weight: 500; cursor: pointer; padding: 8px 20px; border-radius: 4px;">Start Chat</button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
         
         <!-- New Contact Modal -->
         <t t-if="state.isNewContactModalOpen">
@@ -1713,18 +1754,8 @@
                         </button>
                     </div>
                     <div class="modal-body" style="max-height: 400px; overflow-y: auto; background: white;">
-                        <t t-if="state.filteredContacts?.length === 0 and !state.newNumberQuery">
+                        <t t-if="state.filteredContacts?.length === 0">
                             <div style="padding: 20px; text-align: center; color: #999;">No contacts found.</div>
-                        </t>
-                        <t t-if="state.newNumberQuery">
-                            <div class="contact-item" style="padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f2f2f2; background: #e8f5e9;" t-on-click="() => this.startChatWithNumber(state.newNumberQuery)">
-                                <div style="display:flex; align-items:center;">
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                        <i class="fa fa-whatsapp" style="color: white; font-size: 20px;"></i>
-                                    </div>
-                                    <div style="font-size: 15px; color: #111b21; font-weight: bold;">Start chat with <t t-esc="state.newNumberQuery"/></div>
-                                </div>
-                            </div>
                         </t>
                         <t t-foreach="state.filteredContacts || []" t-as="contact" t-key="contact.id">
                             <div class="contact-item" t-attf-style="position: relative; display: flex; align-items: center; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f2f2f2; {{ state.selectedContacts.includes(contact.id) ? 'background: #f0f7f5;' : '' }}" t-on-click="(ev) => state.selectedContacts?.length > 0 ? this.toggleContactSelection(contact.id, ev) : this.startNewChat(contact.id)">

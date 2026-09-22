@@ -63,6 +63,8 @@ export class WhatsAppChatsAction extends Component {
             filteredContacts: [],
             countries: [],
             selectedChannels: [],
+            isQuickChatModalOpen: false,
+            quickChatData: { countryCode: '+263', phone: '' },
             selectedMessages: [],
             selectedContacts: [],
             newNumberQuery: null,
@@ -596,6 +598,33 @@ export class WhatsAppChatsAction extends Component {
         this.state.isNewContactModalOpen = false;
     }
 
+    openQuickChatModal() {
+        this.state.isQuickChatModalOpen = true;
+        this.state.quickChatData = { countryCode: '+263', phone: '' };
+        this.state.showSidebarDropdown = false;
+    }
+
+    closeQuickChatModal() {
+        this.state.isQuickChatModalOpen = false;
+    }
+
+    async submitQuickChat() {
+        let phone = this.state.quickChatData.phone;
+        if (!phone) {
+            alert("Please provide a phone number.");
+            return;
+        }
+        phone = phone.replace(/[^0-9]/g, '');
+        if (this.state.quickChatData.countryCode) {
+            const cc = this.state.quickChatData.countryCode.replace(/[^0-9]/g, '');
+            if (!phone.startsWith(cc)) {
+                phone = cc + phone;
+            }
+        }
+        this.closeQuickChatModal();
+        await this.startChatWithNumber(phone);
+    }
+
     async createContact() {
         if (!this.state.newContactData.firstName && !this.state.newContactData.lastName) {
             alert("Please provide a name.");
@@ -667,7 +696,6 @@ export class WhatsAppChatsAction extends Component {
         const query = ev.target.value.toLowerCase();
         if (!query) {
             this.state.filteredContacts = this.state.contacts;
-            this.state.newNumberQuery = null;
         } else {
             const formattedQuery = this.formatWhatsAppNumber(query);
             this.state.filteredContacts = this.state.contacts.filter(c => {
@@ -676,13 +704,6 @@ export class WhatsAppChatsAction extends Component {
                 const mobileMatch = c.mobile ? this.formatWhatsAppNumber(c.mobile).includes(formattedQuery) || c.mobile.toLowerCase().includes(query) : false;
                 return nameMatch || phoneMatch || mobileMatch;
             });
-            
-            const isNumber = /^\+?\d+$/.test(query.replace(/\s+/g, ''));
-            if (isNumber) {
-                this.state.newNumberQuery = query;
-            } else {
-                this.state.newNumberQuery = null;
-            }
         }
     }
 
