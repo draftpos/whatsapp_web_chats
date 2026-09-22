@@ -1789,59 +1789,153 @@ export class WhatsAppChatsAction extends Component {
                 this.state.hasMoreMessages = olderMessages.length === 50;
                 
                 const mappedMessages = olderMessages.map(msg => {
-                    let isMe = msg.is_me !== undefined ? msg.is_me : false;
-                    if (msg.is_me === undefined) {
-                        if (msg.author_id) {
-                            let authorName = (msg.author_id[1] || "").toLowerCase();
-                            if (this.myPartnerId && msg.author_id[0] === this.myPartnerId) {
-                                isMe = true;
-                            } else if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system") {
-                                isMe = true;
-                            }
+                let isMe = msg.is_me !== undefined ? msg.is_me : false;
+                
+                // Fallback for older messages or if is_me is missing
+                if (msg.is_me === undefined) {
+                    if (msg.author_id) {
+                        let authorName = (msg.author_id[1] || "").toLowerCase();
+                        if (this.myPartnerId && msg.author_id[0] === this.myPartnerId) {
+                            isMe = true;
+                        } else if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system") {
+                            isMe = true;
                         }
                     }
-                    let state = msg.wa_state || 'sent';
-                    if (msg.mail_message_id && this.state.messageStateMap && this.state.messageStateMap[msg.mail_message_id]) {
-                        state = this.state.messageStateMap[msg.mail_message_id];
-                    }
-                    
-                    let dateText = '';
-                    let timeText = '';
-                    if (msg.date) {
-                        try {
-                            const dateObj = new Date(msg.date);
-                            const now = new Date();
-                            const isToday = dateObj.getDate() === now.getDate() && dateObj.getMonth() === now.getMonth() && dateObj.getFullYear() === now.getFullYear();
-                            
-                            timeText = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                            if (isToday) {
-                                dateText = 'TODAY';
-                            } else {
-                                const yesterday = new Date(now);
-                                yesterday.setDate(now.getDate() - 1);
-                                const isYesterday = dateObj.getDate() === yesterday.getDate() && dateObj.getMonth() === yesterday.getMonth() && dateObj.getFullYear() === yesterday.getFullYear();
-                                if (isYesterday) {
-                                    dateText = 'YESTERDAY';
-                                } else {
-                                    dateText = dateObj.toLocaleDateString([], {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}).toUpperCase();
-                                }
-                            }
-                        } catch(e) {}
-                    }
-                    
-                    return {
-                        id: msg.id,
-                        body: msg.body,
-                        isMe: isMe,
-                        date: msg.date,
-                        dateText: dateText,
-                        timeText: timeText,
-                        attachments: msg.attachments || [],
-                        wa_state: state,
-                        is_system: msg.is_system || false
-                    };
-                });
+                }
                 
+                let tmp = document.createElement("DIV");
+                tmp.innerHTML = (msg.body && String(msg.body).toLowerCase() !== 'false' && String(msg.body) !== '<p><br></p>') ? msg.body : "";
+                let bodyText = tmp.textContent || tmp.innerText || "";
+                
+                let linkifiedText = bodyText;
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                linkifiedText = linkifiedText.replace(urlRegex, function(url) {
+                    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color: #0275d8; text-decoration: underline;" onclick="event.stopPropagation()">' + url + '</a>';
+                });
+                let bodyHtml = markup(linkifiedText);
+                
+                let isForwarded = false;
+                if (bodyText.startsWith("↩ Forwarded:")) {
+                    isForwarded = true;
+                    bodyText = bodyText.substring("↩ Forwarded:".length).trim();
+                } else if (bodyText.startsWith("↩ Forwarded")) {
+                    isForwarded = true;
+                    bodyText = bodyText.substring("↩ Forwarded".length).trim();
+                }
+                
+                // --- Menu Detection Logic ---
+                let isMenu = false;
+                let menuTitle = "";
+                let menuOptions = [];
+                let lines = bodyText.trim().split('\n');
+                let optLines = [];
+                let txtLines = [];
+                
+                for (let line of lines) {
+                    if (/^\d+\.\s+(.+)$/.test(line.trim())) {
+                        optLines.push(line.trim());
+                    } else if (line.trim() !== '') {
+                        txtLines.push(line.trim());
+                    }
+                }
+                
+                if (optLines.length >= 2 && txtLines.length > 0) {
+                    isMenu = true;
+                    menuTitle = txtLines.join('\n');
+                    menuOptions = optLines.map(opt => {
+                        let match = opt.match(/^\d+\.\s+(.+)$/);
+                        return match ? match[1] : opt;
+                    });
+                }
+                // --- End Menu Detection ---
+                let isSystem = msg.message_type === 'notification' || msg.message_type === 'auto_comment';
+                if (!isSystem && msg.author_id) {
+                    let authorName = (msg.author_id[1] || "").toLowerCase();
+                    if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system") {
+                        isSystem = true;
+                    }
+                }
+                if (!msg.author_id && (!msg.wa_state || msg.message_type === 'notification')) {
+                    isSystem = true; 
+                }
+                
+                // If the message body contains typical "joined" or "created" text and it's a system action
+                if (bodyText.toLowerCase().includes("joined using this group's invite link") || bodyText.toLowerCase().includes("created group")) {
+                    isSystem = true;
+                }
+                
+                // If it's a system message, we don't want it to be considered as 'me' or 'other' visually
+                if (isSystem) {
+                    isMe = false;
+                }
+
+                // If it's a broadcast message telling customers to join our group, it should be outgoing
+                if (bodyText.toLowerCase().includes("join our group") || bodyText.toLowerCase().includes("joiner our group")) {
+                    isMe = true;
+                    isSystem = false;
+                }
+
+                let isContactCard = false;
+                let contactCardName = "";
+                let contactCardPhone = "";
+                let contactCardCleanPhone = "";
+                const contactCardMatch = bodyText.match(/^📋\s*\*(.+?)\*\n📞\s*(.+)$/);
+                if (contactCardMatch) {
+                    isContactCard = true;
+                    contactCardName = contactCardMatch[1].trim();
+                    contactCardPhone = contactCardMatch[2].trim();
+                    contactCardCleanPhone = contactCardPhone.replace(/\D/g, '');
+                }
+                
+                let timeText = '';
+                let dateText = '';
+                if (msg.date) {
+                    try {
+                        let dateStr = msg.date;
+                        if (typeof dateStr === 'string' && !dateStr.includes('T') && !dateStr.endsWith('Z')) {
+                            dateStr = dateStr.replace(' ', 'T') + 'Z';
+                        }
+                        const dt = new Date(dateStr);
+                        if (isNaN(dt)) {
+                            timeText = msg.date;
+                        } else {
+                            timeText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                            dateText = this.formatChatTime(dateStr, true);
+                        }
+                    } catch (e) {
+                        timeText = msg.date;
+                    }
+                }
+
+                let authorName = "";
+                if (msg.author_id) {
+                    authorName = msg.author_id[1] || "";
+                    let authorLower = authorName.toLowerCase();
+                    if (authorLower.includes("bot") || authorLower === "odoobot" || authorLower === "system") {
+                        authorName = "Bot";
+                    }
+                } else if (!isMe && this.state.selectedChannel) {
+                    authorName = this.state.selectedChannel.name || "Customer";
+                }
+                if (msg.message_type === 'outbound' || (msg.wa_state && msg.wa_state !== 'received' && msg.wa_state !== 'error')) {
+                    isMe = true;
+                }
+                // Preserve local image data across polling sweeps to prevent flickering
+                if (msg.attachment_ids && msg.attachment_ids.length > 0) {
+                    const existingMsg = oldMessages.find(m => m.id === msg.id);
+                    if (existingMsg && existingMsg.attachment_ids) {
+                        msg.attachment_ids.forEach((att, idx) => {
+                            const exAtt = existingMsg.attachment_ids[idx] || existingMsg.attachment_ids.find(a => a.id === att.id);
+                            if (exAtt) {
+                                if (exAtt.dataUrl) att.dataUrl = exAtt.dataUrl;
+                                if (exAtt.localBlobUrl) att.localBlobUrl = exAtt.localBlobUrl;
+                            }
+                        });
+                    }
+                }
+                
+                return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
+            });
                 const currentMessages = [...this.state.messages];
                 mappedMessages.reverse(); // Older messages come first in display
                 
@@ -4407,3 +4501,4 @@ export class WhatsAppChatsAction extends Component {
 WhatsAppChatsAction.template = "whatsapp_web_chats.ChatsAction";
 
 registry.category("actions").add("whatsapp_web_chats.chats_client_action", WhatsAppChatsAction);
+
