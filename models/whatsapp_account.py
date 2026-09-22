@@ -1812,9 +1812,16 @@ class WhatsAppAccount(models.Model):
         return {'success': True, 'channel_id': new_channel.id}
 
     @api.model
-    def create_chat_from_number(self, number, wa_account_id):
-        account = self.sudo().browse(int(wa_account_id))
-        if not account.exists():
+    def create_chat_from_number(self, number, wa_account_id=False):
+        if wa_account_id:
+            try:
+                account = self.sudo().browse(int(wa_account_id))
+            except (ValueError, TypeError):
+                account = self.sudo().search([], limit=1)
+        else:
+            account = self.sudo().search([], limit=1)
+            
+        if not account or not account.exists():
             return {'success': False, 'error': 'Account not found'}
             
         clean_phone = ''.join([c for c in str(number) if c.isdigit()])
@@ -1937,9 +1944,17 @@ class WhatsAppAccount(models.Model):
             # Build free_text_json to fill {{1}}, {{2}}... placeholders in the template body.
             # All templates have `field_type=free_text` variables — we default to the contact name.
             free_text_json = {}
+            def get_var_index(v):
+                try:
+                    return v._extract_variable_index() or 0
+                except AttributeError:
+                    import re
+                    match = re.search(r'\d+', v.name or '')
+                    return int(match.group()) if match else 0
+
             free_text_vars = template.variable_ids.filtered(
                 lambda v: v.line_type == 'body' and v.field_type == 'free_text'
-            ).sorted(lambda v: v._extract_variable_index() or 0)
+            ).sorted(lambda v: get_var_index(v))
             contact_name = partner.name or ''
             for i, var in enumerate(free_text_vars, start=1):
                 free_text_json[f'free_text_{i}'] = contact_name
