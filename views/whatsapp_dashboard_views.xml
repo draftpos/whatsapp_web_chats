@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_whatsapp_dashboard" model="ir.actions.client">
+        <field name="name">WhatsApp Dashboard</field>
+        <field name="tag">whatsapp_web_chats.dashboard_action</field>
+    </record>
+
+    <!-- Insert Dashboard menu item with sequence -1 so it is to the left of Chats (sequence 0) -->
+    <menuitem id="menu_whatsapp_dashboard_action" 
+              name="Dashboard" 
+              parent="whatsapp.whatsapp_menu_main" 
+              action="action_whatsapp_dashboard" 
+              sequence="-1"/>
+</odoo>
