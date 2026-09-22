@@ -278,15 +278,14 @@ export class WhatsAppChatsAction extends Component {
 
     // Prevents UI flickering by merging new data into existing objects, preserving references
     mergeArrayStable(targetArr, sourceArr, idKey = 'id') {
-        if (!targetArr || !targetArr.length) return sourceArr;
-        if (!sourceArr || !sourceArr.length) return [];
+        if (!targetArr || !targetArr.length) return sourceArr || [];
+        if (!sourceArr || !sourceArr.length) return targetArr || [];
         
         const targetMap = new Map();
         targetArr.forEach(item => {
             if (item && item[idKey]) targetMap.set(item[idKey], item);
         });
         
-        const newArr = [];
         for (const sourceItem of sourceArr) {
             const key = sourceItem[idKey];
             if (targetMap.has(key)) {
@@ -294,12 +293,11 @@ export class WhatsAppChatsAction extends Component {
                 for (const prop in sourceItem) {
                     targetItem[prop] = sourceItem[prop];
                 }
-                newArr.push(targetItem);
             } else {
-                newArr.push(sourceItem);
+                targetMap.set(key, sourceItem);
             }
         }
-        return newArr;
+        return Array.from(targetMap.values());
     }
 
     async loadTags() {
