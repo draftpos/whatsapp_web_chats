@@ -20,8 +20,10 @@ class WhatsappDashboard(models.AbstractModel):
         accounts = self.env['whatsapp.account'].search_read([], ['id', 'name'])
         
         # New Messages (Inbound)
+        # All Inbound Messages
         inbound_domain = domain_msg + [('message_type', '=', 'inbound')]
-        new_inbound = self.env['whatsapp.message'].search_count(inbound_domain)
+        all_inbound = self.env['whatsapp.message'].search(inbound_domain)
+        new_inbound = len(all_inbound)
         
         # All Outbound Messages
         outbound_domain = domain_msg + [('message_type', '=', 'outbound')]
@@ -70,6 +72,19 @@ class WhatsappDashboard(models.AbstractModel):
             'outbound': [{'date': g['create_date:day'], 'count': g['id']} for g in outbound_groups if g['create_date:day']]
         }
         
+        # Media Counts (Images, Videos, Documents)
+        inbound_attachments = all_inbound.mapped('mail_message_id.attachment_ids')
+        outbound_attachments = all_outbound.mapped('mail_message_id.attachment_ids')
+        
+        def count_media(attachments):
+            images = len(attachments.filtered(lambda a: a.mimetype and a.mimetype.startswith('image/')))
+            videos = len(attachments.filtered(lambda a: a.mimetype and a.mimetype.startswith('video/')))
+            documents = len(attachments) - images - videos
+            return {'images': images, 'videos': videos, 'documents': documents}
+            
+        inbound_media = count_media(inbound_attachments)
+        outbound_media = count_media(outbound_attachments)
+
         return {
             'accounts': accounts,
             'new_inbound': new_inbound,
@@ -81,4 +96,6 @@ class WhatsappDashboard(models.AbstractModel):
             'delivered_count': delivered_count,
             'not_delivered_count': not_delivered_count,
             'timeseries': timeseries,
+            'inbound_media': inbound_media,
+            'outbound_media': outbound_media,
         }

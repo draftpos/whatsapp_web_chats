@@ -122,7 +122,55 @@
                         <span style="color: #667781; font-size: 13px;">Conversations marked as favorite</span>
                     </div>
 
-                    <!-- Card 5: Total Contacts -->
+                    <!-- Card 5: Media Sent -->
+                    <div class="wa-stat-card" style="border-left: 5px solid #ff9800; grid-column: span 2;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <span style="color: #54656f; font-size: 15px; font-weight: 600;">Media Sent</span>
+                            <div style="background: #fff3e0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-upload" style="color: #ff9800; font-size: 18px;"></i>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 30px; margin-top: 10px;">
+                            <div>
+                                <span style="display: block; color: #111b21; font-size: 24px; font-weight: 700;"><t t-esc="state.stats.outbound_media.images"/></span>
+                                <span style="color: #667781; font-size: 13px;"><i class="fa fa-image"></i> Images</span>
+                            </div>
+                            <div>
+                                <span style="display: block; color: #111b21; font-size: 24px; font-weight: 700;"><t t-esc="state.stats.outbound_media.videos"/></span>
+                                <span style="color: #667781; font-size: 13px;"><i class="fa fa-video-camera"></i> Videos</span>
+                            </div>
+                            <div>
+                                <span style="display: block; color: #111b21; font-size: 24px; font-weight: 700;"><t t-esc="state.stats.outbound_media.documents"/></span>
+                                <span style="color: #667781; font-size: 13px;"><i class="fa fa-file-text"></i> Documents</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 6: Media Received -->
+                    <div class="wa-stat-card" style="border-left: 5px solid #00bcd4; grid-column: span 2;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <span style="color: #54656f; font-size: 15px; font-weight: 600;">Media Received</span>
+                            <div style="background: #e0f7fa; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa fa-download" style="color: #00bcd4; font-size: 18px;"></i>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 30px; margin-top: 10px;">
+                            <div>
+                                <span style="display: block; color: #111b21; font-size: 24px; font-weight: 700;"><t t-esc="state.stats.inbound_media.images"/></span>
+                                <span style="color: #667781; font-size: 13px;"><i class="fa fa-image"></i> Images</span>
+                            </div>
+                            <div>
+                                <span style="display: block; color: #111b21; font-size: 24px; font-weight: 700;"><t t-esc="state.stats.inbound_media.videos"/></span>
+                                <span style="color: #667781; font-size: 13px;"><i class="fa fa-video-camera"></i> Videos</span>
+                            </div>
+                            <div>
+                                <span style="display: block; color: #111b21; font-size: 24px; font-weight: 700;"><t t-esc="state.stats.inbound_media.documents"/></span>
+                                <span style="color: #667781; font-size: 13px;"><i class="fa fa-file-text"></i> Documents</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 7: Total Contacts -->
                     <div class="wa-stat-card" style="border-left: 5px solid #8e24aa;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #54656f; font-size: 15px; font-weight: 600;">Total Odoo Contacts</span>

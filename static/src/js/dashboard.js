@@ -34,6 +34,8 @@ export class DashboardAction extends Component {
                 read_count: 0,
                 delivered_count: 0,
                 not_delivered_count: 0,
+                inbound_media: {images: 0, videos: 0, documents: 0},
+                outbound_media: {images: 0, videos: 0, documents: 0},
             }
         });
 
@@ -72,6 +74,8 @@ export class DashboardAction extends Component {
                     read_count: results.read_count || 0,
                     delivered_count: results.delivered_count || 0,
                     not_delivered_count: results.not_delivered_count || 0,
+                    inbound_media: results.inbound_media || {images: 0, videos: 0, documents: 0},
+                    outbound_media: results.outbound_media || {images: 0, videos: 0, documents: 0},
                 };
                 
                 // Render charts after state update
