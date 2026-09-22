@@ -1629,7 +1629,7 @@ class WhatsAppAccount(models.Model):
                 else:
                     kwargs['body'] = ''
                 
-            msg_id = channel.message_post(**kwargs).id
+            msg_id = channel.with_context(wa_web_chats_defer_send=True).message_post(**kwargs).id
 
             if heavy_media_att_ids:
                 dbname = self.env.cr.dbname

@@ -952,8 +952,8 @@ export class WhatsAppChatsAction extends Component {
                         const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
                         if (aUnread && !bUnread) return -1;
                         if (!aUnread && bUnread) return 1;
-                        const aTime = a.last_message_time || a.write_date || '';
-                        const bTime = b.last_message_time || b.write_date || '';
+                        const aTime = a.last_message_time || '';
+                        const bTime = b.last_message_time || '';
                         return bTime.localeCompare(aTime);
                     });
 
@@ -977,8 +977,8 @@ export class WhatsAppChatsAction extends Component {
                             const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
                             if (aUnread && !bUnread) return -1;
                             if (!aUnread && bUnread) return 1;
-                            const aTime = a.last_message_time || a.write_date || '';
-                            const bTime = b.last_message_time || b.write_date || '';
+                            const aTime = a.last_message_time || '';
+                            const bTime = b.last_message_time || '';
                             return bTime.localeCompare(aTime);
                         });
                         this.state.channels = merged;
@@ -2589,8 +2589,8 @@ export class WhatsAppChatsAction extends Component {
                 const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
                 if (aUnread && !bUnread) return -1;
                 if (!aUnread && bUnread) return 1;
-                const aTime = a.last_message_time || a.write_date || '';
-                const bTime = b.last_message_time || b.write_date || '';
+                const aTime = a.last_message_time || '';
+                const bTime = b.last_message_time || '';
                 return bTime.localeCompare(aTime);
             });
 

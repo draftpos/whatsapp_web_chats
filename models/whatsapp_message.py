@@ -13,6 +13,10 @@ class WhatsAppMessage(models.Model):
     wa_is_starred = fields.Boolean(string='Starred (Local)')
     wa_is_pinned = fields.Boolean(string='Pinned (Local)')
 
+    def _send(self, force_send_by_cron=False):
+        if self.env.context.get('wa_web_chats_defer_send'):
+            return
+        return super()._send(force_send_by_cron=force_send_by_cron)
 
     @api.model_create_multi
     def create(self, vals_list):
