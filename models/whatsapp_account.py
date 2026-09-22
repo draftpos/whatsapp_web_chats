@@ -589,6 +589,7 @@ class WhatsAppAccount(models.Model):
             seen_id = seen_ids.get(c.id, 0)
             
             unread_count = 0
+            domain_unread = []
             if not c.wa_is_unread_global or last_msg_is_me:
                 unread_count = 0
                 if c.wa_is_unread_global:
@@ -1670,7 +1671,17 @@ class WhatsAppAccount(models.Model):
                     thread = threading.Thread(target=run_process)
                     thread.start()
 
-                self.env.cr.after_commit(background_process_media)
+                if hasattr(self.env.cr, 'postcommit'):
+                    self.env.cr.postcommit.add(background_process_media)
+                elif hasattr(self.env.cr, 'after_commit'):
+                    self.env.cr.after_commit(background_process_media)
+                else:
+                    def delayed_run():
+                        import time
+                        time.sleep(1.5) # Wait for transaction to commit
+                        background_process_media()
+                    thread = threading.Thread(target=delayed_run)
+                    thread.start()
             else:
                 # Immediately trigger sending of outbound WhatsApp messages so voice notes aren't delayed
                 wa_msgs = self.env['whatsapp.message'].sudo().search([
