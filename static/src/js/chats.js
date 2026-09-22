@@ -3422,7 +3422,7 @@ export class WhatsAppChatsAction extends Component {
                 if (queue.length === 0) break;
 
                 const task = queue[0];
-                let attachment_ids = task.attachments ? [...task.attachments] : [];
+                let attachment_ids = task.attachments ? [...task.attachments].filter(id => typeof id === 'number' || (typeof id === 'string' && !id.startsWith('temp_'))) : [];
 
                 if (task.files && task.files.length > 0) {
                     try {
@@ -3870,7 +3870,7 @@ export class WhatsAppChatsAction extends Component {
         if (!srcMsg) return;
 
         const body = srcMsg.bodyText || srcMsg.body || '';
-        const attachmentIds = srcMsg.attachment_ids ? srcMsg.attachment_ids.map(a => typeof a === 'object' ? a.id : a) : [];
+        const attachmentIds = srcMsg.attachment_ids ? srcMsg.attachment_ids.map(a => typeof a === 'object' ? a.id : a).filter(id => typeof id === 'number' || (typeof id === 'string' && !id.startsWith('temp_'))) : [];
 
         try {
             await this.orm.call('whatsapp.account', 'post_whatsapp_message', [targetChannel.id], {
