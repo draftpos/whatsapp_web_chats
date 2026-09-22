@@ -27,6 +27,9 @@ export class WhatsAppChatsAction extends Component {
             totalChannels: 0,
             selectedChannel: null,
             messages: [],
+            messagesOffset: 0,
+            isLoadingMoreMessages: false,
+            hasMoreMessages: true,
             newMessage: "",
             pendingFiles: [],
             accounts: [],
@@ -1756,6 +1759,125 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
+    async loadOlderMessages() {
+        if (!this.state.selectedChannel || this.state.isLoadingMoreMessages || !this.state.hasMoreMessages) return;
+        
+        this.state.isLoadingMoreMessages = true;
+        const id = this.state.selectedChannel.id;
+        const offset = this.state.messagesOffset + 50;
+        
+        // Save current scroll height to maintain position
+        let el = this.messagesContainer?.el;
+        const oldScrollHeight = el ? el.scrollHeight : 0;
+        
+        try {
+            const olderMessages = await this.orm.call(
+                "whatsapp.account",
+                "get_whatsapp_web_messages",
+                [id, offset, 50],
+                {},
+                { silent: true }
+            );
+            
+            if (this.state.selectedChannel && this.state.selectedChannel.id !== id) {
+                this.state.isLoadingMoreMessages = false;
+                return;
+            }
+            
+            if (olderMessages && olderMessages.length > 0) {
+                this.state.messagesOffset = offset;
+                this.state.hasMoreMessages = olderMessages.length === 50;
+                
+                const mappedMessages = olderMessages.map(msg => {
+                    let isMe = msg.is_me !== undefined ? msg.is_me : false;
+                    if (msg.is_me === undefined) {
+                        if (msg.author_id) {
+                            let authorName = (msg.author_id[1] || "").toLowerCase();
+                            if (this.myPartnerId && msg.author_id[0] === this.myPartnerId) {
+                                isMe = true;
+                            } else if (authorName.includes("bot") || authorName === "odoobot" || authorName === "system") {
+                                isMe = true;
+                            }
+                        }
+                    }
+                    let state = msg.wa_state || 'sent';
+                    if (msg.mail_message_id && this.state.messageStateMap && this.state.messageStateMap[msg.mail_message_id]) {
+                        state = this.state.messageStateMap[msg.mail_message_id];
+                    }
+                    
+                    let dateText = '';
+                    let timeText = '';
+                    if (msg.date) {
+                        try {
+                            const dateObj = new Date(msg.date);
+                            const now = new Date();
+                            const isToday = dateObj.getDate() === now.getDate() && dateObj.getMonth() === now.getMonth() && dateObj.getFullYear() === now.getFullYear();
+                            
+                            timeText = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                            if (isToday) {
+                                dateText = 'TODAY';
+                            } else {
+                                const yesterday = new Date(now);
+                                yesterday.setDate(now.getDate() - 1);
+                                const isYesterday = dateObj.getDate() === yesterday.getDate() && dateObj.getMonth() === yesterday.getMonth() && dateObj.getFullYear() === yesterday.getFullYear();
+                                if (isYesterday) {
+                                    dateText = 'YESTERDAY';
+                                } else {
+                                    dateText = dateObj.toLocaleDateString([], {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}).toUpperCase();
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    return {
+                        id: msg.id,
+                        body: msg.body,
+                        isMe: isMe,
+                        date: msg.date,
+                        dateText: dateText,
+                        timeText: timeText,
+                        attachments: msg.attachments || [],
+                        wa_state: state,
+                        is_system: msg.is_system || false
+                    };
+                });
+                
+                const currentMessages = [...this.state.messages];
+                mappedMessages.reverse(); // Older messages come first in display
+                
+                // Merge mapped older messages at the start, making sure not to duplicate
+                const currentIds = new Set(currentMessages.map(m => m.id));
+                const newMessages = mappedMessages.filter(m => !currentIds.has(m.id));
+                
+                this.state.messages = [...newMessages, ...currentMessages];
+                
+                // Group messages to album again
+                this.state.messages = this.groupAlbums(this.state.messages);
+                
+                // Maintain scroll position after DOM update
+                if (el) {
+                    // Give owl a moment to render
+                    setTimeout(() => {
+                        el.scrollTop = el.scrollHeight - oldScrollHeight;
+                    }, 0);
+                }
+            } else {
+                this.state.hasMoreMessages = false;
+            }
+        } catch (e) {
+            console.warn("Failed to load older messages", e);
+        }
+        
+        this.state.isLoadingMoreMessages = false;
+    }
+
+    onMessagesScroll(ev) {
+        const el = ev.target;
+        if (el.scrollTop <= 50) {
+            this.loadOlderMessages();
+        }
+    }
+
     async loadMessages(channelId = null, loadId = null) {
         const id = channelId || (this.state.selectedChannel ? this.state.selectedChannel.id : null);
         if (!id) return;
@@ -1786,10 +1908,11 @@ export class WhatsAppChatsAction extends Component {
         try {
             let messages = [];
             try {
+                this.state.messagesOffset = 0;
                 messages = await this.orm.call(
                     "whatsapp.account",
                     "get_whatsapp_web_messages",
-                    [id],
+                    [id, this.state.messagesOffset, 50],
                     {},
                     { silent: true }
                 );
@@ -1804,6 +1927,8 @@ export class WhatsAppChatsAction extends Component {
             if (this.state.selectedChannel && this.state.selectedChannel.id !== id) {
                 return;
             }
+            
+            this.state.hasMoreMessages = messages.length === 50;
             
             const oldMessages = [...this.state.messages];
             

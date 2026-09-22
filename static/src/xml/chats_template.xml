@@ -441,7 +441,7 @@
                         </t>
                         <i class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 16px; margin-left: 10px;" t-on-click="() => this.toggleInChatSearch()" title="Close search"/>
                     </div>
-                    <div class="whatsapp-messages" t-ref="messagesContainer">
+                    <div class="whatsapp-messages" t-ref="messagesContainer" t-on-scroll="(ev) => this.onMessagesScroll(ev)">
                         <!-- Pinned Messages Banner -->
                         <t t-set="pinnedMsgs" t-value="(state.messages || []).filter(m => m.wa_is_pinned)"/>
                         <t t-if="pinnedMsgs.length > 0">

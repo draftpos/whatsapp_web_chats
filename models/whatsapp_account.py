@@ -809,7 +809,7 @@ class WhatsAppAccount(models.Model):
             return {'success': False, 'error': str(e)}
         
     @api.model
-    def get_whatsapp_web_messages(self, channel_id):
+    def get_whatsapp_web_messages(self, channel_id, offset=0, limit=50):
         import re
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         
@@ -828,7 +828,7 @@ class WhatsAppAccount(models.Model):
         else:
             domain = domain[1:]
             
-        messages = self.env['mail.message'].sudo().search(domain, order='id desc', limit=150)
+        messages = self.env['mail.message'].sudo().search(domain, order='id desc', offset=int(offset), limit=int(limit))
         messages = messages.sorted(key=lambda m: m.id)
         
         import re
