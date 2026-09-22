@@ -135,8 +135,9 @@ export class WhatsAppChatsAction extends Component {
         this._actionIds = {};
 
         onWillStart(async () => {
+            // Fire and forget loadChannels so it doesn't block component mounting while fetching 50k chats over network
+            this.loadChannels();
             await Promise.all([
-                this.loadChannels(),
                 this.loadProducts(),
                 this.loadTemplates(),
                 this.loadTags(),
