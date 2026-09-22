@@ -1087,17 +1087,18 @@
                                     </div>
                                 </t>
                                 <t t-if="state.isRecording">
-                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; margin-right: 8px; background: #f0f2f5; border-radius: 24px; min-height: 44px;">
+                                    <div class="wa-recording-live" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; margin-right: 8px; background: transparent; border-radius: 24px; min-height: 44px;">
                                         <button class="wa-record-discard" title="Cancel recording" t-on-click="cancelRecording" style="background: transparent; border: none; cursor: pointer; color: #8696a0; font-size: 20px; padding: 6px 10px; display: flex; align-items: center; transition: color 0.2s;" onmouseover="this.style.color='#ea0038'" onmouseout="this.style.color='#8696a0'">
                                             <i class="fa fa-trash"/>
                                         </button>
-                                        <div style="display: flex; align-items: center; flex: 1; margin: 0 10px; overflow: hidden;">
+                                        <div style="display: flex; align-items: center; margin-left: auto; max-width: 33%; overflow: hidden; background: #f0f2f5; padding: 4px 12px; border-radius: 20px;">
+                                            <div style="width: 8px; height: 8px; border-radius: 50%; background: #ea0038; margin-right: 12px;"></div>
                                             <span class="wa-recording-timer" style="font-size: 15px; font-weight: normal; color: #111b21; min-width: 42px; flex-shrink: 0; margin-right: 12px;"><t t-esc="this.formatRecordingTime(state.recordingSeconds)"/></span>
-                                            <canvas class="wa-audio-visualizer" width="150" height="28" style="flex: 1; height: 28px; max-width: 100%;"></canvas>
+                                            <canvas class="wa-audio-visualizer" width="120" height="28" style="width: 120px; height: 28px; flex-shrink: 0; margin-right: 12px;"></canvas>
+                                            <button class="wa-preview-playpause" title="Pause / Resume" t-on-click="pauseRecording" t-attf-style="background: transparent; border: none; cursor: pointer; color: #ea0038; font-size: 24px; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; flex-shrink: 0;">
+                                                <i t-attf-class="fa {{ state.isPaused ? 'fa-microphone' : 'fa-pause-circle' }}"/>
+                                            </button>
                                         </div>
-                                        <button class="wa-preview-playpause" title="Pause / Resume" t-on-click="pauseRecording" t-attf-style="background: transparent; border: none; cursor: pointer; color: #ea0038; font-size: 24px; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; margin-right: 4px;">
-                                            <i t-attf-class="fa {{ state.isPaused ? 'fa-microphone' : 'fa-pause-circle' }}"/>
-                                        </button>
                                     </div>
                                     <button class="whatsapp-send-btn wa-record-send" title="Send voice message" t-on-click="stopAndSendRecording" style="color: white; background: #00a884; border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.18);">
                                         <i class="fa fa-send" style="font-size: 16px; margin-left: 2px; margin-top: 1px;"/>
