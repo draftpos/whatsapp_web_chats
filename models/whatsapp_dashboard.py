@@ -57,19 +57,19 @@ class WhatsappDashboard(models.AbstractModel):
         # Group inbound messages by day
         inbound_groups = self.env['whatsapp.message'].read_group(
             inbound_domain,
-            fields=['create_date:day', 'id:count'],
+            fields=['id:count'],
             groupby=['create_date:day']
         )
         # Group outbound messages by day
         outbound_groups = self.env['whatsapp.message'].read_group(
             outbound_domain,
-            fields=['create_date:day', 'id:count'],
+            fields=['id:count'],
             groupby=['create_date:day']
         )
         
         timeseries = {
-            'inbound': [{'date': g['create_date:day'], 'count': g['id']} for g in inbound_groups if g['create_date:day']],
-            'outbound': [{'date': g['create_date:day'], 'count': g['id']} for g in outbound_groups if g['create_date:day']]
+            'inbound': [{'date': g.get('create_date:day'), 'count': g.get('__count', g.get('id_count', 0))} for g in inbound_groups if g.get('create_date:day')],
+            'outbound': [{'date': g.get('create_date:day'), 'count': g.get('__count', g.get('id_count', 0))} for g in outbound_groups if g.get('create_date:day')]
         }
         
         # Media Counts (Images, Videos, Documents)
