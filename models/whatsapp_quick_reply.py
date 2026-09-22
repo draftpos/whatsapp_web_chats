@@ -13,6 +13,30 @@ class WhatsAppQuickReply(models.Model):
     is_pinned = fields.Boolean(string="Pinned", default=False)
     is_favorite = fields.Boolean(string="Favorite", default=False)
     sequence = fields.Integer(string="Sequence", default=10)
+
+    @api.constrains('body')
+    def _check_unique_body(self):
+        from odoo.exceptions import ValidationError
+        for record in self:
+            if record.body:
+                duplicate = self.search([
+                    ('body', '=ilike', record.body.strip()),
+                    ('id', '!=', record.id)
+                ], limit=1)
+                if duplicate:
+                    raise ValidationError("A Quick Reply with this exact message already exists!")
+
+    @api.constrains('shortcut')
+    def _check_unique_shortcut(self):
+        from odoo.exceptions import ValidationError
+        for record in self:
+            if record.shortcut:
+                duplicate = self.search([
+                    ('shortcut', '=ilike', record.shortcut.strip()),
+                    ('id', '!=', record.id)
+                ], limit=1)
+                if duplicate:
+                    raise ValidationError("A Quick Reply with this shortcut already exists!")
     
     @api.model
     def get_quick_replies(self, account_id=None):

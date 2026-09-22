@@ -3685,7 +3685,13 @@ export class WhatsAppChatsAction extends Component {
             this.comingSoon(null, 'Quick reply saved!');
         } catch (e) {
             console.error('[WA] Failed to save quick reply:', e);
-            alert('Failed to save quick reply.');
+            let errMsg = 'Failed to save quick reply.';
+            if (e && e.data && e.data.message) {
+                errMsg = e.data.message;
+            } else if (e && e.message) {
+                errMsg = e.message;
+            }
+            alert(errMsg);
         }
     }
 
