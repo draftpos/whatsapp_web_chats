@@ -11,6 +11,7 @@
         'data/wa_chat_tag_data.xml',
         'data/whatsapp_cron.xml',
         'views/whatsapp_school_balance_log_views.xml',
+        'views/send_school_balances_wizard_views.xml',
         'views/whatsapp_account_views.xml',
         'views/whatsapp_quick_reply_views.xml',
         'views/chats_action.xml',
@@ -21,7 +22,6 @@
         'views/login_templates.xml',
         'data/school_sync_cron.xml',
         'views/mobile_kanban_views.xml',
-        'views/send_school_balances_wizard_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
