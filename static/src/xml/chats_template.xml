@@ -24,7 +24,7 @@
             </t>
             <t t-else="">
                 <div class="whatsapp-sidebar">
-                    <div class="whatsapp-header wa-sidebar-header">
+                    <div class="whatsapp-header wa-sidebar-header" style="position: relative;">
                     <div style="display: flex; align-items: center; flex: 1;">
                         <t t-set="activeAcc" t-value="state.accounts.find(a => a.id.toString() === state.selectedAccount)"/>
                         <!-- Profile Icon (Desktop & Mobile) -->
@@ -68,6 +68,7 @@
                         <div class="sidebar-dropdown-menu" t-attf-style="position: absolute; right: 10px; top: 50px; background: white; border-radius: 3px; box-shadow: 0 2px 5px 0 rgba(11,20,26,.26),0 2px 10px 0 rgba(11,20,26,.16); width: 250px; padding: 9px 0; z-index: 1000;" t-on-click.stop="() => {}">
                             <t t-if="!state.isMobile">
                                 <div class="chat-dropdown-item" t-on-click="sidebarNewChat">New Chat</div>
+                                <div class="chat-dropdown-item" t-on-click="openNewContactModal">New Contact</div>
                                 <div class="chat-dropdown-item" t-on-click="sidebarProfile">Profile Settings</div>
                                 <div class="chat-dropdown-item" t-on-click="sidebarConfig">Configuration</div>
                             </t>
@@ -1630,6 +1631,64 @@
         </t>
 
         
+        <!-- New Contact Modal -->
+        <t t-if="state.isNewContactModalOpen">
+            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div class="modal-content" style="background: #1c1c1c; width: 450px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); color: #e0e0e0; font-family: Roboto, Arial, sans-serif;">
+                    <div class="modal-header" style="background: #1c1c1c; padding: 20px 24px 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 20px; font-weight: 500;">New Contact</span>
+                        <i class="fa fa-times" t-on-click="closeNewContactModal" style="cursor: pointer; color: #a0a0a0; font-size: 20px;"></i>
+                    </div>
+                    <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 30px;">
+                        
+                        <!-- First Name & Last Name -->
+                        <div style="display: flex; flex-direction: column; gap: 24px;">
+                            <div style="display: flex; align-items: center;">
+                                <i class="fa fa-user-o" style="color: #a0a0a0; font-size: 24px; width: 40px; text-align: center; margin-right: 16px;"></i>
+                                <input type="text" placeholder="First name" t-model="state.newContactData.firstName" style="flex: 1; background: transparent; border: none; border-bottom: 2px solid #555; color: white; padding: 8px 0; font-size: 16px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#00a884'" onblur="this.style.borderColor='#555'"/>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <div style="width: 40px; margin-right: 16px;"></div> <!-- Spacer -->
+                                <input type="text" placeholder="Last name" t-model="state.newContactData.lastName" style="flex: 1; background: transparent; border: none; border-bottom: 2px solid #555; color: white; padding: 8px 0; font-size: 16px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#00a884'" onblur="this.style.borderColor='#555'"/>
+                            </div>
+                        </div>
+
+                        <!-- Username -->
+                        <div style="display: flex; align-items: center;">
+                            <span style="color: #a0a0a0; font-size: 24px; width: 40px; text-align: center; margin-right: 16px; font-weight: bold;">@</span>
+                            <input type="text" placeholder="Username" t-model="state.newContactData.username" style="flex: 1; background: transparent; border: none; border-bottom: 2px solid #00a884; color: white; padding: 8px 0; font-size: 16px; outline: none; transition: border-color 0.2s;"/>
+                        </div>
+
+                        <!-- Country & Phone -->
+                        <div style="display: flex; align-items: flex-end;">
+                            <i class="fa fa-phone" style="color: #a0a0a0; font-size: 24px; width: 40px; text-align: center; margin-right: 16px; margin-bottom: 8px;"></i>
+                            <div style="display: flex; gap: 20px; flex: 1;">
+                                <div style="flex: 1; display: flex; flex-direction: column;">
+                                    <label style="color: #a0a0a0; font-size: 12px; margin-bottom: 4px;">Country</label>
+                                    <select t-model="state.newContactData.countryCode" style="background: transparent; border: none; border-bottom: 2px solid #555; color: white; padding: 8px 0; font-size: 16px; outline: none; cursor: pointer; appearance: none;">
+                                        <option value="+263" style="background: #2a2a2a;">ZW +263</option>
+                                        <option value="+27" style="background: #2a2a2a;">ZA +27</option>
+                                        <option value="+44" style="background: #2a2a2a;">UK +44</option>
+                                        <option value="+1" style="background: #2a2a2a;">US +1</option>
+                                        <option value="" style="background: #2a2a2a;">Other</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 2; display: flex; flex-direction: column;">
+                                    <label style="color: #a0a0a0; font-size: 12px; margin-bottom: 4px;">Phone</label>
+                                    <input type="text" placeholder="Phone" t-model="state.newContactData.phone" style="background: transparent; border: none; border-bottom: 2px solid #555; color: white; padding: 8px 0; font-size: 16px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#00a884'" onblur="this.style.borderColor='#555'"/>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer" style="padding: 16px 24px 24px; display: flex; justify-content: flex-end; gap: 10px;">
+                        <button class="btn btn-secondary" t-on-click="closeNewContactModal" style="background: transparent; border: none; color: #a0a0a0; font-weight: 500; cursor: pointer; padding: 8px 16px;">Cancel</button>
+                        <button class="btn btn-primary" t-on-click="createContact" style="background: #00a884; border: none; color: white; font-weight: 500; cursor: pointer; padding: 8px 20px; border-radius: 4px;">Save</button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
         <!-- New Chat Modal -->
         <t t-if="state.isNewChatModalOpen">
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">

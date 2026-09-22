@@ -51,6 +51,14 @@ export class WhatsAppChatsAction extends Component {
             inChatSearchIndex: -1,
             isAccountDropdownOpen: false,
             isNewChatModalOpen: false,
+            isNewContactModalOpen: false,
+            newContactData: {
+                firstName: '',
+                lastName: '',
+                username: '',
+                countryCode: '+263',
+                phone: ''
+            },
             contacts: [],
             filteredContacts: [],
             selectedChannels: [],
@@ -557,6 +565,61 @@ export class WhatsAppChatsAction extends Component {
 
     closeNewChatModal() {
         this.state.isNewChatModalOpen = false;
+        this.state.contactSearch = '';
+    }
+
+    openNewContactModal() {
+        this.state.isNewContactModalOpen = true;
+        this.state.newContactData = {
+            firstName: '',
+            lastName: '',
+            username: '',
+            countryCode: '+263',
+            phone: ''
+        };
+        this.state.showSidebarDropdown = false;
+    }
+
+    closeNewContactModal() {
+        this.state.isNewContactModalOpen = false;
+    }
+
+    async createContact() {
+        if (!this.state.newContactData.firstName && !this.state.newContactData.lastName) {
+            alert("Please provide a name.");
+            return;
+        }
+        if (!this.state.newContactData.phone) {
+            alert("Please provide a phone number.");
+            return;
+        }
+        
+        const name = `${this.state.newContactData.firstName} ${this.state.newContactData.lastName}`.trim();
+        let phone = this.state.newContactData.phone;
+        // Basic cleanup
+        phone = phone.replace(/[^0-9]/g, '');
+        if (this.state.newContactData.countryCode) {
+            const cc = this.state.newContactData.countryCode.replace(/[^0-9]/g, '');
+            if (!phone.startsWith(cc)) {
+                phone = cc + phone;
+            }
+        }
+        
+        try {
+            await this.orm.call("res.partner", "create", [{
+                name: name,
+                mobile: phone,
+                email: this.state.newContactData.username ? `${this.state.newContactData.username}@whatsapp.chat` : false,
+            }]);
+            this.closeNewContactModal();
+            this.state.contactsOffset = 0;
+            this.state.filteredContacts = [];
+            await this.loadContacts();
+            alert("Contact created successfully!");
+        } catch (e) {
+            console.error("Failed to create contact", e);
+            alert("Error creating contact. Make sure the number doesn't already exist.");
+        }
     }
 
     async openProfileSettings() {
