@@ -37,7 +37,7 @@ class WhatsappDashboard(models.AbstractModel):
         inbound_identifiers = set(get_chat_identifier(m) for m in all_inbound)
         
         # All Outbound Messages
-        outbound_domain = domain_msg + [('message_type', 'in', ['outbound', 'template'])]
+        outbound_domain = domain_msg + [('message_type', '=', 'outbound')]
         all_outbound = self.env['whatsapp.message'].search(outbound_domain)
         outbound_identifiers = set(get_chat_identifier(m) for m in all_outbound)
         
@@ -63,7 +63,7 @@ class WhatsappDashboard(models.AbstractModel):
         total_favorites = self.env['discuss.channel'].search_count(fav_domain)
         
         # Template Analytics
-        templates_sent = all_outbound.filtered(lambda m: m.message_type == 'template' or m.wa_template_id)
+        templates_sent = all_outbound.filtered(lambda m: m.wa_template_id)
         templates_sent_count = get_unique_daily_chats(templates_sent)
         
         template_identifiers = set(get_chat_identifier(m) for m in templates_sent)
