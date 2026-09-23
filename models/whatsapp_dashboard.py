@@ -74,17 +74,19 @@ class WhatsappDashboard(models.AbstractModel):
         
         # Template Analytics
         templates_sent = all_outbound.filtered(lambda m: m.wa_template_id)
-        templates_sent_count = get_unique_daily_chats(templates_sent)
+        templates_sent_count = len(templates_sent)
         
-        template_identifiers = set(get_chat_identifier(m) for m in templates_sent)
         templates_delivered = templates_sent.filtered(lambda m: m.state == 'delivered')
-        templates_delivered_identifiers = set(get_chat_identifier(m) for m in templates_delivered)
         
+        # For replies, we count the unique chats that had a template and received an inbound message
+        template_identifiers = set(get_chat_identifier(m) for m in templates_sent)
         templates_replied_identifiers = template_identifiers.intersection(inbound_identifiers)
         templates_replied_count = len(templates_replied_identifiers)
         
-        templates_delivered_not_replied_identifiers = templates_delivered_identifiers - inbound_identifiers
-        templates_delivered_not_replied_count = len(templates_delivered_not_replied_identifiers)
+        # For delivered but not replied, we estimate based on total delivered minus replied chats
+        templates_delivered_not_replied_count = len(templates_delivered) - templates_replied_count
+        if templates_delivered_not_replied_count < 0:
+            templates_delivered_not_replied_count = 0
         
         # General chat engagement
         # Total Contacts (WhatsApp Channels)
