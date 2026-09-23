@@ -1995,6 +1995,10 @@ export class WhatsAppChatsAction extends Component {
         const id = channelId || (this.state.selectedChannel ? this.state.selectedChannel.id : null);
         if (!id) return;
 
+        // Mutex guard: if a loadMessages is already in flight for this channel, skip
+        if (this._loadingMessagesId === id && !loadId) return;
+        this._loadingMessagesId = id;
+
         // Capture scroll state before loading new messages
         let wasAtBottom = true; // default to true so initial loads snap to bottom
         if (this.messagesContainer && this.messagesContainer.el) {
@@ -2379,6 +2383,7 @@ export class WhatsAppChatsAction extends Component {
             this.state.messages = this.state.messages.filter(m => !m._merged);
             
             this.messageCache[id] = this.state.messages;
+            this._loadingMessagesId = null; // Release mutex
             
             // Check for newly failed messages and alert the user
             window.seenWaErrors = window.seenWaErrors || new Set();
@@ -2442,6 +2447,7 @@ export class WhatsAppChatsAction extends Component {
             }
         } catch(e) {
             console.error("Failed to load messages:", e);
+            this._loadingMessagesId = null; // Release mutex on error
         }
     }
     
@@ -4248,13 +4254,10 @@ export class WhatsAppChatsAction extends Component {
             );
             
             if (result && result.success) {
-                // The template will be fetched via loadMessages once the server processes it
-                
-                // Also reload from server after a short delay to get the real message IDs
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                // Wait a moment for the server to finish processing, then do ONE reload
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 await this.loadMessages(this.state.selectedChannel.id);
                 this.scrollToBottom();
-                await this.pollMessages();
             } else {
                 console.error("Failed to send template:", result.error);
                 alert("Failed to send template: " + (result.error || "Unknown error"));
