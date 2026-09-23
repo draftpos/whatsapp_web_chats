@@ -58,6 +58,21 @@ class WhatsappDashboard(models.AbstractModel):
             fav_domain.append(('wa_account_id', '=', int(account_id)))
         total_favorites = self.env['discuss.channel'].search_count(fav_domain)
         
+        # Template Analytics
+        templates_sent = all_outbound.filtered(lambda m: m.wa_template_id)
+        templates_sent_count = get_unique_daily_chats(templates_sent)
+        
+        template_channel_ids = set(templates_sent.mapped('mail_message_id.res_id'))
+        templates_delivered = templates_sent.filtered(lambda m: m.state == 'delivered')
+        templates_delivered_channels = set(templates_delivered.mapped('mail_message_id.res_id'))
+        
+        templates_replied_channels = template_channel_ids.intersection(inbound_channel_ids)
+        templates_replied_count = len(templates_replied_channels)
+        
+        templates_delivered_not_replied_channels = templates_delivered_channels - inbound_channel_ids
+        templates_delivered_not_replied_count = len(templates_delivered_not_replied_channels)
+        
+        # General chat engagement
         # Total Contacts (WhatsApp Channels)
         total_contacts_domain = [('channel_type', '=', 'whatsapp')]
         if account_id:
@@ -114,4 +129,7 @@ class WhatsappDashboard(models.AbstractModel):
             'total_chats_active': total_chats_active,
             'replied_chats_count': replied_chats_count,
             'not_replied_chats_count': not_replied_chats_count,
+            'templates_sent': templates_sent_count,
+            'templates_replied': templates_replied_count,
+            'templates_delivered_not_replied': templates_delivered_not_replied_count,
         }
