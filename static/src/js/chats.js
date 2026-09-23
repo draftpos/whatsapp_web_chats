@@ -3325,7 +3325,11 @@ export class WhatsAppChatsAction extends Component {
                             [channelId],
                             kwargs
                         );
-                        if (msgId) { 
+                        if (msgId) {
+                            // Remove any poller-inserted copy with the same real ID before upgrading
+                            this.state.messages = this.state.messages.filter(
+                                m => m === tempMsg || m.id !== msgId
+                            );
                             tempMsg.id = msgId; 
                             tempMsg.noAnimate = true;
                         }
@@ -3439,7 +3443,11 @@ export class WhatsAppChatsAction extends Component {
                             [channelId],
                             kwargs
                         );
-                        if (msgId) { 
+                        if (msgId) {
+                            // Remove any poller-inserted copy with the same real ID before upgrading
+                            this.state.messages = this.state.messages.filter(
+                                m => m === tempMsg || m.id !== msgId
+                            );
                             tempMsg.id = msgId; 
                             tempMsg.noAnimate = true;
                         }
@@ -4272,16 +4280,22 @@ export class WhatsAppChatsAction extends Component {
             );
             
             if (result && result.success) {
-                // Upgrade the temp message to the real server ID in-place.
-                // mergeArrayStable will find it by ID on the next poll and update — no duplicate.
-                if (result.msg_id) {
-                    tempMsg.id = result.msg_id;
-                    tempMsg.noAnimate = true;
-                }
                 if (result.body) {
                     tempMsg.bodyText = result.body;
                 }
                 tempMsg.wa_state = 'sent';
+
+                if (result.msg_id) {
+                    // Remove any copy of this message that the background poller may have
+                    // added while the ORM call was in-flight (the race condition).
+                    // Keep ONLY our tempMsg reference (identified by object identity).
+                    this.state.messages = this.state.messages.filter(
+                        m => m === tempMsg || m.id !== result.msg_id
+                    );
+                    // Now upgrade the ID — there is now exactly one copy in state.
+                    tempMsg.id = result.msg_id;
+                    tempMsg.noAnimate = true;
+                }
             } else {
                 console.error("Failed to send template:", result ? result.error : 'no result');
                 alert("Failed to send template: " + (result ? result.error || "Unknown error" : "No response"));
