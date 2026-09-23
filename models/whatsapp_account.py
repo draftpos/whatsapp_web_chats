@@ -59,6 +59,12 @@ class WhatsAppAccount(models.Model):
     school_username = fields.Char(string="School Username/Email")
     school_password = fields.Char(string="School Password")
     
+    is_school_installed = fields.Boolean(compute="_compute_is_school_installed")
+
+    def _compute_is_school_installed(self):
+        for rec in self:
+            rec.is_school_installed = 'havano.student' in self.env
+
     school_balance_wa_template_id = fields.Many2one(
         'whatsapp.template', 
         string="School Balance Template",

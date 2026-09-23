@@ -53,8 +53,9 @@
                                     confirm="Are you sure you want to send the group auto message to all contacts in the database who have not received it yet?"/>
                         </div>
                     </page>
-                    <page string="School Integration" name="school_integration">
+                    <page string="School Integration" name="school_integration" invisible="not is_school_installed">
                         <group>
+                            <field name="is_school_installed" invisible="1"/>
                             <field name="allow_school_balances"/>
                             <field name="school_integration_type" invisible="not allow_school_balances"/>
                             <field name="school_app_url" invisible="not allow_school_balances or school_integration_type != 'remote'"/>
