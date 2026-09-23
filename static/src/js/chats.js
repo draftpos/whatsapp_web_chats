@@ -652,7 +652,7 @@ export class WhatsAppChatsAction extends Component {
         try {
             await this.orm.call("res.partner", "create", [{
                 name: name,
-                mobile: phone,
+                phone: phone,
                 email: this.state.newContactData.username ? `${this.state.newContactData.username}@whatsapp.chat` : false,
             }]);
             this.closeNewContactModal();
