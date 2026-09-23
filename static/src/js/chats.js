@@ -4252,24 +4252,6 @@ export class WhatsAppChatsAction extends Component {
         
         this.closeTemplatesModal();
 
-        // Show instantly via optimistic UI — use the pre-rendered body from the template
-        const tempId = 'temp_' + Date.now();
-        const now = new Date();
-        const tempMsg = {
-            id: tempId,
-            bodyText: tmpl.bodyText || tmpl.body || '',
-            isMe: true,
-            isSystem: false,
-            timeText: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-            date: now.toISOString().slice(0, 19).replace('T', ' '),
-            dateText: 'Today',
-            wa_state: 'pending',
-            attachment_ids: [],
-            noAnimate: false,
-        };
-        this.state.messages.push(tempMsg);
-        this.scrollToBottom();
-
         try {
             const result = await this.orm.call(
                 "whatsapp.account",
@@ -4279,31 +4261,36 @@ export class WhatsAppChatsAction extends Component {
                 { silent: true }
             );
             
-            if (result && result.success) {
-                if (result.body) {
-                    tempMsg.bodyText = result.body;
-                }
-                tempMsg.wa_state = 'sent';
+            if (result && result.success && result.msg_id) {
+                // Remove any copy the background poller may have already inserted
+                this.state.messages = this.state.messages.filter(m => m.id !== result.msg_id);
 
-                if (result.msg_id) {
-                    // Remove any copy of this message that the background poller may have
-                    // added while the ORM call was in-flight (the race condition).
-                    // Keep ONLY our tempMsg reference (identified by object identity).
-                    this.state.messages = this.state.messages.filter(
-                        m => m === tempMsg || m.id !== result.msg_id
-                    );
-                    // Now upgrade the ID — there is now exactly one copy in state.
-                    tempMsg.id = result.msg_id;
-                    tempMsg.noAnimate = true;
-                }
-            } else {
-                console.error("Failed to send template:", result ? result.error : 'no result');
-                alert("Failed to send template: " + (result ? result.error || "Unknown error" : "No response"));
-                // Remove the failed temp message
-                this.state.messages = this.state.messages.filter(m => m.id !== tempId);
+                // Build the real message object directly from what the server returned
+                const sentDate = result.sent_date
+                    ? result.sent_date.replace(' ', 'T') + 'Z'
+                    : new Date().toISOString();
+                const sentDateTime = new Date(sentDate);
+                const realMsg = {
+                    id: result.msg_id,
+                    bodyText: result.body || tmpl.body || '',
+                    isMe: true,
+                    isSystem: false,
+                    timeText: sentDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+                    date: result.sent_date || new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    dateText: 'Today',
+                    wa_state: 'sent',
+                    attachment_ids: [],
+                    noAnimate: false,
+                };
+                this.state.messages.push(realMsg);
+                this.scrollToBottom();
+            } else if (result && !result.success) {
+                console.error("Failed to send template:", result.error);
+                alert("Failed to send template: " + (result.error || "Unknown error"));
+            } else if (!result) {
+                alert("Failed to send template: No response from server");
             }
         } catch (e) {
-
             console.error("Error sending template:", e);
             alert("Error sending template: " + e.message);
         }
