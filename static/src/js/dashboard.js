@@ -153,6 +153,14 @@ export class DashboardAction extends Component {
                 inboundData.push(inb ? inb.count : 0);
                 outboundData.push(outb ? outb.count : 0);
             });
+            // Format labels for readability (e.g., "Sep 23")
+            labels = labels.map(label => {
+                const d = new Date(label);
+                if (!isNaN(d)) {
+                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }
+                return label;
+            });
         }
 
         // Render Line Chart
@@ -188,56 +196,7 @@ export class DashboardAction extends Component {
                         }
                     ]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                font: { size: 14, weight: '500' },
-                                color: '#54656f',
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(17, 27, 33, 0.95)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            cornerRadius: 8,
-                            boxPadding: 6
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                color: '#8696a0',
-                                font: { size: 12 },
-                                maxRotation: 45,
-                                minRotation: 45
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)',
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: '#8696a0',
-                                font: { size: 12 },
-                                stepSize: 1,
-                                precision: 0
-                            }
-                        }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false }
             });
         }
 
@@ -257,12 +216,7 @@ export class DashboardAction extends Component {
                         borderWidth: 0
                     }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    cutout: '75%',
-                    plugins: { legend: { display: false } }
-                }
+                options: { responsive: true, maintainAspectRatio: false }
             });
         }
     }
