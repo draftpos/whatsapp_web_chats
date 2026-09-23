@@ -39,6 +39,9 @@ export class DashboardAction extends Component {
                 total_chats_active: 0,
                 replied_chats_count: 0,
                 not_replied_chats_count: 0,
+                templates_sent: 0,
+                templates_replied: 0,
+                templates_delivered_not_replied: 0,
             }
         });
 
@@ -82,6 +85,9 @@ export class DashboardAction extends Component {
                     total_chats_active: results.total_chats_active || 0,
                     replied_chats_count: results.replied_chats_count || 0,
                     not_replied_chats_count: results.not_replied_chats_count || 0,
+                    templates_sent: results.templates_sent || 0,
+                    templates_replied: results.templates_replied || 0,
+                    templates_delivered_not_replied: results.templates_delivered_not_replied || 0,
                 };
                 
                 // Render charts after state update
