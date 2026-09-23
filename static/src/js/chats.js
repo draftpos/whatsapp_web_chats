@@ -2202,6 +2202,7 @@ export class WhatsAppChatsAction extends Component {
             if (tempTextMsgs.length > 0) {
                 for (const serverMsg of this.state.messages) {
                     if (!serverMsg.isMe) continue;
+                    if (serverMsg.id && serverMsg.id.toString().startsWith('temp_')) continue;
                     const matchingTemp = tempTextMsgs.find(t => {
                         if (t._merged) return false;
                         return t.bodyText && serverMsg.bodyText && t.bodyText.trim() === serverMsg.bodyText.trim();
@@ -2226,6 +2227,7 @@ export class WhatsAppChatsAction extends Component {
             if (tempMediaMsgs.length > 0) {
                 for (const serverMsg of this.state.messages) {
                     if (!serverMsg.isMe) continue;
+                    if (serverMsg.id && serverMsg.id.toString().startsWith('temp_')) continue;
                     if (!serverMsg.attachment_ids || serverMsg.attachment_ids.length === 0) continue;
                     const serverAtt = serverMsg.attachment_ids[0];
                     // Match against a temp media message (unmerged, matching attachment name)
@@ -2284,6 +2286,7 @@ export class WhatsAppChatsAction extends Component {
                             const attBase = attName ? attName.split('.')[0] : null;
                             const alreadyReceived = this.state.messages.some(serverMsg => 
                                 serverMsg.isMe === true && 
+                                !(serverMsg.id && serverMsg.id.toString().startsWith('temp_')) &&
                                 serverMsg.attachment_ids &&
                                 serverMsg.attachment_ids.some(att => att.name && attBase && att.name.split('.')[0] === attBase)
                             );
@@ -2291,6 +2294,7 @@ export class WhatsAppChatsAction extends Component {
                         } else if (m.bodyText) {
                             const matchingServerMsg = this.state.messages.find(serverMsg => 
                                 serverMsg.isMe === true && 
+                                !(serverMsg.id && serverMsg.id.toString().startsWith('temp_')) &&
                                 serverMsg.bodyText === m.bodyText
                             );
                             if (matchingServerMsg) {
