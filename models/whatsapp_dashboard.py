@@ -16,26 +16,30 @@ class WhatsappDashboard(models.AbstractModel):
         if account_id:
             domain_msg.append(('wa_account_id', '=', int(account_id)))
             
-        # Get active accounts for the filter dropdown
-        accounts = self.env['whatsapp.account'].search_read([], ['id', 'name'])
-        
+        def get_chat_identifier(msg):
+            if hasattr(msg, 'mobile_number') and msg.mobile_number:
+                return (msg.mobile_number, msg.wa_account_id.id if msg.wa_account_id else 0)
+            return msg.mail_message_id.res_id
+
         def get_unique_daily_chats(messages):
             unique_chats = set()
             for msg in messages:
-                if msg.create_date and msg.mail_message_id.res_id:
-                    unique_chats.add((msg.create_date.date(), msg.mail_message_id.res_id))
+                if msg.create_date:
+                    identifier = get_chat_identifier(msg)
+                    if identifier:
+                        unique_chats.add((msg.create_date.date(), identifier))
             return len(unique_chats)
 
         # All Inbound Messages
         inbound_domain = domain_msg + [('message_type', '=', 'inbound')]
         all_inbound = self.env['whatsapp.message'].search(inbound_domain)
         new_inbound = get_unique_daily_chats(all_inbound)
-        inbound_channel_ids = set(all_inbound.mapped('mail_message_id.res_id'))
+        inbound_identifiers = set(get_chat_identifier(m) for m in all_inbound)
         
         # All Outbound Messages
         outbound_domain = domain_msg + [('message_type', 'in', ['outbound', 'template'])]
         all_outbound = self.env['whatsapp.message'].search(outbound_domain)
-        outbound_channel_ids = set(all_outbound.mapped('mail_message_id.res_id'))
+        outbound_identifiers = set(get_chat_identifier(m) for m in all_outbound)
         
         # Outbound message states (now counting unique daily chats)
         total_sent = get_unique_daily_chats(all_outbound)
@@ -62,15 +66,15 @@ class WhatsappDashboard(models.AbstractModel):
         templates_sent = all_outbound.filtered(lambda m: m.message_type == 'template' or m.wa_template_id)
         templates_sent_count = get_unique_daily_chats(templates_sent)
         
-        template_channel_ids = set(templates_sent.mapped('mail_message_id.res_id'))
+        template_identifiers = set(get_chat_identifier(m) for m in templates_sent)
         templates_delivered = templates_sent.filtered(lambda m: m.state == 'delivered')
-        templates_delivered_channels = set(templates_delivered.mapped('mail_message_id.res_id'))
+        templates_delivered_identifiers = set(get_chat_identifier(m) for m in templates_delivered)
         
-        templates_replied_channels = template_channel_ids.intersection(inbound_channel_ids)
-        templates_replied_count = len(templates_replied_channels)
+        templates_replied_identifiers = template_identifiers.intersection(inbound_identifiers)
+        templates_replied_count = len(templates_replied_identifiers)
         
-        templates_delivered_not_replied_channels = templates_delivered_channels - inbound_channel_ids
-        templates_delivered_not_replied_count = len(templates_delivered_not_replied_channels)
+        templates_delivered_not_replied_identifiers = templates_delivered_identifiers - inbound_identifiers
+        templates_delivered_not_replied_count = len(templates_delivered_not_replied_identifiers)
         
         # General chat engagement
         # Total Contacts (WhatsApp Channels)
@@ -79,10 +83,9 @@ class WhatsappDashboard(models.AbstractModel):
             total_contacts_domain.append(('wa_account_id', '=', int(account_id)))
         total_contacts = self.env['discuss.channel'].search_count(total_contacts_domain)
         
-        # Chats Activity (already computed above)
-        
-        total_chats_active = len(inbound_channel_ids.union(outbound_channel_ids))
-        replied_chats_count = len(inbound_channel_ids.intersection(outbound_channel_ids))
+        # Chats Activity
+        total_chats_active = len(inbound_identifiers.union(outbound_identifiers))
+        replied_chats_count = len(inbound_identifiers.intersection(outbound_identifiers))
         not_replied_chats_count = total_chats_active - replied_chats_count
         
         # Timeseries data for graphs
@@ -90,9 +93,11 @@ class WhatsappDashboard(models.AbstractModel):
             from collections import defaultdict
             daily_counts = defaultdict(set)
             for msg in messages:
-                if msg.create_date and msg.mail_message_id.res_id:
-                    day_str = msg.create_date.date().strftime('%Y-%m-%d')
-                    daily_counts[day_str].add(msg.mail_message_id.res_id)
+                if msg.create_date:
+                    identifier = get_chat_identifier(msg)
+                    if identifier:
+                        day_str = msg.create_date.date().strftime('%Y-%m-%d')
+                        daily_counts[day_str].add(identifier)
             return [{'date': d, 'count': len(channels)} for d, channels in daily_counts.items()]
             
         timeseries = {
