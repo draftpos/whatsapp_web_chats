@@ -3298,7 +3298,10 @@ export class WhatsAppChatsAction extends Component {
                             [channelId],
                             kwargs
                         );
-                        if (msgId) { tempMsg.id = msgId; }
+                        if (msgId) { 
+                            tempMsg.id = msgId; 
+                            tempMsg.noAnimate = true;
+                        }
                         tempMsg.wa_state = 'sent';
                         // await new Promise(r => setTimeout(r, 400));
                         // await this.loadMessages(); // Removed to prevent race conditions during bulk uploads
@@ -3409,7 +3412,10 @@ export class WhatsAppChatsAction extends Component {
                             [channelId],
                             kwargs
                         );
-                        if (msgId) { tempMsg.id = msgId; }
+                        if (msgId) { 
+                            tempMsg.id = msgId; 
+                            tempMsg.noAnimate = true;
+                        }
 
                         tempMsg.wa_state = 'sent';
                         // await this.loadMessages(); // Removed to prevent race conditions during bulk uploads
