@@ -4214,24 +4214,7 @@ export class WhatsAppChatsAction extends Component {
             );
             
             if (result && result.success) {
-                // Immediately add the rendered message to the chat so the user sees it
-                const now = new Date();
-                const timeText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-                const sentDate = result.sent_date || now.toISOString().slice(0, 19).replace('T', ' ');
-                const renderedBody = result.body || `[Template: ${tmpl.template_name}]`;
-                
-                this.state.messages = [...this.state.messages, {
-                    id: `temp_${Date.now()}`,
-                    body: renderedBody,
-                    bodyText: renderedBody,
-                    isMe: true,
-                    timeText: timeText,
-                    date: sentDate,
-                    dateText: 'Today',
-                    isSystem: false,
-                    attachment_ids: [],
-                }];
-                this.scrollToBottom();
+                // The template will be fetched via loadMessages once the server processes it
                 
                 // Also reload from server after a short delay to get the real message IDs
                 await new Promise(resolve => setTimeout(resolve, 1500));

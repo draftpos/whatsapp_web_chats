@@ -2039,15 +2039,26 @@ class WhatsAppAccount(models.Model):
                 'free_text_json': free_text_json,
             })
 
-            # Send immediately (synchronously, not via cron)
-            wa_msg._send(force_send_by_cron=False)
-
-            # Check result
-            wa_msg.invalidate_recordset()
-            if wa_msg.state == 'error':
-                err = wa_msg.failure_reason or wa_msg.failure_type or 'Send failed'
-                _logger.warning("Template send failed: %s", err)
-                return {'success': False, 'error': err}
+            # Send in background thread to prevent connection timeout
+            dbname = self.env.cr.dbname
+            wa_msg_id = wa_msg.id
+            def background_send():
+                import time
+                import odoo
+                time.sleep(2)
+                try:
+                    with odoo.registry(dbname).cursor() as new_cr:
+                        new_env = odoo.api.Environment(new_cr, odoo.SUPERUSER_ID, {})
+                        msg = new_env['whatsapp.message'].browse(wa_msg_id)
+                        if msg.exists() and msg.state == 'outgoing':
+                            msg._send(force_send_by_cron=False)
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error("Failed to background send template: %s", e)
+            
+            import threading
+            thread = threading.Thread(target=background_send)
+            thread.start()
 
             # No longer posting duplicate message to channel
             sent_date = mail_msg.date.strftime('%Y-%m-%d %H:%M:%S') if mail_msg.date else False
