@@ -153,14 +153,6 @@ export class DashboardAction extends Component {
                 inboundData.push(inb ? inb.count : 0);
                 outboundData.push(outb ? outb.count : 0);
             });
-            // Format labels for readability (e.g., "Sep 23")
-            labels = labels.map(label => {
-                const d = new Date(label);
-                if (!isNaN(d)) {
-                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                }
-                return label;
-            });
         }
 
         // Render Line Chart
@@ -174,7 +166,7 @@ export class DashboardAction extends Component {
                             label: 'Inbound',
                             data: inboundData,
                             borderColor: '#25D366',
-                            backgroundColor: 'rgba(37, 211, 102, 0.15)',
+                            backgroundColor: 'rgba(37, 211, 102, 0.1)',
                             borderWidth: 3,
                             pointBackgroundColor: '#25D366',
                             pointRadius: 4,
@@ -186,7 +178,7 @@ export class DashboardAction extends Component {
                             label: 'Outbound',
                             data: outboundData,
                             borderColor: '#4285f4',
-                            backgroundColor: 'rgba(66, 133, 244, 0.15)',
+                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
                             borderWidth: 3,
                             pointBackgroundColor: '#4285f4',
                             pointRadius: 4,
