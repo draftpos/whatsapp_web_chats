@@ -2060,7 +2060,7 @@ class WhatsAppAccount(models.Model):
                     'state': 'pending',
                 })
 
-            return {'success': True, 'body': rendered_body, 'sent_date': sent_date}
+            return {'success': True, 'body': rendered_body, 'sent_date': sent_date, 'msg_id': mail_msg.id}
         except Exception as e:
             _logger.exception("Error in send_whatsapp_template")
             return {'success': False, 'error': str(e)}

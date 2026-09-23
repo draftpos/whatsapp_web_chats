@@ -3274,12 +3274,13 @@ export class WhatsAppChatsAction extends Component {
                     }
 
                     try {
-                        await this.orm.call(
+                        const msgId = await this.orm.call(
                             "whatsapp.account",
                             "post_whatsapp_message",
                             [channelId],
                             kwargs
                         );
+                        if (msgId) { tempMsg.id = msgId; }
                         tempMsg.wa_state = 'sent';
                         // await new Promise(r => setTimeout(r, 400));
                         // await this.loadMessages(); // Removed to prevent race conditions during bulk uploads
@@ -3384,12 +3385,13 @@ export class WhatsAppChatsAction extends Component {
                             kwargs.parent_id = replyingToMessageId;
                         }
 
-                        await this.orm.call(
+                        const msgId = await this.orm.call(
                             "whatsapp.account",
                             "post_whatsapp_message",
                             [channelId],
                             kwargs
                         );
+                        if (msgId) { tempMsg.id = msgId; }
 
                         tempMsg.wa_state = 'sent';
                         // await this.loadMessages(); // Removed to prevent race conditions during bulk uploads
@@ -4207,7 +4209,7 @@ export class WhatsAppChatsAction extends Component {
                 const renderedBody = result.body || `[Template: ${tmpl.template_name}]`;
                 
                 this.state.messages = [...this.state.messages, {
-                    id: `temp_${Date.now()}`,
+                    id: result.msg_id || `temp_${Date.now()}`,
                     body: renderedBody,
                     bodyText: renderedBody,
                     isMe: true,
