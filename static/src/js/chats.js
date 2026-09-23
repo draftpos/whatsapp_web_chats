@@ -2215,6 +2215,8 @@ export class WhatsAppChatsAction extends Component {
                         if (!t.bodyText || !serverMsg.bodyText) return false;
                         const normTemp = t.bodyText.replace(/\s+/g, ' ').trim();
                         const normServer = serverMsg.bodyText.replace(/\s+/g, ' ').trim();
+                        // Use includes to handle templates that have headers or footers appended by the server
+                        if (normTemp.length > 3 && (normServer.includes(normTemp) || normTemp.includes(normServer))) return true;
                         return normTemp === normServer;
                     });
                     if (matchingTemp) {
