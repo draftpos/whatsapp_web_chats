@@ -2,6 +2,7 @@
     'name': 'WhatsApp Web Chats',
     'version': '1.8',
     'category': 'Discuss',
+    'license': 'LGPL-3',
     'summary': 'Provides a WhatsApp Web-like interface for managing WhatsApp chats.',
     'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup', 'dev_whatsapp_chatbot_ent'],
     'data': [
