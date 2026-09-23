@@ -2353,7 +2353,28 @@ export class WhatsAppChatsAction extends Component {
             if (recentTempMsgs.length > 0 || queueToAdd.length > 0) {
                 this.state.messages = [...this.state.messages, ...recentTempMsgs, ...queueToAdd];
             }
-            
+
+            // Deduplicate by ID — a message whose temp_ ID was upgraded to a real server ID
+            // can otherwise appear twice (once from mergeArrayStable, once carried over).
+            const seenIds = new Map();
+            const deduped = [];
+            for (const m of this.state.messages) {
+                const key = m.id;
+                if (!seenIds.has(key)) {
+                    seenIds.set(key, m);
+                    deduped.push(m);
+                } else {
+                    // Prefer the real-server copy (non-temp) over any leftover temp copy
+                    const existing = seenIds.get(key);
+                    if (existing.wa_state === 'pending' && m.wa_state !== 'pending') {
+                        const idx = deduped.indexOf(existing);
+                        if (idx !== -1) deduped[idx] = m;
+                        seenIds.set(key, m);
+                    }
+                }
+            }
+            this.state.messages = deduped;
+
             // Remove temp messages that have been successfully merged with server messages
             this.state.messages = this.state.messages.filter(m => !m._merged);
             
