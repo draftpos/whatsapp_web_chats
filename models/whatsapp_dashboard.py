@@ -19,29 +19,35 @@ class WhatsappDashboard(models.AbstractModel):
         # Get active accounts for the filter dropdown
         accounts = self.env['whatsapp.account'].search_read([], ['id', 'name'])
         
-        # New Messages (Inbound)
+        def get_unique_daily_chats(messages):
+            unique_chats = set()
+            for msg in messages:
+                if msg.create_date and msg.mail_message_id.res_id:
+                    unique_chats.add((msg.create_date.date(), msg.mail_message_id.res_id))
+            return len(unique_chats)
+
         # All Inbound Messages
         inbound_domain = domain_msg + [('message_type', '=', 'inbound')]
         all_inbound = self.env['whatsapp.message'].search(inbound_domain)
+        new_inbound = get_unique_daily_chats(all_inbound)
         inbound_channel_ids = set(all_inbound.mapped('mail_message_id.res_id'))
-        new_inbound = len(inbound_channel_ids)
         
         # All Outbound Messages
         outbound_domain = domain_msg + [('message_type', '=', 'outbound')]
         all_outbound = self.env['whatsapp.message'].search(outbound_domain)
         outbound_channel_ids = set(all_outbound.mapped('mail_message_id.res_id'))
         
-        # Outbound message states (now counting unique chats)
-        total_sent = len(outbound_channel_ids)
+        # Outbound message states (now counting unique daily chats)
+        total_sent = get_unique_daily_chats(all_outbound)
         
         # Sent messages that are Read
-        read_count = len(set(all_outbound.filtered(lambda m: m.state == 'read').mapped('mail_message_id.res_id')))
+        read_count = get_unique_daily_chats(all_outbound.filtered(lambda m: m.state == 'read'))
         
         # Sent messages that are Delivered (but not read)
-        delivered_count = len(set(all_outbound.filtered(lambda m: m.state == 'delivered').mapped('mail_message_id.res_id')))
+        delivered_count = get_unique_daily_chats(all_outbound.filtered(lambda m: m.state == 'delivered'))
         
         # Sent messages that are neither Read nor Delivered (error, bounced, cancel, outgoing, sent)
-        not_delivered_count = len(set(all_outbound.filtered(lambda m: m.state not in ['delivered', 'read']).mapped('mail_message_id.res_id')))
+        not_delivered_count = get_unique_daily_chats(all_outbound.filtered(lambda m: m.state not in ['delivered', 'read']))
         
         # Unreplied Messages: Using the "Delivered but not read" as per user request + all delivered
         unreplied_count = delivered_count
@@ -65,22 +71,18 @@ class WhatsappDashboard(models.AbstractModel):
         not_replied_chats_count = total_chats_active - replied_chats_count
         
         # Timeseries data for graphs
-        # Group inbound messages by day
-        inbound_groups = self.env['whatsapp.message'].read_group(
-            inbound_domain,
-            fields=['id:count'],
-            groupby=['create_date:day']
-        )
-        # Group outbound messages by day
-        outbound_groups = self.env['whatsapp.message'].read_group(
-            outbound_domain,
-            fields=['id:count'],
-            groupby=['create_date:day']
-        )
-        
+        def get_timeseries_data(messages):
+            from collections import defaultdict
+            daily_counts = defaultdict(set)
+            for msg in messages:
+                if msg.create_date and msg.mail_message_id.res_id:
+                    day_str = msg.create_date.date().strftime('%Y-%m-%d')
+                    daily_counts[day_str].add(msg.mail_message_id.res_id)
+            return [{'date': d, 'count': len(channels)} for d, channels in daily_counts.items()]
+            
         timeseries = {
-            'inbound': [{'date': g.get('create_date:day'), 'count': g.get('__count', g.get('id_count', 0))} for g in inbound_groups if g.get('create_date:day')],
-            'outbound': [{'date': g.get('create_date:day'), 'count': g.get('__count', g.get('id_count', 0))} for g in outbound_groups if g.get('create_date:day')]
+            'inbound': get_timeseries_data(all_inbound),
+            'outbound': get_timeseries_data(all_outbound)
         }
         
         # Media Counts (Images, Videos, Documents)
