@@ -33,12 +33,22 @@ class WhatsappDashboard(models.AbstractModel):
         # All Inbound Messages
         inbound_domain = domain_msg + [('message_type', '=', 'inbound')]
         all_inbound = self.env['whatsapp.message'].search(inbound_domain)
-        new_inbound = get_unique_daily_chats(all_inbound)
-        inbound_identifiers = set(get_chat_identifier(m) for m in all_inbound)
         
         # All Outbound Messages
         outbound_domain = domain_msg + [('message_type', '=', 'outbound')]
         all_outbound = self.env['whatsapp.message'].search(outbound_domain)
+        
+        # Prefetch fields to prevent N+1 query timeouts
+        all_msgs = all_inbound | all_outbound
+        all_msgs.mapped('mobile_number')
+        all_msgs.mapped('wa_account_id')
+        all_msgs.mapped('mail_message_id.res_id')
+        all_msgs.mapped('wa_template_id')
+        all_msgs.mapped('state')
+        
+        new_inbound = get_unique_daily_chats(all_inbound)
+        inbound_identifiers = set(get_chat_identifier(m) for m in all_inbound)
+        
         outbound_identifiers = set(get_chat_identifier(m) for m in all_outbound)
         
         # Outbound message states (now counting unique daily chats)
