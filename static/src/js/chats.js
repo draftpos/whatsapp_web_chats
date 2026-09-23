@@ -2206,7 +2206,10 @@ export class WhatsAppChatsAction extends Component {
                     if (serverMsg.id && serverMsg.id.toString().startsWith('temp_')) continue;
                     const matchingTemp = tempTextMsgs.find(t => {
                         if (t._merged) return false;
-                        return t.bodyText && serverMsg.bodyText && t.bodyText.trim() === serverMsg.bodyText.trim();
+                        if (!t.bodyText || !serverMsg.bodyText) return false;
+                        const normTemp = t.bodyText.replace(/\s+/g, ' ').trim();
+                        const normServer = serverMsg.bodyText.replace(/\s+/g, ' ').trim();
+                        return normTemp === normServer;
                     });
                     if (matchingTemp) {
                         serverMsg.noAnimate = true;
@@ -4210,7 +4213,7 @@ export class WhatsAppChatsAction extends Component {
                 const renderedBody = result.body || `[Template: ${tmpl.template_name}]`;
                 
                 this.state.messages = [...this.state.messages, {
-                    id: result.msg_id || `temp_${Date.now()}`,
+                    id: `temp_${Date.now()}`,
                     body: renderedBody,
                     bodyText: renderedBody,
                     isMe: true,
