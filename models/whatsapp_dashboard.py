@@ -23,23 +23,25 @@ class WhatsappDashboard(models.AbstractModel):
         # All Inbound Messages
         inbound_domain = domain_msg + [('message_type', '=', 'inbound')]
         all_inbound = self.env['whatsapp.message'].search(inbound_domain)
-        new_inbound = len(all_inbound)
+        inbound_channel_ids = set(all_inbound.mapped('mail_message_id.res_id'))
+        new_inbound = len(inbound_channel_ids)
         
         # All Outbound Messages
         outbound_domain = domain_msg + [('message_type', '=', 'outbound')]
         all_outbound = self.env['whatsapp.message'].search(outbound_domain)
+        outbound_channel_ids = set(all_outbound.mapped('mail_message_id.res_id'))
         
-        # Outbound message states
-        total_sent = len(all_outbound)
+        # Outbound message states (now counting unique chats)
+        total_sent = len(outbound_channel_ids)
         
         # Sent messages that are Read
-        read_count = len(all_outbound.filtered(lambda m: m.state == 'read'))
+        read_count = len(set(all_outbound.filtered(lambda m: m.state == 'read').mapped('mail_message_id.res_id')))
         
         # Sent messages that are Delivered (but not read)
-        delivered_count = len(all_outbound.filtered(lambda m: m.state == 'delivered'))
+        delivered_count = len(set(all_outbound.filtered(lambda m: m.state == 'delivered').mapped('mail_message_id.res_id')))
         
         # Sent messages that are neither Read nor Delivered (error, bounced, cancel, outgoing, sent)
-        not_delivered_count = len(all_outbound.filtered(lambda m: m.state not in ['delivered', 'read']))
+        not_delivered_count = len(set(all_outbound.filtered(lambda m: m.state not in ['delivered', 'read']).mapped('mail_message_id.res_id')))
         
         # Unreplied Messages: Using the "Delivered but not read" as per user request + all delivered
         unreplied_count = delivered_count
@@ -56,9 +58,7 @@ class WhatsappDashboard(models.AbstractModel):
             total_contacts_domain.append(('wa_account_id', '=', int(account_id)))
         total_contacts = self.env['discuss.channel'].search_count(total_contacts_domain)
         
-        # Chats Activity
-        inbound_channel_ids = set(all_inbound.mapped('mail_message_id.res_id'))
-        outbound_channel_ids = set(all_outbound.mapped('mail_message_id.res_id'))
+        # Chats Activity (already computed above)
         
         total_chats_active = len(inbound_channel_ids.union(outbound_channel_ids))
         replied_chats_count = len(inbound_channel_ids.intersection(outbound_channel_ids))
