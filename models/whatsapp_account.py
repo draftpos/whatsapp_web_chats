@@ -868,7 +868,7 @@ class WhatsAppAccount(models.Model):
                 ], order='id desc', limit=30)
         
         res = []
-        seen_bodies = set()
+        seen_bodies = {}
         for m in messages:
             body_text = re.sub(r'<[^>]+>', '', m.body or '').strip()
             
@@ -926,12 +926,13 @@ class WhatsAppAccount(models.Model):
             wa_reaction_me = wa_rec.wa_reaction_me if wa_rec else False
             wa_is_edited = '<!--edited-->' in (m.body or '')
             
-            # Deduplicate messages by body (to prevent Odoo echo + Meta echo duplicates)
+            # Deduplicate messages by body (to prevent Odoo echo + Meta echo duplicates within 60 seconds)
             dedup_key = re.sub(r'\s+', '', body_text).lower()
-            if dedup_key:
-                if dedup_key in seen_bodies:
+            if dedup_key and m.date:
+                last_time = seen_bodies.get(dedup_key)
+                if last_time and (last_time - m.date).total_seconds() < 60:
                     continue
-                seen_bodies.add(dedup_key)
+                seen_bodies[dedup_key] = m.date
             
             quoted_body = False
             quoted_attachment = False
@@ -2073,7 +2074,17 @@ class WhatsAppAccount(models.Model):
                 import logging
                 logging.getLogger(__name__).error("Failed to send template immediately: %s", e)
 
-            # No longer posting duplicate message to channel
+            # Post a copy to the channel so it shows up immediately in the UI
+            try:
+                channel.sudo().message_post(
+                    body=rendered_body,
+                    message_type='whatsapp_message',
+                    subtype_xmlid='mail.mt_comment',
+                    author_id=self.env.user.partner_id.id,
+                )
+            except Exception as e:
+                pass
+
             sent_date = mail_msg.date.strftime('%Y-%m-%d %H:%M:%S') if mail_msg.date else False
 
             # Queue first auto follow-up rule if configured
