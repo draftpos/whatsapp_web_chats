@@ -200,51 +200,48 @@ export class DashboardAction extends Component {
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
-                    interaction: {
+                    tooltips: {
                         mode: 'index',
                         intersect: false,
+                        backgroundColor: 'rgba(17, 27, 33, 0.95)',
+                        titleFontSize: 14,
+                        titleFontStyle: 'bold',
+                        bodyFontSize: 13,
+                        xPadding: 12,
+                        yPadding: 12,
+                        cornerRadius: 8
                     },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                font: { size: 14, weight: '500' },
-                                color: '#54656f',
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(17, 27, 33, 0.95)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            cornerRadius: 8,
-                            boxPadding: 6
+                    legend: {
+                        labels: {
+                            fontSize: 14,
+                            fontColor: '#54656f',
+                            usePointStyle: true,
+                            padding: 20
                         }
                     },
                     scales: {
-                        x: {
-                            grid: { display: false },
+                        xAxes: [{
+                            gridLines: { display: false },
                             ticks: {
-                                color: '#8696a0',
-                                font: { size: 12 },
+                                fontColor: '#8696a0',
+                                fontSize: 12,
                                 maxRotation: 45,
                                 minRotation: 45
                             }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: {
+                        }],
+                        yAxes: [{
+                            gridLines: {
                                 color: 'rgba(0, 0, 0, 0.05)',
                                 drawBorder: false
                             },
                             ticks: {
-                                color: '#8696a0',
-                                font: { size: 12 },
+                                beginAtZero: true,
+                                fontColor: '#8696a0',
+                                fontSize: 12,
                                 stepSize: 1,
                                 precision: 0
                             }
-                        }
+                        }]
                     }
                 }
             });
@@ -266,7 +263,19 @@ export class DashboardAction extends Component {
                         borderWidth: 0
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    cutoutPercentage: 75,
+                    legend: { display: false },
+                    tooltips: {
+                        backgroundColor: 'rgba(17, 27, 33, 0.95)',
+                        bodyFontSize: 13,
+                        xPadding: 10,
+                        yPadding: 10,
+                        cornerRadius: 8
+                    }
+                }
             });
         }
     }
