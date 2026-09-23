@@ -4244,6 +4244,24 @@ export class WhatsAppChatsAction extends Component {
         
         this.closeTemplatesModal();
 
+        // Show instantly via optimistic UI — use the pre-rendered body from the template
+        const tempId = 'temp_' + Date.now();
+        const now = new Date();
+        const tempMsg = {
+            id: tempId,
+            bodyText: tmpl.bodyText || tmpl.body || '',
+            isMe: true,
+            isSystem: false,
+            timeText: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+            date: now.toISOString().slice(0, 19).replace('T', ' '),
+            dateText: 'Today',
+            wa_state: 'pending',
+            attachment_ids: [],
+            noAnimate: false,
+        };
+        this.state.messages.push(tempMsg);
+        this.scrollToBottom();
+
         try {
             const result = await this.orm.call(
                 "whatsapp.account",
@@ -4254,15 +4272,24 @@ export class WhatsAppChatsAction extends Component {
             );
             
             if (result && result.success) {
-                // Wait a moment for the server to finish processing, then do ONE reload
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                await this.loadMessages(this.state.selectedChannel.id);
-                this.scrollToBottom();
+                // Upgrade the temp message to the real server ID in-place.
+                // mergeArrayStable will find it by ID on the next poll and update — no duplicate.
+                if (result.msg_id) {
+                    tempMsg.id = result.msg_id;
+                    tempMsg.noAnimate = true;
+                }
+                if (result.body) {
+                    tempMsg.bodyText = result.body;
+                }
+                tempMsg.wa_state = 'sent';
             } else {
-                console.error("Failed to send template:", result.error);
-                alert("Failed to send template: " + (result.error || "Unknown error"));
+                console.error("Failed to send template:", result ? result.error : 'no result');
+                alert("Failed to send template: " + (result ? result.error || "Unknown error" : "No response"));
+                // Remove the failed temp message
+                this.state.messages = this.state.messages.filter(m => m.id !== tempId);
             }
         } catch (e) {
+
             console.error("Error sending template:", e);
             alert("Error sending template: " + e.message);
         }
