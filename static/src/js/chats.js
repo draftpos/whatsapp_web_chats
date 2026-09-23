@@ -2209,6 +2209,9 @@ export class WhatsAppChatsAction extends Component {
                     if (matchingTemp) {
                         serverMsg.noAnimate = true;
                         matchingTemp._merged = true;
+                        serverMsg.timeText = matchingTemp.timeText || serverMsg.timeText;
+                        serverMsg.date = matchingTemp.date || serverMsg.date;
+                        serverMsg.dateText = matchingTemp.dateText || serverMsg.dateText;
                     }
                 }
             }
@@ -2241,6 +2244,9 @@ export class WhatsAppChatsAction extends Component {
                     if (matchingTemp) {
                         serverMsg.noAnimate = true;
                         matchingTemp._merged = true;
+                        serverMsg.timeText = matchingTemp.timeText || serverMsg.timeText;
+                        serverMsg.date = matchingTemp.date || serverMsg.date;
+                        serverMsg.dateText = matchingTemp.dateText || serverMsg.dateText;
                         const tempAtt = matchingTemp.attachment_ids.find(a => a.localBlobUrl || a.dataUrl);
                         if (tempAtt) {
                             if (tempAtt.localBlobUrl) {
@@ -3068,12 +3074,15 @@ export class WhatsAppChatsAction extends Component {
 
         // ── Show audio bubble in chat INSTANTLY (optimistic UI) ───────────────
         const tempAttId = 'temp_audio_' + Date.now();
+        const now = new Date();
         const tempMsg = {
             id: tempAttId,
             bodyText: '',
             isMe: true,
             isSystem: false,
-            timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timeText: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+            date: now.toISOString().slice(0, 19).replace('T', ' '),
+            dateText: 'Today',
             wa_state: 'pending',
             attachment_ids: [{
                 id: tempAttId,
@@ -3230,12 +3239,15 @@ export class WhatsAppChatsAction extends Component {
                 // Text only
                 const channelId = this.state.selectedChannel.id;
                 const tempMsgId = 'temp_' + Date.now();
+                const now = new Date();
                 const tempMsg = {
                     id: tempMsgId,
                     bodyText: messageBody,
                     isMe: true,
                     isSystem: false,
-                    timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    timeText: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+                    date: now.toISOString().slice(0, 19).replace('T', ' '),
+                    dateText: 'Today',
                     wa_state: 'pending',
                     attachment_ids: [],
                     quoted_message_id: replyingToMessageId,
@@ -3294,12 +3306,15 @@ export class WhatsAppChatsAction extends Component {
                     const body = isFirst && messageBody.trim() ? messageBody : '';
                     const tempMsgId = 'temp_' + Date.now() + '_' + i;
                     
+                    const now = new Date();
                     const tempMsg = {
                         id: tempMsgId,
                         bodyText: body,
                         isMe: true,
                         isSystem: false,
-                        timeText: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        timeText: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+                        date: now.toISOString().slice(0, 19).replace('T', ' '),
+                        dateText: 'Today',
                         wa_state: 'pending',
                         attachment_ids: [{
                             id: 'temp_att_' + Math.random().toString(36).substr(2, 9),
