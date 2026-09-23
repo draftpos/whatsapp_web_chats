@@ -3198,7 +3198,7 @@ export class WhatsAppChatsAction extends Component {
                 throw new Error("Failed to parse attachment ID");
             }
 
-            await this.orm.call(
+            const msgId = await this.orm.call(
                 'whatsapp.account',
                 'post_whatsapp_message',
                 [this.state.selectedChannel.id],
@@ -3210,10 +3210,16 @@ export class WhatsAppChatsAction extends Component {
                 }
             );
 
-            await new Promise(resolve => setTimeout(resolve, 400));
-            await this.loadMessages();
+            if (msgId) {
+                // Remove any poller-inserted copy with the same real ID before upgrading
+                this.state.messages = this.state.messages.filter(
+                    m => m === tempMsg || m.id !== msgId
+                );
+                tempMsg.id = msgId;
+                tempMsg.noAnimate = true;
+            }
+            tempMsg.wa_state = 'sent';
             this.scrollToBottom();
-            await this.pollMessages();
         } catch (e) {
             console.error('Failed to send audio message:', e);
             let errMsg = (e.data && e.data.message) || e.message || String(e);
