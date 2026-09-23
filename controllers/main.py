@@ -1,8 +1,9 @@
 from odoo.addons.auth_signup.controllers.main import AuthSignupHome
-from odoo.http import request
+from odoo.http import request, route
 
 class WhatsAppSignup(AuthSignupHome):
 
+    @route()
     def web_auth_signup(self, *args, **kw):
         response = super(WhatsAppSignup, self).web_auth_signup(*args, **kw)
         

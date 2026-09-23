@@ -2206,6 +2206,13 @@ export class WhatsAppChatsAction extends Component {
                 (!m.attachment_ids || m.attachment_ids.length === 0)
             );
             if (tempTextMsgs.length > 0) {
+                // First, expire temp messages older than 15 seconds
+                for (const t of tempTextMsgs) {
+                    if (now - new Date(t.date).getTime() > 15000) {
+                        t._merged = true;
+                    }
+                }
+
                 for (const serverMsg of this.state.messages) {
                     if (!serverMsg.isMe) continue;
                     if (serverMsg.id && serverMsg.id.toString().startsWith('temp_')) continue;
@@ -4203,6 +4210,24 @@ export class WhatsAppChatsAction extends Component {
         if (!this.state.selectedChannel) return;
         
         this.closeTemplatesModal();
+        
+        // Add optimistic UI message for template
+        const tempMsgId = 'temp_' + Date.now();
+        const now = new Date();
+        const tempMsg = {
+            id: tempMsgId,
+            bodyText: tmpl.bodyText || tmpl.body || 'Template message',
+            isMe: true,
+            isSystem: false,
+            timeText: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+            date: now.toISOString().slice(0, 19).replace('T', ' '),
+            dateText: 'Today',
+            wa_state: 'pending',
+            attachment_ids: []
+        };
+        this.state.messages.push(tempMsg);
+        this.scrollToBottom();
+
         try {
             const result = await this.orm.call(
                 "whatsapp.account",
