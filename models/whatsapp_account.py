@@ -2038,17 +2038,22 @@ class WhatsAppAccount(models.Model):
             for i, var in enumerate(free_text_vars, start=1):
                 rendered_body = _re.sub(r'\{\{' + str(i) + r'\}\}', contact_name, rendered_body)
 
-            # Post the mail.message directly on discuss.channel (not res.partner).
-            # This is the message the chat UI and the poller will both find via the
-            # channel domain — one record, found once, no duplicate.
-            # When wa_msg.mail_message_id already points to a discuss.channel message,
-            # Odoo's _send() does NOT create a second channel posting.
-            mail_msg = channel.sudo().message_post(
+            # Post the mail.message on res.partner — required by Odoo so that
+            # mail_message_id.model matches the template's model field ('res.partner').
+            mail_msg = partner.sudo().message_post(
                 body=rendered_body,
-                message_type='whatsapp_message',
+                message_type='comment',
                 subtype_xmlid='mail.mt_comment',
                 author_id=self.env.user.partner_id.id,
             )
+
+            # Record the highest channel message ID BEFORE _send so we can detect
+            # any new message _send() auto-creates in the discuss.channel.
+            existing_channel_msg = self.env['mail.message'].sudo().search(
+                [('model', '=', 'discuss.channel'), ('res_id', '=', channel.id)],
+                order='id desc', limit=1
+            )
+            last_channel_id_before = existing_channel_msg.id if existing_channel_msg else 0
 
             # Create the whatsapp.message that drives the actual Meta API call
             wa_msg = self.env['whatsapp.message'].sudo().create({
@@ -2068,10 +2073,23 @@ class WhatsAppAccount(models.Model):
                 import logging
                 logging.getLogger(__name__).error("Failed to send template immediately: %s", e)
 
-            # Re-read wa_msg after _send — if _send updated mail_message_id to a new
-            # channel message, return THAT id so JS and poller always agree on one record.
-            wa_msg.invalidate_recordset(['mail_message_id'])
-            final_msg = wa_msg.mail_message_id if wa_msg.mail_message_id else mail_msg
+            # After _send, look for a new discuss.channel message that _send created.
+            # Odoo's core _send() posts to the channel as a side-effect.
+            # If we return that channel msg ID (instead of the res.partner one),
+            # the poller's query will find ONE message (same record) — no duplicate.
+            new_channel_msgs = self.env['mail.message'].sudo().search([
+                ('model', '=', 'discuss.channel'),
+                ('res_id', '=', channel.id),
+                ('id', '>', last_channel_id_before),
+            ], order='id asc', limit=5)
+
+            final_msg = mail_msg  # fallback: res.partner message
+            if new_channel_msgs:
+                # Point wa_msg at the channel message so get_whatsapp_web_messages
+                # returns it via wa_mail_ids — and no longer returns the res.partner orphan
+                final_msg = new_channel_msgs[0]
+                wa_msg.sudo().write({'mail_message_id': final_msg.id})
+
             sent_date = final_msg.date.strftime('%Y-%m-%d %H:%M:%S') if final_msg.date else False
 
             # Queue first auto follow-up rule if configured
