@@ -662,7 +662,8 @@ export class WhatsAppChatsAction extends Component {
             alert("Contact created successfully!");
         } catch (e) {
             console.error("Failed to create contact", e);
-            alert("Error creating contact. Make sure the number doesn't already exist.");
+            const errMsg = (e && e.data && e.data.message) || (e && e.message) || String(e);
+            alert("Error creating contact: " + errMsg);
         }
     }
 
