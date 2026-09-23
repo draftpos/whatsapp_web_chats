@@ -315,6 +315,10 @@ export class WhatsAppChatsAction extends Component {
             if (targetMap.has(key)) {
                 const targetItem = targetMap.get(key);
                 for (const prop in sourceItem) {
+                    // Preserve UI-only flags: if noAnimate is already true, keep it
+                    // so that a sent message doesn't re-flash its animation when the
+                    // background poller overwrites it with server data.
+                    if (prop === 'noAnimate' && targetItem[prop] === true) continue;
                     targetItem[prop] = sourceItem[prop];
                 }
             } else {
@@ -2198,7 +2202,24 @@ export class WhatsAppChatsAction extends Component {
                 
                 return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
             }).filter(msg => !msg.isSystem || (msg.isSystem && msg.bodyText && msg.bodyText.trim() !== ''));
-            this.state.messages = this.mergeArrayStable(this.state.messages, mappedMessages, 'id');
+            // Merge in-place: update existing message objects and append new ones.
+            // Avoids replacing the array reference so OWL only re-renders changed items.
+            {
+                const existingById = new Map(this.state.messages.map(m => [m.id, m]));
+                for (const msg of mappedMessages) {
+                    if (!msg.id) continue;
+                    if (existingById.has(msg.id)) {
+                        const existing = existingById.get(msg.id);
+                        for (const k in msg) {
+                            if (k === 'noAnimate' && existing[k] === true) continue;
+                            if (existing[k] !== msg[k]) existing[k] = msg[k];
+                        }
+                    } else {
+                        this.state.messages.push(msg);
+                        existingById.set(msg.id, msg);
+                    }
+                }
+            }
             } // end if messages.length > 0
             
             // --- Merge pending/recently sent messages ---
