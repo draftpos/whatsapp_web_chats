@@ -4213,6 +4213,7 @@ export class WhatsAppChatsAction extends Component {
                     isMe: true,
                     timeText: timeText,
                     date: sentDate,
+                    dateText: 'Today',
                     isSystem: false,
                     attachment_ids: [],
                 }];
