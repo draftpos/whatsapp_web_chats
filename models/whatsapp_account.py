@@ -868,6 +868,7 @@ class WhatsAppAccount(models.Model):
                 ], order='id desc', limit=30)
         
         res = []
+        seen_bodies = set()
         for m in messages:
             body_text = re.sub(r'<[^>]+>', '', m.body or '').strip()
             
@@ -924,6 +925,13 @@ class WhatsAppAccount(models.Model):
             wa_reaction = wa_rec.wa_reaction if wa_rec else False
             wa_reaction_me = wa_rec.wa_reaction_me if wa_rec else False
             wa_is_edited = '<!--edited-->' in (m.body or '')
+            
+            # Deduplicate messages by body (to prevent Odoo echo + Meta echo duplicates)
+            dedup_key = re.sub(r'\s+', '', body_text).lower()
+            if dedup_key:
+                if dedup_key in seen_bodies:
+                    continue
+                seen_bodies.add(dedup_key)
             
             quoted_body = False
             quoted_attachment = False
