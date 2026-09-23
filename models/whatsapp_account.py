@@ -2038,11 +2038,14 @@ class WhatsAppAccount(models.Model):
             for i, var in enumerate(free_text_vars, start=1):
                 rendered_body = _re.sub(r'\{\{' + str(i) + r'\}\}', contact_name, rendered_body)
 
-            # Post the mail.message on res.partner so that mail_message_id.model == 'res.partner'
-            # This must match the template's model field (all templates use res.partner)
-            mail_msg = partner.sudo().message_post(
+            # Post the mail.message directly on discuss.channel (not res.partner).
+            # This is the message the chat UI and the poller will both find via the
+            # channel domain — one record, found once, no duplicate.
+            # When wa_msg.mail_message_id already points to a discuss.channel message,
+            # Odoo's _send() does NOT create a second channel posting.
+            mail_msg = channel.sudo().message_post(
                 body=rendered_body,
-                message_type='comment',
+                message_type='whatsapp_message',
                 subtype_xmlid='mail.mt_comment',
                 author_id=self.env.user.partner_id.id,
             )
@@ -2065,7 +2068,11 @@ class WhatsAppAccount(models.Model):
                 import logging
                 logging.getLogger(__name__).error("Failed to send template immediately: %s", e)
 
-            sent_date = mail_msg.date.strftime('%Y-%m-%d %H:%M:%S') if mail_msg.date else False
+            # Re-read wa_msg after _send — if _send updated mail_message_id to a new
+            # channel message, return THAT id so JS and poller always agree on one record.
+            wa_msg.invalidate_recordset(['mail_message_id'])
+            final_msg = wa_msg.mail_message_id if wa_msg.mail_message_id else mail_msg
+            sent_date = final_msg.date.strftime('%Y-%m-%d %H:%M:%S') if final_msg.date else False
 
             # Queue first auto follow-up rule if configured
             first_rule = wa_account.followup_rule_ids.sorted('sequence')
@@ -2081,7 +2088,7 @@ class WhatsAppAccount(models.Model):
                     'state': 'pending',
                 })
 
-            return {'success': True, 'body': rendered_body, 'sent_date': sent_date, 'msg_id': mail_msg.id}
+            return {'success': True, 'body': rendered_body, 'sent_date': sent_date, 'msg_id': final_msg.id}
         except Exception as e:
             _logger.exception("Error in send_whatsapp_template")
             return {'success': False, 'error': str(e)}
