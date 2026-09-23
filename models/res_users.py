@@ -1,6 +1,7 @@
 from odoo import models, fields, api
 
 class ResUsers(models.Model):
+    _name = 'res.users'
     _inherit = 'res.users'
 
     tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
