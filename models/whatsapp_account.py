@@ -1660,11 +1660,20 @@ class WhatsAppAccount(models.Model):
                                     ('mail_message_id', '=', msg_id),
                                     ('state', '=', 'outgoing')
                                 ])
+                                
+                                # Fix Odoo core bug where it splits a message with attachment and body into multiple whatsapp.messages
+                                if len(wa_msgs) > 1:
+                                    _logger.info(f"Odoo split message {msg_id} into {len(wa_msgs)} whatsapp messages. Cancelling duplicates.")
+                                    image_msg = wa_msgs.filtered(lambda w: w.attachment_id)
+                                    text_msg = wa_msgs.filtered(lambda w: not w.attachment_id and w.body)
+                                    if image_msg and text_msg:
+                                        # Merge the body of the text message into the attachment message
+                                        image_msg[0].write({'body': text_msg[0].body})
+                                    wa_msgs[1:].write({'state': 'cancel'})
+                                    wa_msgs = wa_msgs[0]
+
                                 for wa_msg in wa_msgs:
                                     _logger.info(f"PRE-SEND WA MSG BACKGROUND {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
-                                    if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
-                                        wa_msg.write({'state': 'cancel'})
-                                        continue
                                     try:
                                         wa_msg._send(force_send_by_cron=False)
                                     except Exception as send_err:
@@ -1692,13 +1701,14 @@ class WhatsAppAccount(models.Model):
                         ('mail_message_id', '=', msg_id),
                         ('state', '=', 'outgoing')
                     ])
+                    
+                    if len(wa_msgs) > 1:
+                        _logger.info(f"Odoo split message {msg_id} into {len(wa_msgs)} whatsapp messages. Cancelling duplicates.")
+                        wa_msgs[1:].write({'state': 'cancel'})
+                        wa_msgs = wa_msgs[0]
+                        
                     for wa_msg in wa_msgs:
                         _logger.info(f"PRE-SEND WA MSG {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
-                        # If Odoo mistakenly created a text message with no body, cancel it to prevent Meta API error!
-                        if wa_msg.message_type == 'text' and (not wa_msg.body or wa_msg.body == '<p><br></p>'):
-                            _logger.info(f"Cancelling bogus empty text message {wa_msg.id} to avoid Meta API error.")
-                            wa_msg.write({'state': 'cancel'})
-                            continue
                         try:
                             wa_msg._send(force_send_by_cron=False)
                         except Exception as send_err:

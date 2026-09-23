@@ -2326,6 +2326,9 @@ export class WhatsAppChatsAction extends Component {
                 this.state.messages = [...this.state.messages, ...recentTempMsgs, ...queueToAdd];
             }
             
+            // Remove temp messages that have been successfully merged with server messages
+            this.state.messages = this.state.messages.filter(m => !m._merged);
+            
             this.messageCache[id] = this.state.messages;
             
             // Check for newly failed messages and alert the user
@@ -3314,81 +3317,79 @@ export class WhatsAppChatsAction extends Component {
                     this.scrollToBottom();
 
                     // Upload and send attachment immediately
-                    (async () => {
-                        try {
-                            let fileToUpload = pendingFile.file;
-                            if (!fileToUpload && pendingFile.dataUrl) {
-                                fileToUpload = this.dataURLtoBlob(pendingFile.dataUrl);
-                            }
-                            if (!fileToUpload) {
-                                throw new Error("No file content to upload");
-                            }
-
-                            const formData = new window.FormData();
-                            formData.append('csrf_token', window.odoo?.csrf_token || '');
-                            formData.append('name', pendingFile.name);
-                            formData.append('ufile', fileToUpload, pendingFile.name);
-                            formData.append('model', 'discuss.channel');
-                            formData.append('id', channelId);
-
-                            const response = await window.fetch('/web/binary/upload_attachment', {
-                                method: 'POST',
-                                body: formData,
-                            });
-                            if (!response.ok) {
-                                throw new Error(`Upload failed with status ${response.status}`);
-                            }
-                            const responseText = await response.text();
-                            let attachmentId = null;
-                            const match = responseText.match(/\[.*?\]|\{.*?\}/);
-                            if (match) {
-                                const result = JSON.parse(match[0]);
-                                if (Array.isArray(result) && result.length > 0) {
-                                    attachmentId = result[0].id;
-                                } else if (result.id) {
-                                    attachmentId = result.id;
-                                }
-                            }
-                            if (!attachmentId) {
-                                throw new Error("Could not parse attachment ID from upload response");
-                            }
-
-                            const kwargs = {
-                                body: body,
-                                message_type: "whatsapp_message",
-                                subtype_xmlid: "mail.mt_comment",
-                                attachment_ids: [attachmentId]
-                            };
-                            if (replyingToMessageId) {
-                                kwargs.parent_id = replyingToMessageId;
-                            }
-
-                            await this.orm.call(
-                                "whatsapp.account",
-                                "post_whatsapp_message",
-                                [channelId],
-                                kwargs
-                            );
-
-                            tempMsg.wa_state = 'sent';
-                            // await this.loadMessages(); // Removed to prevent race conditions during bulk uploads
-                            this.scrollToBottom();
-                        } catch (err) {
-                            console.error("Failed to send attachment:", err);
-                            tempMsg.wa_state = 'error';
-                            let errMsg = (err.message || err);
-                            const banner = document.createElement('div');
-                            banner.textContent = '⚠️ Attachment send failed: ' + errMsg;
-                            Object.assign(banner.style, {
-                                position: 'fixed', bottom: '70px', left: '50%', transform: 'translateX(-50%)',
-                                background: '#f15c6d', color: 'white', padding: '10px 18px', borderRadius: '8px',
-                                fontSize: '13px', zIndex: '9999', maxWidth: '80%', textAlign: 'center',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                            });
-                            document.body.appendChild(banner);
-                            setTimeout(() => banner.remove(), 6000);
+                    try {
+                        let fileToUpload = pendingFile.file;
+                        if (!fileToUpload && pendingFile.dataUrl) {
+                            fileToUpload = this.dataURLtoBlob(pendingFile.dataUrl);
                         }
-                    })();
+                        if (!fileToUpload) {
+                            throw new Error("No file content to upload");
+                        }
+
+                        const formData = new window.FormData();
+                        formData.append('csrf_token', window.odoo?.csrf_token || '');
+                        formData.append('name', pendingFile.name);
+                        formData.append('ufile', fileToUpload, pendingFile.name);
+                        formData.append('model', 'discuss.channel');
+                        formData.append('id', channelId);
+
+                        const response = await window.fetch('/web/binary/upload_attachment', {
+                            method: 'POST',
+                            body: formData,
+                        });
+                        if (!response.ok) {
+                            throw new Error(`Upload failed with status ${response.status}`);
+                        }
+                        const responseText = await response.text();
+                        let attachmentId = null;
+                        const match = responseText.match(/\[.*?\]|\{.*?\}/);
+                        if (match) {
+                            const result = JSON.parse(match[0]);
+                            if (Array.isArray(result) && result.length > 0) {
+                                attachmentId = result[0].id;
+                            } else if (result.id) {
+                                attachmentId = result.id;
+                            }
+                        }
+                        if (!attachmentId) {
+                            throw new Error("Could not parse attachment ID from upload response");
+                        }
+
+                        const kwargs = {
+                            body: body,
+                            message_type: "whatsapp_message",
+                            subtype_xmlid: "mail.mt_comment",
+                            attachment_ids: [attachmentId]
+                        };
+                        if (replyingToMessageId) {
+                            kwargs.parent_id = replyingToMessageId;
+                        }
+
+                        await this.orm.call(
+                            "whatsapp.account",
+                            "post_whatsapp_message",
+                            [channelId],
+                            kwargs
+                        );
+
+                        tempMsg.wa_state = 'sent';
+                        // await this.loadMessages(); // Removed to prevent race conditions during bulk uploads
+                        this.scrollToBottom();
+                    } catch (err) {
+                        console.error("Failed to send attachment:", err);
+                        tempMsg.wa_state = 'error';
+                        let errMsg = (err.message || err);
+                        const banner = document.createElement('div');
+                        banner.textContent = '⚠️ Attachment send failed: ' + errMsg;
+                        Object.assign(banner.style, {
+                            position: 'fixed', bottom: '70px', left: '50%', transform: 'translateX(-50%)',
+                            background: '#f15c6d', color: 'white', padding: '10px 18px', borderRadius: '8px',
+                            fontSize: '13px', zIndex: '9999', maxWidth: '80%', textAlign: 'center',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                        });
+                        document.body.appendChild(banner);
+                        setTimeout(() => banner.remove(), 6000);
+                    }
                 }
             }
             
