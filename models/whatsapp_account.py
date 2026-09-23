@@ -857,6 +857,16 @@ class WhatsAppAccount(models.Model):
         ])
         wa_map = {wa.mail_message_id.id: wa for wa in wa_msgs if wa.mail_message_id}
         
+        # Fetch recent outbound whatsapp messages for this number to match with echo messages (templates)
+        outbound_wa_msgs = []
+        if channel.whatsapp_number:
+            clean_num = ''.join(filter(str.isdigit, channel.whatsapp_number))
+            if clean_num:
+                outbound_wa_msgs = self.env['whatsapp.message'].sudo().search([
+                    ('mobile_number', 'ilike', clean_num),
+                    ('message_type', '=', 'outbound')
+                ], order='id desc', limit=30)
+        
         res = []
         for m in messages:
             body_text = re.sub(r'<[^>]+>', '', m.body or '').strip()
@@ -899,6 +909,15 @@ class WhatsAppAccount(models.Model):
                 author_data = [m.author_id.id, author_name]
             
             wa_rec = wa_map.get(m.id)
+            if not wa_rec and m.author_id and m.author_id.id == self.env.user.partner_id.id:
+                # Try to find a matching outbound message by body (for templates echoing on channel)
+                for o_wa in outbound_wa_msgs:
+                    if o_wa.mail_message_id and o_wa.mail_message_id.body:
+                        o_body = re.sub(r'<[^>]+>', '', o_wa.mail_message_id.body).strip()
+                        if o_body and (o_body in body_text or body_text in o_body):
+                            wa_rec = o_wa
+                            break
+
             wa_state = wa_rec.state if wa_rec else False
             wa_is_starred = wa_rec.wa_is_starred if wa_rec else False
             wa_is_pinned = wa_rec.wa_is_pinned if wa_rec else False
@@ -2052,6 +2071,7 @@ class WhatsAppAccount(models.Model):
                         msg = new_env['whatsapp.message'].browse(wa_msg_id)
                         if msg.exists() and msg.state == 'outgoing':
                             msg._send(force_send_by_cron=False)
+                            new_cr.commit()
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).error("Failed to background send template: %s", e)
