@@ -1989,15 +1989,6 @@ class WhatsAppAccount(models.Model):
             if not wa_account:
                 return {'success': False, 'error': 'No WhatsApp account found'}
 
-            # Post the mail.message on res.partner so that mail_message_id.model == 'res.partner'
-            # This must match the template's model field (all templates use res.partner)
-            mail_msg = partner.sudo().message_post(
-                body=f'[WhatsApp Template Sent: {template.template_name}]',
-                message_type='comment',
-                subtype_xmlid='mail.mt_comment',
-                author_id=self.env.user.partner_id.id,
-            )
-
             # Build free_text_json to fill {{1}}, {{2}}... placeholders in the template body.
             # All templates have `field_type=free_text` variables — we default to the contact name.
             free_text_json = {}
@@ -2022,6 +2013,15 @@ class WhatsAppAccount(models.Model):
             for i, var in enumerate(free_text_vars, start=1):
                 rendered_body = _re.sub(r'\{\{' + str(i) + r'\}\}', contact_name, rendered_body)
 
+            # Post the mail.message on res.partner so that mail_message_id.model == 'res.partner'
+            # This must match the template's model field (all templates use res.partner)
+            mail_msg = partner.sudo().message_post(
+                body=rendered_body,
+                message_type='comment',
+                subtype_xmlid='mail.mt_comment',
+                author_id=self.env.user.partner_id.id,
+            )
+
             # Create the whatsapp.message that drives the actual Meta API call
             wa_msg = self.env['whatsapp.message'].sudo().create({
                 'mobile_number': phone,
@@ -2043,19 +2043,8 @@ class WhatsAppAccount(models.Model):
                 _logger.warning("Template send failed: %s", err)
                 return {'success': False, 'error': err}
 
-            # Also post the rendered template text in the channel chat so the agent can see it
-            from odoo.tools import html2plaintext
-            channel_msg_body = rendered_body
-            try:
-                chan_msg = channel.sudo().message_post(
-                    body=channel_msg_body,
-                    message_type='comment',
-                    subtype_xmlid='mail.mt_comment',
-                    author_id=self.env.user.partner_id.id,
-                )
-                sent_date = chan_msg.date.strftime('%Y-%m-%d %H:%M:%S') if chan_msg.date else False
-            except Exception:
-                sent_date = False
+            # No longer posting duplicate message to channel
+            sent_date = mail_msg.date.strftime('%Y-%m-%d %H:%M:%S') if mail_msg.date else False
 
             # Queue first auto follow-up rule if configured
             first_rule = wa_account.followup_rule_ids.sorted('sequence')
