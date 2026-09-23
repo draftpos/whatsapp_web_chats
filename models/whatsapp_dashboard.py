@@ -127,6 +127,8 @@ class WhatsappDashboard(models.AbstractModel):
             
         inbound_media = count_media(inbound_attachments)
         outbound_media = count_media(outbound_attachments)
+        
+        accounts = self.env['whatsapp.account'].search_read([], ['id', 'name'])
 
         return {
             'accounts': accounts,
