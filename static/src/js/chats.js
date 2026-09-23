@@ -657,11 +657,10 @@ export class WhatsAppChatsAction extends Component {
             }]);
             this.closeNewContactModal();
             this.state.contactsOffset = 0;
-            const account_id = this.state.selectedWaAccount || false;
             const contacts = await this.orm.call(
                 "whatsapp.account",
                 "get_contacts_for_new_chat",
-                [account_id]
+                []
             );
             this.state.contacts = contacts;
             this.state.filteredContacts = contacts;
