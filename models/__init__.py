@@ -15,3 +15,4 @@ from . import whatsapp_quick_reply
 from . import ir_ui_menu
 
 from . import whatsapp_dashboard
+from . import wa_contact_sharing

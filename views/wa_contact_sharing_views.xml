@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_company_view_form_wa_sharing" model="ir.ui.view">
+        <field name="name">res.company.view.form.wa.sharing</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="WhatsApp Contact Sharing">
+                    <group>
+                        <field name="wa_contact_sharing_mode"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="whatsapp_account_view_form_wa_sharing" model="ir.ui.view">
+        <field name="name">whatsapp.account.view.form.wa.sharing</field>
+        <field name="model">whatsapp.account</field>
+        <field name="inherit_id" ref="whatsapp.whatsapp_account_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <notebook>
+                    <page string="Contact Sharing">
+                        <group>
+                            <field name="wa_contact_sharing_mode" invisible="1"/>
+                            <field name="shared_contact_account_ids" widget="many2many_tags" 
+                                   invisible="wa_contact_sharing_mode != 'specific'"/>
+                        </group>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+    
+    <record id="view_partner_form_wa_sharing" model="ir.ui.view">
+        <field name="name">res.partner.view.form.wa.sharing</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="wa_account_id" groups="base.group_no_one"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

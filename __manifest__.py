@@ -25,6 +25,7 @@
         'views/login_templates.xml',
         'data/school_sync_cron.xml',
         'views/mobile_kanban_views.xml',
+        'views/wa_contact_sharing_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

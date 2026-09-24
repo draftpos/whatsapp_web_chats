@@ -76,6 +76,7 @@ class WhatsAppAccount(models.Model):
     school_balance_template = fields.Many2one(
         'whatsapp.template',
         related='school_balance_wa_template_id',
+        string="Legacy School Balance Template",
         readonly=False
     )
     school_auto_send_frequency = fields.Selection([

@@ -22,7 +22,7 @@
                             </div>
                             <div class="row m-0 text-muted mt-2">
                                 <div class="col-12" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-clock-o me-1"/><field name="create_date"/>
+                                    <i class="fa fa-clock-o me-1" title="Time"/><field name="create_date"/>
                                 </div>
                             </div>
                         </div>
@@ -62,12 +62,12 @@
                             </div>
                             <div class="row m-0 mt-1" t-if="record.phone_number.value">
                                 <div class="col-12" style="font-size: 13px; color: #54656f;">
-                                    <i class="fa fa-phone me-1"/><field name="phone_number"/>
+                                    <i class="fa fa-phone me-1" title="Phone"/><field name="phone_number"/>
                                 </div>
                             </div>
                             <div class="row m-0 mt-1" t-if="record.account_uid.value">
                                 <div class="col-12" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-id-card me-1"/>Account ID: <field name="account_uid"/>
+                                    <i class="fa fa-id-card me-1" title="Account ID"/>Account ID: <field name="account_uid"/>
                                 </div>
                             </div>
                         </div>
@@ -114,7 +114,7 @@
                             </div>
                             <div class="row m-0 mt-1">
                                 <div class="col-12" style="font-size: 13px; color: #54656f;">
-                                    <i class="fa fa-android me-1"/><field name="chatbot_id"/>
+                                    <i class="fa fa-android me-1" title="Chatbot"/><field name="chatbot_id"/>
                                 </div>
                             </div>
                             <div class="row m-0 mt-1" t-if="record.description.value">
@@ -124,7 +124,7 @@
                             </div>
                             <div class="row m-0 mt-1">
                                 <div class="col-12" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-sitemap me-1"/><field name="node_count"/> nodes
+                                    <i class="fa fa-sitemap me-1" title="Nodes"/><field name="node_count"/> nodes
                                 </div>
                             </div>
                         </div>
@@ -165,20 +165,20 @@
                             </div>
                             <div class="row m-0 mt-1">
                                 <div class="col-12" style="font-size: 13px; color: #54656f;">
-                                    <i class="fa fa-android me-1"/><field name="chatbot_id"/>
+                                    <i class="fa fa-android me-1" title="Chatbot"/><field name="chatbot_id"/>
                                 </div>
                             </div>
                             <div class="row m-0 mt-1" t-if="record.phone.value">
                                 <div class="col-12" style="font-size: 13px; color: #54656f;">
-                                    <i class="fa fa-phone me-1"/><field name="phone"/>
+                                    <i class="fa fa-phone me-1" title="Phone"/><field name="phone"/>
                                 </div>
                             </div>
                             <div class="row m-0 mt-1">
                                 <div class="col-6" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-comments me-1"/><field name="message_count"/> msgs
+                                    <i class="fa fa-comments me-1" title="Messages"/><field name="message_count"/> msgs
                                 </div>
                                 <div class="col-6 text-end" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-clock-o me-1"/><field name="started_at"/>
+                                    <i class="fa fa-clock-o me-1" title="Time"/><field name="started_at"/>
                                 </div>
                             </div>
                         </div>
@@ -225,15 +225,15 @@
                             </div>
                             <div class="row m-0 mt-1">
                                 <div class="col-12" style="font-size: 13px; color: #54656f;">
-                                    <i class="fa fa-android me-1"/><field name="chatbot_id"/>
+                                    <i class="fa fa-android me-1" title="Chatbot"/><field name="chatbot_id"/>
                                 </div>
                             </div>
                             <div class="row m-0 mt-1">
                                 <div class="col-6" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-tag me-1"/><field name="match_type"/>
+                                    <i class="fa fa-tag me-1" title="Match Type"/><field name="match_type"/>
                                 </div>
                                 <div class="col-6 text-end" style="font-size: 12px; color: #8696a0;" t-if="record.target_flow_id.value">
-                                    <i class="fa fa-arrow-right me-1"/><field name="target_flow_id"/>
+                                    <i class="fa fa-arrow-right me-1" title="Target Flow"/><field name="target_flow_id"/>
                                 </div>
                             </div>
                         </div>
@@ -316,15 +316,15 @@
                             </div>
                             <div class="row m-0 mt-1">
                                 <div class="col-6" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-language me-1"/><field name="lang_code"/>
+                                    <i class="fa fa-language me-1" title="Language"/><field name="lang_code"/>
                                 </div>
                                 <div class="col-6 text-end" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-tag me-1"/><field name="template_type"/>
+                                    <i class="fa fa-tag me-1" title="Type"/><field name="template_type"/>
                                 </div>
                             </div>
                             <div class="row m-0 mt-1" t-if="record.wa_account_id.value">
                                 <div class="col-12" style="font-size: 12px; color: #8696a0;">
-                                    <i class="fa fa-whatsapp me-1"/><field name="wa_account_id"/>
+                                    <i class="fa fa-whatsapp me-1" title="WhatsApp"/><field name="wa_account_id"/>
                                 </div>
                             </div>
                         </div>
