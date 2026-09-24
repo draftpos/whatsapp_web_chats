@@ -39,6 +39,9 @@ export class DashboardAction extends Component {
                 total_chats_active: 0,
                 replied_chats_count: 0,
                 not_replied_chats_count: 0,
+                templates_sent: 0,
+                templates_replied: 0,
+                templates_delivered_not_replied: 0,
             }
         });
 
@@ -82,6 +85,9 @@ export class DashboardAction extends Component {
                     total_chats_active: results.total_chats_active || 0,
                     replied_chats_count: results.replied_chats_count || 0,
                     not_replied_chats_count: results.not_replied_chats_count || 0,
+                    templates_sent: results.templates_sent || 0,
+                    templates_replied: results.templates_replied || 0,
+                    templates_delivered_not_replied: results.templates_delivered_not_replied || 0,
                 };
                 
                 // Render charts after state update
@@ -167,6 +173,10 @@ export class DashboardAction extends Component {
                             data: inboundData,
                             borderColor: '#25D366',
                             backgroundColor: 'rgba(37, 211, 102, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#25D366',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
                             fill: true,
                             tension: 0.4
                         },
@@ -175,6 +185,10 @@ export class DashboardAction extends Component {
                             data: outboundData,
                             borderColor: '#4285f4',
                             backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#4285f4',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
                             fill: true,
                             tension: 0.4
                         }

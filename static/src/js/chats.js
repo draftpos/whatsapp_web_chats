@@ -147,6 +147,23 @@ export class WhatsAppChatsAction extends Component {
         this.isAdmin = session.is_admin || session.is_superuser || false;
         // Cache for pre-resolved action IDs (avoids XML ID lookup RPC on each click)
         this._actionIds = {};
+        
+        // Expose a centralized sort method to ensure chat list order is always correct
+        this.sortChannels = () => {
+            this.state.channels.sort((a, b) => {
+                if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
+                if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
+                const aUnread = a.wa_is_unread_global || (a.unread_count && a.unread_count > 0) || (a.message_needaction_counter && a.message_needaction_counter > 0);
+                const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
+                if (aUnread && !bUnread) return -1;
+                if (!aUnread && bUnread) return 1;
+                
+                // Use sort_date which accurately tracks the last message timestamp (or creation if empty)
+                const aTime = a.sort_date || a.last_message_time || '';
+                const bTime = b.sort_date || b.last_message_time || '';
+                return bTime.localeCompare(aTime);
+            });
+        };
 
         onWillStart(async () => {
             // Fire and forget loadChannels so it doesn't block component mounting while fetching 50k chats over network
@@ -955,17 +972,6 @@ export class WhatsAppChatsAction extends Component {
                     currentOffset += fetchedChannels.length;
                     
                     const validChannels = allChannels.filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
-                    validChannels.sort((a, b) => {
-                        if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
-                        if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
-                        const aUnread = a.wa_is_unread_global || (a.unread_count && a.unread_count > 0) || (a.message_needaction_counter && a.message_needaction_counter > 0);
-                        const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
-                        if (aUnread && !bUnread) return -1;
-                        if (!aUnread && bUnread) return 1;
-                        const aTime = a.last_message_time || '';
-                        const bTime = b.last_message_time || '';
-                        return bTime.localeCompare(aTime);
-                    });
 
                     if (this.state.selectedChannel) {
                         const currentId = this.state.selectedChannel.id;
@@ -979,19 +985,8 @@ export class WhatsAppChatsAction extends Component {
                     }
 
                     if (loadedFromCache && !append) {
-                        const merged = this.mergeArrayStable(this.state.channels, validChannels, 'id');
-                        merged.sort((a, b) => {
-                            if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
-                            if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
-                            const aUnread = a.wa_is_unread_global || (a.unread_count && a.unread_count > 0) || (a.message_needaction_counter && a.message_needaction_counter > 0);
-                            const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
-                            if (aUnread && !bUnread) return -1;
-                            if (!aUnread && bUnread) return 1;
-                            const aTime = a.last_message_time || '';
-                            const bTime = b.last_message_time || '';
-                            return bTime.localeCompare(aTime);
-                        });
-                        this.state.channels = merged;
+                        this.state.channels = this.mergeArrayStable(this.state.channels, validChannels, 'id');
+                        this.sortChannels();
                         
                         // Stop fetching if our local cache now contains all channels
                         if (this.state.channels.length >= this.state.totalChannels) {
@@ -999,6 +994,7 @@ export class WhatsAppChatsAction extends Component {
                         }
                     } else {
                         this.state.channels = validChannels;
+                        this.sortChannels();
                     }
                     
                     if (this.state.totalChannels > 0) {
@@ -2661,17 +2657,6 @@ export class WhatsAppChatsAction extends Component {
 
             // Filter ghost channels
             const validFresh = (freshChannels || []).filter(c => c.whatsapp_partner_id || c.whatsapp_number || c.name);
-            validFresh.sort((a, b) => {
-                if (a.wa_is_favourite && !b.wa_is_favourite) return -1;
-                if (!a.wa_is_favourite && b.wa_is_favourite) return 1;
-                const aUnread = a.wa_is_unread_global || (a.unread_count && a.unread_count > 0) || (a.message_needaction_counter && a.message_needaction_counter > 0);
-                const bUnread = b.wa_is_unread_global || (b.unread_count && b.unread_count > 0) || (b.message_needaction_counter && b.message_needaction_counter > 0);
-                if (aUnread && !bUnread) return -1;
-                if (!aUnread && bUnread) return 1;
-                const aTime = a.last_message_time || '';
-                const bTime = b.last_message_time || '';
-                return bTime.localeCompare(aTime);
-            });
 
             // Keep selected channel in sync and clear unread BEFORE updating this.state.channels to prevent UI flicker
             if (this.state.selectedChannel) {
@@ -2685,6 +2670,7 @@ export class WhatsAppChatsAction extends Component {
             }
 
             this.state.channels = this.mergeArrayStable(this.state.channels, validFresh, 'id');
+            this.sortChannels();
         } catch(e) {
             console.warn("Poll error", e);
         }
@@ -3198,7 +3184,7 @@ export class WhatsAppChatsAction extends Component {
                 throw new Error("Failed to parse attachment ID");
             }
 
-            await this.orm.call(
+            const msgId = await this.orm.call(
                 'whatsapp.account',
                 'post_whatsapp_message',
                 [this.state.selectedChannel.id],
@@ -3210,10 +3196,16 @@ export class WhatsAppChatsAction extends Component {
                 }
             );
 
-            await new Promise(resolve => setTimeout(resolve, 400));
-            await this.loadMessages();
+            if (msgId) {
+                // Remove any poller-inserted copy with the same real ID before upgrading
+                this.state.messages = this.state.messages.filter(
+                    m => m === tempMsg || m.id !== msgId
+                );
+                tempMsg.id = msgId;
+                tempMsg.noAnimate = true;
+            }
+            tempMsg.wa_state = 'sent';
             this.scrollToBottom();
-            await this.pollMessages();
         } catch (e) {
             console.error('Failed to send audio message:', e);
             let errMsg = (e.data && e.data.message) || e.message || String(e);
