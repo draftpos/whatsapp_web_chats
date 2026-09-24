@@ -9,6 +9,14 @@ class ResCompany(models.Model):
         ('specific', 'Specific Sharing')
     ], string="Contact Sharing Mode", default='all')
 
+class ResConfigSettings(models.TransientModel):
+    _inherit = 'res.config.settings'
+    
+    wa_contact_sharing_mode = fields.Selection(
+        related='company_id.wa_contact_sharing_mode', 
+        readonly=False
+    )
+
 
 class WhatsappAccount(models.Model):
     _inherit = 'whatsapp.account'
