@@ -956,13 +956,24 @@ class WhatsAppAccount(models.Model):
                         else:
                             quoted_body = 'document'
 
+            atts_data = []
+            for a in m.attachment_ids:
+                if not a.access_token:
+                    a.generate_access_token()
+                atts_data.append({
+                    'id': a.id,
+                    'mimetype': a.mimetype,
+                    'name': a.name,
+                    'access_token': a.access_token or ''
+                })
+
             msg_dict = {
                 'id': m.id,
                 'body': m.body,
                 'author_id': author_data,
                 'date': date_str,
                 'message_type': m.message_type,
-                'attachment_ids': [{'id': a.id, 'mimetype': a.mimetype, 'name': a.name, 'access_token': a.access_token if 'access_token' in a else getattr(a, 'access_token', '')} for a in m.attachment_ids],
+                'attachment_ids': atts_data,
                 'is_me': is_me,
                 'isMe': is_me,
                 'wa_state': wa_state,
