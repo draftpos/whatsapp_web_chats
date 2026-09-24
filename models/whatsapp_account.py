@@ -1642,11 +1642,13 @@ class WhatsAppAccount(models.Model):
         try:
             channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
             if channel.exists():
-                attachment_ids = kwargs.get('attachment_ids', [])
+                # Force attachment IDs to be integers to prevent ID type errors
+                attachment_ids = [int(a) for a in kwargs.get('attachment_ids', []) if a]
+                kwargs['attachment_ids'] = attachment_ids
                 heavy_media_att_ids = []
             
                 for att_id in attachment_ids:
-                    att = self.env['ir.attachment'].sudo().browse(int(att_id))
+                    att = self.env['ir.attachment'].sudo().browse(att_id)
                     if att.exists():
                         is_audio = att.mimetype and att.mimetype.startswith('audio/')
                         if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
@@ -1668,7 +1670,8 @@ class WhatsAppAccount(models.Model):
                     else:
                         kwargs['body'] = ''
                 
-                msg_id = channel.with_context(wa_web_chats_defer_send=True).message_post(**kwargs).id
+                import odoo
+                msg_id = channel.with_user(odoo.SUPERUSER_ID).with_context(wa_web_chats_defer_send=True).message_post(**kwargs).id
 
                 if heavy_media_att_ids:
                     dbname = self.env.cr.dbname
