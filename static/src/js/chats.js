@@ -1218,12 +1218,17 @@ export class WhatsAppChatsAction extends Component {
         // Apply search
         const query = this.searchQuery;
         if (query) {
-            channels = channels.filter(c => 
-                (c.name && c.name.toLowerCase().includes(query)) ||
-                (c.whatsapp_number && c.whatsapp_number.toLowerCase().includes(query)) ||
-                (c.customer_phone && c.customer_phone.toLowerCase().includes(query)) ||
-                (c.mobile_number_formatted && c.mobile_number_formatted.toLowerCase().includes(query))
-            );
+            const queryParts = query.split(/\s+/).filter(p => p.trim() !== "");
+            channels = channels.filter(c => {
+                const searchableText = [
+                    c.name || "",
+                    c.whatsapp_number || "",
+                    c.customer_phone || "",
+                    c.mobile_number_formatted || ""
+                ].join(" ").toLowerCase();
+                
+                return queryParts.every(part => searchableText.includes(part));
+            });
         }
 
         // Apply filter
