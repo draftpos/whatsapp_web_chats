@@ -5,7 +5,7 @@
         <field name="name">whatsapp.saas.tenant.tree</field>
         <field name="model">whatsapp.saas.tenant</field>
         <field name="arch" type="xml">
-            <tree string="SaaS Tenants" editable="bottom">
+            <list string="SaaS Tenants" editable="bottom">
                 <field name="account_id" />
                 <field name="tenant_id" readonly="1" />
                 <field name="tenant_name" readonly="1" />
@@ -13,7 +13,7 @@
                 <field name="scheduled_time" widget="float_time" />
                 <field name="last_sales_sent_date" readonly="1" />
                 <field name="welcome_message_sent" readonly="1" />
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -21,7 +21,7 @@
     <record id="action_whatsapp_saas_tenant" model="ir.actions.act_window">
         <field name="name">SaaS Tenants Schedules</field>
         <field name="res_model">whatsapp.saas.tenant</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <!-- Extending whatsapp account form view to add SaaS integration tab -->
@@ -35,16 +35,16 @@
                     <group>
                         <group string="SaaS Settings">
                             <field name="saas_integration_active" widget="boolean_toggle"/>
-                            <field name="saas_app_url" attrs="{'invisible': [('saas_integration_active', '=', False)]}"/>
-                            <field name="saas_username" attrs="{'invisible': [('saas_integration_active', '=', False)]}"/>
-                            <field name="saas_password" password="True" attrs="{'invisible': [('saas_integration_active', '=', False)]}"/>
+                            <field name="saas_app_url" invisible="not saas_integration_active"/>
+                            <field name="saas_username" invisible="not saas_integration_active"/>
+                            <field name="saas_password" password="True" invisible="not saas_integration_active"/>
                         </group>
-                        <group string="Templates" attrs="{'invisible': [('saas_integration_active', '=', False)]}">
+                        <group string="Templates" invisible="not saas_integration_active">
                             <field name="saas_welcome_template_id"/>
                             <field name="saas_daily_sales_template_id"/>
                         </group>
                     </group>
-                    <button name="%(action_whatsapp_saas_tenant)d" string="Manage Tenant Schedules" type="action" class="oe_highlight" attrs="{'invisible': [('saas_integration_active', '=', False)]}"/>
+                    <button name="%(action_whatsapp_saas_tenant)d" string="Manage Tenant Schedules" type="action" class="oe_highlight" invisible="not saas_integration_active"/>
                 </page>
             </xpath>
         </field>
