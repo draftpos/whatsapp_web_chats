@@ -4327,6 +4327,38 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
+    async downloadAllAlbum(messages) {
+        if (!messages || messages.length === 0) return;
+        this.toggleMessageDropdown(messages[0].id); // close dropdown
+        
+        for (const msg of messages) {
+            if (msg.attachment_ids && msg.attachment_ids.length > 0) {
+                const item = msg.attachment_ids[0];
+                if (item.mimetype && (item.mimetype.startsWith('image/') || item.mimetype.startsWith('video/'))) {
+                    let url = '';
+                    if (item.mimetype.startsWith('video/')) {
+                        url = `/web/content/${item.id}?download=true`;
+                    } else {
+                        url = `/web/image/${item.id}?download=true`;
+                    }
+                    if (item.access_token) {
+                        url += `&access_token=${item.access_token}`;
+                    }
+
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = item.name || 'media';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // tiny delay so browser doesn't block multiple downloads
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+            }
+        }
+    }
+
     async selectTemplate(tmpl) {
         if (!this.state.selectedChannel) return;
         

@@ -461,7 +461,7 @@
                             </t>
                             <t t-elif="!group.isAlbum">
                                 <t t-set="msg" t-value="group.message"/>
-                                <div t-attf-id="message-{{msg.id}}" t-attf-class="message-row {{ msg.noAnimate ? 'no-animate' : '' }} {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }} {{ (state.inChatSearchMatches and state.inChatSearchMatches[state.inChatSearchIndex]?.id == msg.id) ? 'search-match-active' : '' }}">
+                                <div t-attf-id="message-{{msg.id}}" t-attf-class="message-row {{ msg.noAnimate ? 'no-animate' : '' }} {{ msg.isSystem ? 'message-system' : (msg.isMe ? 'message-me' : 'message-other') }} {{ state.selectedMessages.includes(msg.id) ? 'selected-msg' : '' }} {{ (state.selectedMessages?.length > 0 || state.isSelectingMessages) ? 'selection-mode' : '' }} {{ (state.inChatSearchMatches and state.inChatSearchMatches[state.inChatSearchIndex]?.id == msg.id) ? 'search-match-active' : '' }}" t-attf-style="{{ state.showMessageDropdownId === msg.id ? 'z-index: 1000;' : '' }}">
                                 <div class="message-selection" t-on-click="(ev) => this.toggleMessageSelection(msg.id, ev)" t-if="!msg.isSystem">
                                     <t t-if="state.selectedMessages.includes(msg.id)">
                                         <i class="fa fa-check-circle" style="color: #1976D2; font-size: 18px;"></i>
@@ -738,7 +738,7 @@
                                 </div>
                             </t>
                             <t t-else="">
-                                <div t-attf-id="message-{{group.messages[0].id}}" t-attf-class="message-row {{ group.messages[0].noAnimate ? 'no-animate' : '' }} {{ group.isMe ? 'message-me' : 'message-other' }}">
+                                <div t-attf-id="message-{{group.messages[0].id}}" t-attf-class="message-row {{ group.messages[0].noAnimate ? 'no-animate' : '' }} {{ group.isMe ? 'message-me' : 'message-other' }}" t-attf-style="{{ state.showMessageDropdownId === group.messages[0].id ? 'z-index: 1000;' : '' }}">
                                     <div class="message-bubble album-bubble" style="padding: 4px; background: transparent; box-shadow: none;">
                                         <div t-attf-class="whatsapp-album-grid count-{{ group.messages.length > 4 ? 4 : group.messages.length }}">
                                             <t t-foreach="group.messages.slice(0, 4)" t-as="albumMsg" t-key="albumMsg.id">
@@ -811,6 +811,9 @@
                                                 </div>
                                                 <div class="chat-dropdown-item" t-on-click="() => this.copyMessageText(msg.bodyText)">Copy</div>
                                                 <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleMessageSelection(msg.id, ev); this.toggleMessageDropdown(msg.id, ev); }">Select</div>
+                                                <t t-if="group.messages.length > 1">
+                                                    <div class="chat-dropdown-item" t-on-click="() => this.downloadAllAlbum(group.messages)">Download all</div>
+                                                </t>
                                                 <div class="chat-dropdown-item" t-on-click="() => this.openDeleteModal(msg.id)">Delete</div>
                                                 <t t-if="msg.wa_error or msg.wa_state === 'error'">
                                                     <div class="chat-dropdown-item" style="color: #f24a4a;" t-on-click="() => this.resendMessage(msg)">Resend</div>
