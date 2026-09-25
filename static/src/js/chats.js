@@ -527,11 +527,23 @@ export class WhatsAppChatsAction extends Component {
 
     async loadTemplates() {
         try {
-            this.state.wa_templates = await this.orm.searchRead(
+            let domain = [["status", "=", "approved"]];
+            if (this.state.selectedAccount) {
+                domain.push(["wa_account_id", "=", parseInt(this.state.selectedAccount)]);
+            }
+            const templates = await this.orm.searchRead(
                 "whatsapp.template",
-                [["status", "=", "approved"]], 
+                domain, 
                 ["id", "template_name", "body"]
             );
+            
+            // Deduplicate templates by name to avoid showing duplicate list items
+            const seen = new Set();
+            this.state.wa_templates = templates.filter(tmpl => {
+                if (seen.has(tmpl.template_name)) return false;
+                seen.add(tmpl.template_name);
+                return true;
+            });
         } catch (e) {
             console.error("Error loading templates", e);
         }
@@ -1208,7 +1220,9 @@ export class WhatsAppChatsAction extends Component {
         if (query) {
             channels = channels.filter(c => 
                 (c.name && c.name.toLowerCase().includes(query)) ||
-                (c.whatsapp_number && c.whatsapp_number.toLowerCase().includes(query))
+                (c.whatsapp_number && c.whatsapp_number.toLowerCase().includes(query)) ||
+                (c.customer_phone && c.customer_phone.toLowerCase().includes(query)) ||
+                (c.mobile_number_formatted && c.mobile_number_formatted.toLowerCase().includes(query))
             );
         }
 
@@ -4258,6 +4272,35 @@ export class WhatsAppChatsAction extends Component {
 
     setContactMediaTab(tab) {
         this.state.contactMediaTab = tab;
+    }
+
+    async downloadAllMedia() {
+        if (!this.state.contactMedia || this.state.contactMedia.length === 0) return;
+        
+        const mediaItems = this.state.contactMedia.filter(m => m.mimetype && (m.mimetype.startsWith('image/') || m.mimetype.startsWith('video/')));
+        if (mediaItems.length === 0) return;
+
+        for (const item of mediaItems) {
+            let url = '';
+            if (item.mimetype.startsWith('video/')) {
+                url = `/web/content/${item.id}?download=true`;
+            } else {
+                url = `/web/image/${item.id}?download=true`;
+            }
+            if (item.access_token) {
+                url += `&access_token=${item.access_token}`;
+            }
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = item.name || 'media';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // tiny delay so browser doesn't block multiple downloads
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
     }
 
     async selectTemplate(tmpl) {

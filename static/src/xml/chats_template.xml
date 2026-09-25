@@ -1154,10 +1154,13 @@
 
                     <t t-if="state.showMediaTabsView">
                         <div style="background: white; padding: 20px; flex-grow: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                            <div style="display: flex; border-bottom: 1px solid #e9edef; margin-bottom: 15px;">
-                                <div t-on-click="() => this.setContactMediaTab('media')" t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; {{ state.contactMediaTab === 'media' ? 'color: #00a884; border-bottom: 3px solid #00a884;' : 'color: #54656f;' }}">Media</div>
-                                <div t-on-click="() => this.setContactMediaTab('docs')" t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; {{ state.contactMediaTab === 'docs' ? 'color: #00a884; border-bottom: 3px solid #00a884;' : 'color: #54656f;' }}">Docs</div>
-                                <div t-on-click="() => this.setContactMediaTab('links')" t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; {{ state.contactMediaTab === 'links' ? 'color: #00a884; border-bottom: 3px solid #00a884;' : 'color: #54656f;' }}">Links</div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e9edef; margin-bottom: 15px;">
+                                <div style="display: flex; flex: 1;">
+                                    <div t-on-click="() => this.setContactMediaTab('media')" t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; {{ state.contactMediaTab === 'media' ? 'color: #00a884; border-bottom: 3px solid #00a884;' : 'color: #54656f;' }}">Media</div>
+                                    <div t-on-click="() => this.setContactMediaTab('docs')" t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; {{ state.contactMediaTab === 'docs' ? 'color: #00a884; border-bottom: 3px solid #00a884;' : 'color: #54656f;' }}">Docs</div>
+                                    <div t-on-click="() => this.setContactMediaTab('links')" t-attf-style="flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; {{ state.contactMediaTab === 'links' ? 'color: #00a884; border-bottom: 3px solid #00a884;' : 'color: #54656f;' }}">Links</div>
+                                </div>
+                                <i class="fa fa-download" style="color: #00a884; cursor: pointer; padding: 10px; font-size: 18px; margin-left: 10px;" t-on-click="downloadAllMedia" title="Download All Media"></i>
                             </div>
                         </div>
                     </t>

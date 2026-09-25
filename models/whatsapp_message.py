@@ -291,3 +291,23 @@ class WhatsAppMessage(models.Model):
         
         if len(records) == 500:
             self.env.ref('whatsapp.ir_cron_send_whatsapp_queue')._trigger()
+
+    def _post_message_in_active_channel(self):
+        """ Notify the active channel that someone has sent template message. 
+        Overridden to always post the template to the current channel and avoid 
+        'Future replies will be transferred' logic which breaks active chat.
+        """
+        self.ensure_one()
+        if not self.wa_template_id:
+            return
+        channel = self.wa_account_id._find_active_channel(self.mobile_number_formatted)
+        if not channel:
+            return
+
+        # Always print full content of message into conversation
+        # instead of warning about transferring chat.
+        channel.sudo().message_post(
+            body=self.body,
+            message_type="comment",
+            subtype_xmlid='mail.mt_comment',
+        )
