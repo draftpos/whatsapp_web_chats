@@ -98,25 +98,30 @@ class WhatsAppSaaSTenant(models.Model):
         has_local_saas = 'havanoposdesk.tenant' in self.env
 
         for tenant in tenants_to_send:
-            sales_data_str = ""
+            store_lines = []
             if has_local_saas:
                 try:
-                    # Collect sales from each store for the tenant
                     stores = self.env['havanoposdesk.store'].sudo().search([('tenant_id', '=', int(tenant.tenant_id))])
-                    
-                    # Local direct call to api controller or query
-                    # In a typical local setup we directly instantiate the controller or fetch models
                     from odoo.addons.havanoposdesk_odoo.inventory.controllers.api import API
                     api_controller = API()
-                    
+
                     for store in stores:
-                        # Assuming the SaaS API has a method api_daily_sales accessible
-                        # Since we bypass HTTP request locally, we would structure the response directly 
-                        # or just query local sales.
-                        # Mocking standard sales fetch from Havano POS local models
-                        # Replace with actual api_daily_sales kwargs
-                        sales_data_str += f"\\nStore: {store.name} - Daily Sales Data Extracted."
-                        
+                        # Query today's POS orders for this store directly from local models
+                        today_start = datetime.now(timezone(self.env.user.tz or 'UTC')).replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        )
+                        orders = self.env['pos.order'].sudo().search([
+                            ('store_id', '=', store.id),
+                            ('date_order', '>=', today_start.strftime('%Y-%m-%d %H:%M:%S')),
+                            ('state', 'in', ['done', 'invoiced']),
+                        ])
+                        total = sum(orders.mapped('amount_total'))
+                        num_orders = len(orders)
+                        currency = store.currency_id.symbol if hasattr(store, 'currency_id') and store.currency_id else '$'
+                        store_lines.append(
+                            f"🏪 *{store.name}*\n"
+                            f"   Sales: {currency}{total:,.2f}  |  Orders: {num_orders}"
+                        )
                 except Exception as e:
                     _logger.error(f"Error fetching local sales for tenant {tenant.tenant_name}: {e}")
             elif account.saas_app_url:
@@ -131,11 +136,18 @@ class WhatsAppSaaSTenant(models.Model):
                     if response.status_code == 200:
                         data = response.json()
                         for store in data.get('stores', []):
-                            sales_total = store.get('sales_total', 0)
-                            sales_data_str += f"\nStore: {store.get('name')} - Daily Sales: {sales_total}."
+                            total = store.get('sales_total', 0)
+                            num_orders = store.get('orders_count', 0)
+                            currency = store.get('currency', '$')
+                            store_lines.append(
+                                f"🏪 *{store.get('name')}*\n"
+                                f"   Sales: {currency}{total:,.2f}  |  Orders: {num_orders}"
+                            )
                 except Exception as e:
                     _logger.error(f"Error fetching remote sales for tenant {tenant.tenant_name}: {e}")
-            if sales_data_str and account.saas_daily_sales_template_id:
+
+            if store_lines and account.saas_daily_sales_template_id:
+                sales_data_str = "\n\n".join(store_lines)
                 self._send_whatsapp_message(
                     account,
                     tenant.tenant_phone,
