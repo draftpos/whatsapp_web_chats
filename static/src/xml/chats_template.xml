@@ -398,6 +398,21 @@
                                             <t t-esc="state.selectedChannel and state.selectedChannel.wa_is_blocked ? 'Unblock' : 'Block'"/>
                                         </div>
                                         
+                                        <t t-if="state.showLabels and state.availableTags and state.availableTags?.length > 0">
+                                            <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
+                                            <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Label chat</div>
+                                            <t t-foreach="state.availableTags || []" t-as="tag" t-key="tag.id">
+                                                <t t-if="tag.name.toLowerCase() != 'urgent'">
+                                                    <div class="chat-dropdown-item" t-on-click="(ev) => { this.toggleChatTag(state.selectedChannel.id, tag.id, ev); this.toggleHeaderDropdown(ev); }">
+                                                        <span t-attf-style="color:{{tag.color}}; font-weight:500;">
+                                                            <t t-if="state.selectedChannel.wa_tags and state.selectedChannel.wa_tags.find(t =&gt; t.id === tag.id)">Remove <t t-esc="tag.name"/></t>
+                                                            <t t-else="">Mark as <t t-esc="tag.name"/></t>
+                                                        </span>
+                                                    </div>
+                                                </t>
+                                            </t>
+                                        </t>
+
                                         <div class="chat-dropdown-divider" style="height:1px; background:#ddd; margin:4px 0;"></div>
                                         <div class="chat-dropdown-header" style="padding: 4px 12px; font-size: 11px; color: #8696a0; font-weight: bold;">Havano Actions</div>
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_favourite', !state.selectedChannel.wa_is_favourite, ev); this.toggleHeaderDropdown(ev); }">
@@ -409,6 +424,7 @@
                                         <div class="chat-dropdown-item" t-on-click="(ev) => { this.setChatState(state.selectedChannel.id, 'wa_is_done', !state.selectedChannel.wa_is_done, ev); this.toggleHeaderDropdown(ev); }">
                                             <t t-esc="state.selectedChannel.wa_is_done ? 'Mark as Undone' : 'Mark as Done'"/>
                                         </div>
+                                        <div class="chat-dropdown-item" t-on-click="(ev) => { this.openTransferModal(state.selectedChannel.id, ev); this.toggleHeaderDropdown(ev); }">Transfer Chat</div>
                                     </div>
                                 </t>
                             </div>
