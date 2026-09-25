@@ -47,9 +47,19 @@ class WhatsAppSaaSTenant(models.Model):
                     'phone': phone
                 })
         elif account.saas_app_url:
-            # TODO: Call external SaaS API api_get_users if remote
-            pass
-                
+            try:
+                auth = (account.saas_username, account.saas_password) if account.saas_username and account.saas_password else None
+                response = requests.get(f"{account.saas_app_url.rstrip('/')}/api/get_users", auth=auth, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    for t in data.get('users', []):
+                        tenants_data.append({
+                            'id': str(t.get('id')),
+                            'name': t.get('name'),
+                            'phone': t.get('phone')
+                        })
+            except Exception as e:
+                _logger.error(f"Error fetching remote tenants from SaaS API: {e}")
         for t_data in tenants_data:
             if not t_data.get('phone'):
                 continue
@@ -110,9 +120,21 @@ class WhatsAppSaaSTenant(models.Model):
                 except Exception as e:
                     _logger.error(f"Error fetching local sales for tenant {tenant.tenant_name}: {e}")
             elif account.saas_app_url:
-                # Remote SaaS API integration here (api_daily_sales over HTTP)
-                pass
-
+                try:
+                    auth = (account.saas_username, account.saas_password) if account.saas_username and account.saas_password else None
+                    response = requests.get(
+                        f"{account.saas_app_url.rstrip('/')}/api/daily_sales",
+                        params={'tenant_id': tenant.tenant_id},
+                        auth=auth,
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        data = response.json()
+                        for store in data.get('stores', []):
+                            sales_total = store.get('sales_total', 0)
+                            sales_data_str += f"\nStore: {store.get('name')} - Daily Sales: {sales_total}."
+                except Exception as e:
+                    _logger.error(f"Error fetching remote sales for tenant {tenant.tenant_name}: {e}")
             if sales_data_str and account.saas_daily_sales_template_id:
                 self._send_whatsapp_message(
                     account,
