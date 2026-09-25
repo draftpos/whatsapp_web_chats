@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Cron to sync tenants and send daily sales via SaaS API -->
+        <record id="ir_cron_whatsapp_saas_daily_sales" model="ir.cron">
+            <field name="name">WhatsApp: SaaS Tenant Sync and Daily Sales</field>
+            <field name="model_id" ref="model_whatsapp_saas_tenant"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_sync_and_send_saas_data()</field>
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">30</field>
+            <field name="interval_type">minutes</field>
+            <field name="numbercall">-1</field>
+            <field name="doall" eval="False"/>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

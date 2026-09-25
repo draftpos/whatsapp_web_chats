@@ -16,3 +16,5 @@ from . import ir_ui_menu
 
 from . import whatsapp_dashboard
 from . import wa_contact_sharing
+from . import whatsapp_saas_integration
+from . import whatsapp_saas_tenant

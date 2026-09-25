@@ -8,3 +8,4 @@ access_whatsapp_product,whatsapp.product,model_whatsapp_product,base.group_user,
 access_whatsapp_followup_rule_user,whatsapp.followup.rule.user,model_whatsapp_followup_rule,base.group_user,1,1,1,1
 access_whatsapp_scheduled_message_user,whatsapp.scheduled.message.user,model_whatsapp_scheduled_message,base.group_user,1,1,1,1
 access_send_school_balances_wizard,send.school.balances.wizard,model_send_school_balances_wizard,base.group_user,1,1,1,1
+access_whatsapp_saas_tenant,whatsapp.saas.tenant,model_whatsapp_saas_tenant,base.group_user,1,1,1,1

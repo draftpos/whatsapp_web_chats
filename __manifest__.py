@@ -26,6 +26,8 @@
         'data/school_sync_cron.xml',
         'views/mobile_kanban_views.xml',
         'views/wa_contact_sharing_views.xml',
+        'data/whatsapp_saas_cron.xml',
+        'views/whatsapp_saas_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
