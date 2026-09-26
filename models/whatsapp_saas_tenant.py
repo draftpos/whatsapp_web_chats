@@ -181,15 +181,19 @@ class WhatsAppSaaSTenant(models.Model):
             if not local_partner:
                 local_partner = self.env.user.partner_id
                 
-            target_model = template.model_id.model or 'res.partner'
-            target_record = self.env[target_model].sudo().search([], limit=1)
-            if not target_record:
-                target_record = local_partner
+            channel = account.sudo()._find_active_channel(phone, create_if_not_found=True)
+            if channel:
+                target_record = channel
+            else:
+                target_model = template.model_id.model or 'res.partner'
+                target_record = self.env[target_model].sudo().search([], limit=1)
+                if not target_record:
+                    target_record = local_partner
 
             mail_msg = target_record.sudo().message_post(
                 body=f'[SaaS Template Sent: {template.template_name}]',
-                message_type='comment',
-                subtype_xmlid='mail.mt_note',
+                message_type='whatsapp_message' if channel else 'comment',
+                subtype_xmlid='mail.mt_comment' if channel else 'mail.mt_note',
                 author_id=self.env.user.partner_id.id,
             )
             
