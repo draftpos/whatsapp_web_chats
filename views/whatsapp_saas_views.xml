@@ -42,6 +42,8 @@
                         <group string="Templates" invisible="not saas_integration_active">
                             <field name="saas_welcome_template_id"/>
                             <field name="saas_daily_sales_template_id"/>
+                            <field name="saas_expiration_template_id"/>
+                            <field name="saas_expiration_days" invisible="not saas_expiration_template_id" placeholder="5,4,3,2,1"/>
                         </group>
                     </group>
                     <button name="%(action_whatsapp_saas_tenant)d" string="Manage Tenant Schedules" type="action" class="oe_highlight" invisible="not saas_integration_active"/>

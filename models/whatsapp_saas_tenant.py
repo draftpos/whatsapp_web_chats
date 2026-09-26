@@ -18,6 +18,9 @@ class WhatsAppSaaSTenant(models.Model):
     scheduled_time = fields.Float(string="Scheduled Send Time", default=17.5, help="Time to send daily sales report (e.g. 17.5 = 5:30 PM)")
     last_sales_sent_date = fields.Date(string="Last Sales Sent Date")
     welcome_message_sent = fields.Boolean(string="Welcome Message Sent", default=False)
+    
+    tenant_expiration_date = fields.Date(string="Expiration Date")
+    last_expiration_sent_days = fields.Integer(string="Last Expiration Sent (Days Left)", default=-1)
 
     @api.model
     def _cron_sync_and_send_saas_data(self):
@@ -28,6 +31,7 @@ class WhatsAppSaaSTenant(models.Model):
         for account in accounts:
             self._sync_tenants_from_saas(account)
             self._process_daily_sales(account)
+            self._process_expirations(account)
 
     def _sync_tenants_from_saas(self, account):
         # Local SaaS setup check
@@ -41,10 +45,14 @@ class WhatsAppSaaSTenant(models.Model):
                 phone = getattr(t, 'phone', '')
                 if not phone and hasattr(t, 'admin_id') and t.admin_id.phone:
                     phone = t.admin_id.phone
+                
+                exp_date = getattr(t, 'expiration_date', False) or getattr(t, 'subscription_end_date', False) or getattr(t, 'subscription_end', False)
+                
                 tenants_data.append({
                     'id': str(t.id),
                     'name': t.name,
-                    'phone': phone
+                    'phone': phone,
+                    'expiration_date': exp_date
                 })
         elif account.saas_app_url:
             try:
@@ -56,7 +64,8 @@ class WhatsAppSaaSTenant(models.Model):
                         tenants_data.append({
                             'id': str(t.get('id')),
                             'name': t.get('name'),
-                            'phone': t.get('phone')
+                            'phone': t.get('phone'),
+                            'expiration_date': t.get('expiration_date') or t.get('subscription_end_date') or False
                         })
             except Exception as e:
                 _logger.error(f"Error fetching remote tenants from SaaS API: {e}")
@@ -71,6 +80,7 @@ class WhatsAppSaaSTenant(models.Model):
                     'tenant_id': t_data['id'],
                     'tenant_name': t_data['name'],
                     'tenant_phone': t_data['phone'],
+                    'tenant_expiration_date': t_data.get('expiration_date'),
                 })
                 # Send welcome message upon new tenant discovery
                 if account.saas_welcome_template_id:
@@ -81,6 +91,12 @@ class WhatsAppSaaSTenant(models.Model):
                         [t_data['name']]
                     )
                 new_tenant.welcome_message_sent = True
+            else:
+                existing.write({
+                    'tenant_phone': t_data['phone'],
+                    'tenant_name': t_data['name'],
+                    'tenant_expiration_date': t_data.get('expiration_date'),
+                })
 
     def _process_daily_sales(self, account):
         tz = timezone(self.env.user.tz or 'UTC')
@@ -171,3 +187,34 @@ class WhatsAppSaaSTenant(models.Model):
             _logger.info(f"SaaS notification sent successfully to {phone}")
         except Exception as e:
             _logger.error(f"Failed to send WA SaaS message to {phone}: {e}")
+
+    def _process_expirations(self, account):
+        if not account.saas_expiration_template_id or not account.saas_expiration_days:
+            return
+            
+        tz = timezone(self.env.user.tz or 'UTC')
+        now = datetime.now(tz)
+        current_date = now.date()
+        current_time_float = now.hour + now.minute / 60.0
+        
+        try:
+            warning_days = [int(d.strip()) for d in account.saas_expiration_days.split(',') if d.strip().isdigit()]
+        except Exception:
+            return
+            
+        tenants_to_check = self.search([
+            ('account_id', '=', account.id),
+            ('tenant_expiration_date', '!=', False),
+            ('scheduled_time', '<=', current_time_float),
+        ])
+        
+        for tenant in tenants_to_check:
+            days_left = (tenant.tenant_expiration_date - current_date).days
+            if days_left in warning_days and tenant.last_expiration_sent_days != days_left:
+                self._send_whatsapp_message(
+                    account,
+                    tenant.tenant_phone,
+                    account.saas_expiration_template_id,
+                    [tenant.tenant_name, str(days_left)]
+                )
+                tenant.last_expiration_sent_days = days_left

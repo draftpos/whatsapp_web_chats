@@ -21,3 +21,11 @@ class WhatsAppAccount(models.Model):
         domain="[('status', '=', 'approved')]",
         help="Template sent for daily sales. Variable {{1}}: Tenant Name, {{2}}: Sales Data"
     )
+
+    saas_expiration_template_id = fields.Many2one(
+        'whatsapp.template',
+        string="Subscription Expiration Template",
+        domain="[('status', '=', 'approved')]",
+        help="Template sent when subscription is expiring. Variable {{1}}: Tenant Name, {{2}}: Days Left"
+    )
+    saas_expiration_days = fields.Char(string="Send Warning On Days Remaining", default="5,4,3,2,1", help="Comma-separated list of days before expiration to send warning (e.g. '5,4,3,2,1').")
