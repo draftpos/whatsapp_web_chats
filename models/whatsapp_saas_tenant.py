@@ -202,9 +202,18 @@ class WhatsAppSaaSTenant(models.Model):
                 if not target_record:
                     target_record = local_partner # Fallback
             
+            # Render the template body to show the exact message in the Odoo UI
+            rendered_body = template.body or ''
+            for i, var in enumerate(variables):
+                rendered_body = rendered_body.replace(f'{{{{{i + 1}}}}}', str(var))
+            
+            # Formatting for Odoo UI (newlines to HTML breaks if needed, though message_post handles basic text)
+            # We'll just prefix it slightly to indicate it's a template
+            ui_body = f"<strong>WhatsApp Template Sent:</strong><br/><br/>{rendered_body.replace('\n', '<br/>')}"
+            
             # Post message to the exact model required by the template to avoid Odoo template validation error
             mail_msg = target_record.sudo().message_post(
-                body=f'[SaaS Template Sent: {template.template_name}]',
+                body=ui_body,
                 message_type='comment',
                 subtype_xmlid='mail.mt_note',
                 author_id=self.env.user.partner_id.id,
@@ -216,7 +225,7 @@ class WhatsAppSaaSTenant(models.Model):
                 'wa_template_id': template.id,
                 'free_text_json': free_text_json,
                 'mail_message_id': mail_msg.id,
-                'body': f'[SaaS Template Sent: {template.template_name}]',
+                'body': rendered_body,
                 'state': 'outgoing',
                 'message_type': 'outbound',
             }
