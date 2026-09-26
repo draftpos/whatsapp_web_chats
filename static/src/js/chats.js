@@ -1219,7 +1219,8 @@ export class WhatsAppChatsAction extends Component {
         const query = this.searchQuery;
         if (query) {
             const queryParts = query.toLowerCase().split(/\s+/).filter(p => p.trim() !== "");
-            let searchResults = [];
+            let chatResults = [];
+            let msgResults = [];
 
             channels.forEach(c => {
                 const name = c.name ? c.name.toLowerCase() : "";
@@ -1252,7 +1253,8 @@ export class WhatsAppChatsAction extends Component {
                 });
 
                 if (matchesText) {
-                    searchResults.push(c);
+                    c.is_message_match = false;
+                    chatResults.push(c);
                     return;
                 }
 
@@ -1269,11 +1271,12 @@ export class WhatsAppChatsAction extends Component {
                         clone.search_match_preview = m.body;
                         clone.search_match_time = m.date; // Use the matched message's time
                         clone.search_unique_key = c.id + '_msg_' + m.id;
-                        searchResults.push(clone);
+                        clone.is_message_match = true;
+                        msgResults.push(clone);
                     });
                 }
             });
-            channels = searchResults;
+            channels = chatResults.concat(msgResults);
         }
 
         // Apply filter

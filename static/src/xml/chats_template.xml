@@ -179,6 +179,14 @@
                         <div style="padding: 20px; text-align: center; color: #8696a0; font-size: 14px;">No chats found</div>
                     </t>
                     <t t-foreach="this.displayedChannels || []" t-as="channel" t-key="channel.search_unique_key || channel.id">
+                        <t t-if="this.searchQuery">
+                            <t t-if="channel_index === 0 and !channel.is_message_match">
+                                <div style="padding: 12px 15px 4px 15px; font-size: 14px; color: #111b21; font-weight: 500;">Chats</div>
+                            </t>
+                            <t t-if="channel.is_message_match and (channel_index === 0 or !this.displayedChannels[channel_index - 1].is_message_match)">
+                                <div style="padding: 12px 15px 4px 15px; font-size: 14px; color: #111b21; font-weight: 500;">Messages</div>
+                            </t>
+                        </t>
                         <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }} {{ state.selectedChannels?.length > 0 ? 'selection-mode' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)" t-attf-style="flex-direction: column; align-items: stretch; justify-content: center; {{ state.showChatDropdownId === channel.id ? 'z-index: 100;' : '' }}">
                             <t t-if="channel.wa_agent_id">
                                 <div class="chat-agent-row" style="font-size:11px; color:#1976D2; font-weight:bold; display:flex; align-items:center; margin-bottom: 4px; padding-left: 5px;">
