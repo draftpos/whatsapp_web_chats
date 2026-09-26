@@ -56,7 +56,8 @@ class WhatsAppMessage(models.Model):
                         if rec.is_bot_message:
                             new_author_id = self.env.ref('base.partner_root').id
                         else:
-                            new_author_id = rec.create_uid.partner_id.id if rec.create_uid else self.env.ref('base.partner_root').id
+                            # Preserve the original author of the Discuss message
+                            new_author_id = copied_msg.author_id.id
                             
                     if copied_msg.author_id.id != new_author_id:
                         copied_msg.sudo().write({'author_id': new_author_id})
