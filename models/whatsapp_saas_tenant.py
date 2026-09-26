@@ -188,15 +188,15 @@ class WhatsAppSaaSTenant(models.Model):
             target_model = template.model_id.model or 'res.partner'
             if channel:
                 mail_msg = channel.sudo().message_post(
-                    body=f'[SaaS Template Sent: {template.template_name}]',
-                    message_type='whatsapp_message',
+                    body=f'[SaaS Template: {template.template_name}]',
+                    message_type='comment',
                     subtype_xmlid='mail.mt_comment',
                     author_id=self.env.user.partner_id.id,
                 )
             else:
                 target_record = self.env[target_model].sudo().search([], limit=1) or local_partner
                 mail_msg = target_record.sudo().message_post(
-                    body=f'[SaaS Template Sent: {template.template_name}]',
+                    body=f'[SaaS Template: {template.template_name}]',
                     message_type='comment',
                     subtype_xmlid='mail.mt_note',
                     author_id=self.env.user.partner_id.id,
