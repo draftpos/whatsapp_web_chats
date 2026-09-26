@@ -1219,7 +1219,9 @@ export class WhatsAppChatsAction extends Component {
         const query = this.searchQuery;
         if (query) {
             const queryParts = query.toLowerCase().split(/\s+/).filter(p => p.trim() !== "");
-            channels = channels.filter(c => {
+            let searchResults = [];
+
+            channels.forEach(c => {
                 const name = c.name ? c.name.toLowerCase() : "";
                 const num1 = c.whatsapp_number ? c.whatsapp_number.toLowerCase() : "";
                 const num2 = c.customer_phone ? c.customer_phone.toLowerCase() : "";
@@ -1232,8 +1234,9 @@ export class WhatsAppChatsAction extends Component {
                 const previewText = c.last_message_preview ? c.last_message_preview.toLowerCase() : "";
                 const cachedMessages = this.messageCache && this.messageCache[c.id] ? this.messageCache[c.id] : [];
                 
-                // Clear any previous match preview
+                // Clear any previous match preview on the original object
                 c.search_match_preview = null;
+                c.search_match_time = null;
 
                 const searchableText = [
                     name, num1, num2, num3, num1Clean, num2Clean, num3Clean, previewText
@@ -1248,22 +1251,29 @@ export class WhatsAppChatsAction extends Component {
                     return false;
                 });
 
-                if (matchesText) return true;
+                if (matchesText) {
+                    searchResults.push(c);
+                    return;
+                }
 
-                // If not matched by name/phone, search in messages and set preview
-                const matchedMsg = cachedMessages.slice().reverse().find(m => {
+                // If not matched by name/phone, search in messages and add one entry PER matched message
+                const matchedMsgs = cachedMessages.slice().reverse().filter(m => {
                     if (!m.body) return false;
                     const bodyLow = m.body.toLowerCase();
                     return queryParts.every(part => bodyLow.includes(part));
                 });
 
-                if (matchedMsg) {
-                    c.search_match_preview = matchedMsg.body;
-                    return true;
+                if (matchedMsgs.length > 0) {
+                    matchedMsgs.forEach(m => {
+                        let clone = Object.assign({}, c);
+                        clone.search_match_preview = m.body;
+                        clone.search_match_time = m.date; // Use the matched message's time
+                        clone.search_unique_key = c.id + '_msg_' + m.id;
+                        searchResults.push(clone);
+                    });
                 }
-
-                return false;
             });
+            channels = searchResults;
         }
 
         // Apply filter

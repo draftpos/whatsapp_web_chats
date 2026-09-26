@@ -178,7 +178,7 @@
                     <t t-if="this.filteredChannels?.length === 0 and !state.isLoadingMoreChannels">
                         <div style="padding: 20px; text-align: center; color: #8696a0; font-size: 14px;">No chats found</div>
                     </t>
-                    <t t-foreach="this.displayedChannels || []" t-as="channel" t-key="channel.id">
+                    <t t-foreach="this.displayedChannels || []" t-as="channel" t-key="channel.search_unique_key || channel.id">
                         <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }} {{ state.selectedChannels?.length > 0 ? 'selection-mode' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)" t-attf-style="flex-direction: column; align-items: stretch; justify-content: center; {{ state.showChatDropdownId === channel.id ? 'z-index: 100;' : '' }}">
                             <t t-if="channel.wa_agent_id">
                                 <div class="chat-agent-row" style="font-size:11px; color:#1976D2; font-weight:bold; display:flex; align-items:center; margin-bottom: 4px; padding-left: 5px;">
@@ -228,7 +228,10 @@
                                             </t>
                                         </t>
                                         <div class="chat-time" style="font-size:11px; color:#8696a0; white-space:nowrap; margin-left:6px;">
-                                            <t t-if="channel.last_message_time">
+                                            <t t-if="channel.search_match_time">
+                                                <t t-esc="this.formatChatTime(channel.search_match_time)"/>
+                                            </t>
+                                            <t t-elif="channel.last_message_time">
                                                 <t t-esc="this.formatChatTime(channel.last_message_time)"/>
                                             </t>
                                         </div>
