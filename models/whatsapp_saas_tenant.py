@@ -182,20 +182,23 @@ class WhatsAppSaaSTenant(models.Model):
                 local_partner = self.env.user.partner_id
                 
             channel = account.sudo()._find_active_channel(phone, create_if_not_found=True)
+            
+            target_model = template.model_id.model or 'res.partner'
             if channel:
-                target_record = channel
+                mail_msg = channel.sudo().message_post(
+                    body=f'[SaaS Template Sent: {template.template_name}]',
+                    message_type='whatsapp_message',
+                    subtype_xmlid='mail.mt_comment',
+                    author_id=self.env.user.partner_id.id,
+                )
             else:
-                target_model = template.model_id.model or 'res.partner'
-                target_record = self.env[target_model].sudo().search([], limit=1)
-                if not target_record:
-                    target_record = local_partner
-
-            mail_msg = target_record.sudo().message_post(
-                body=f'[SaaS Template Sent: {template.template_name}]',
-                message_type='whatsapp_message' if channel else 'comment',
-                subtype_xmlid='mail.mt_comment' if channel else 'mail.mt_note',
-                author_id=self.env.user.partner_id.id,
-            )
+                target_record = self.env[target_model].sudo().search([], limit=1) or local_partner
+                mail_msg = target_record.sudo().message_post(
+                    body=f'[SaaS Template Sent: {template.template_name}]',
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_note',
+                    author_id=self.env.user.partner_id.id,
+                )
             
             msg_vals = {
                 'wa_account_id': account.id,
@@ -216,7 +219,10 @@ class WhatsAppSaaSTenant(models.Model):
             
             _logger.info(f"SaaS notification sent successfully to {phone}")
         except Exception as e:
+            import traceback
             _logger.error(f"Failed to send WA SaaS message to {phone}: {e}")
+            print(f"ERROR sending to {phone}: {e}")
+            print(traceback.format_exc())
 
     def _process_expirations(self, account):
         if not account.saas_expiration_template_id or not account.saas_expiration_days:
