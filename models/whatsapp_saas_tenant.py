@@ -177,7 +177,9 @@ class WhatsAppSaaSTenant(models.Model):
             for i, var in enumerate(variables):
                 free_text_json[f'free_text_{i+1}'] = var
 
-            local_partner = self.env['res.partner'].search([('mobile', '=', phone)], limit=1)
+            local_partner = self.env['res.partner'].search(
+                ['|', ('phone', '=', phone), ('phone', '=', phone.lstrip('+'))], limit=1
+            )
             if not local_partner:
                 local_partner = self.env.user.partner_id
                 
