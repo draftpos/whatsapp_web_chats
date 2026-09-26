@@ -1231,26 +1231,38 @@ export class WhatsAppChatsAction extends Component {
 
                 const previewText = c.last_message_preview ? c.last_message_preview.toLowerCase() : "";
                 const cachedMessages = this.messageCache && this.messageCache[c.id] ? this.messageCache[c.id] : [];
-                const messagesText = cachedMessages.map(m => m.body ? m.body.toLowerCase() : "").join(" ");
+                
+                // Clear any previous match preview
+                c.search_match_preview = null;
 
                 const searchableText = [
-                    name, num1, num2, num3, num1Clean, num2Clean, num3Clean, previewText, messagesText
+                    name, num1, num2, num3, num1Clean, num2Clean, num3Clean, previewText
                 ].join(" ");
                 
-                return queryParts.every(part => {
+                const matchesText = queryParts.every(part => {
                     if (searchableText.includes(part)) return true;
-                    
-                    // Fallback 1: if they typed formatting like "077-188", strip it down to digits
                     const partDigits = part.replace(/\D/g, '');
                     if (partDigits && searchableText.includes(partDigits)) return true;
-                    
-                    // Fallback 2: Handle local "077..." vs international "26377..." 
-                    // by ignoring the leading zero in the search query part
                     if (part.startsWith('0') && part.length > 2 && searchableText.includes(part.substring(1))) return true;
                     if (partDigits.startsWith('0') && partDigits.length > 2 && searchableText.includes(partDigits.substring(1))) return true;
-                    
                     return false;
                 });
+
+                if (matchesText) return true;
+
+                // If not matched by name/phone, search in messages and set preview
+                const matchedMsg = cachedMessages.slice().reverse().find(m => {
+                    if (!m.body) return false;
+                    const bodyLow = m.body.toLowerCase();
+                    return queryParts.every(part => bodyLow.includes(part));
+                });
+
+                if (matchedMsg) {
+                    c.search_match_preview = matchedMsg.body;
+                    return true;
+                }
+
+                return false;
             });
         }
 
