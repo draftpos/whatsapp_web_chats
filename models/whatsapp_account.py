@@ -89,21 +89,6 @@ class WhatsAppAccount(models.Model):
     ], string="Auto-Send Frequency", default='manual')
     school_auto_send_custom_date = fields.Date(string="Custom Send Date")
 
-    # POS Integration
-    allow_pos_sales_summary = fields.Boolean(string="Allow sending daily POS sales summary", default=False)
-    pos_sales_wa_template_id = fields.Many2one(
-        'whatsapp.template', 
-        string="POS Sales Summary Template",
-        domain="[('status', '=', 'approved')]",
-        help="Variables: {{1}}: Manager Name, {{2}}: Date, {{3}}: Sales Amount, {{4}}: Store Name, {{5}}: Receipts Count, {{6}}: Profit Amount"
-    )
-    pos_manager_mobile = fields.Char(string="Manager WhatsApp Number (with country code)")
-    pos_manager_name = fields.Char(string="Manager Name", default="Manager")
-    pos_sales_auto_send_frequency = fields.Selection([
-        ('manual', 'Manual Only'),
-        ('daily', 'Daily')
-    ], string="POS Auto-Send Frequency", default='manual')
-
     @api.model
     def _cron_sync_school_balances(self):
         accounts = self.search([('allow_school_balances', '=', True), ('school_auto_send_frequency', '!=', 'manual')])
@@ -121,100 +106,6 @@ class WhatsAppAccount(models.Model):
                     acc._sync_school_balances_remote()
             except Exception as e:
                 _logger.error(f"Failed to sync school balances for account {acc.name}: {str(e)}")
-
-    @api.model
-    def _cron_sync_pos_sales_summary(self):
-        accounts = self.search([('allow_pos_sales_summary', '=', True), ('pos_sales_auto_send_frequency', '=', 'daily')])
-        for acc in accounts:
-            try:
-                acc._sync_pos_sales_summary()
-            except Exception as e:
-                _logger.error(f"Failed to sync POS sales for account {acc.name}: {str(e)}")
-
-    def _sync_pos_sales_summary(self):
-        self.ensure_one()
-        if 'pos.order' not in self.env:
-            _logger.warning("POS module not installed.")
-            return
-
-        wa_template = self.pos_sales_wa_template_id
-        if not wa_template:
-            return
-            
-        manager_phone = self.pos_manager_mobile
-        if not manager_phone:
-            return
-
-        from datetime import date
-        today = date.today()
-
-        # Search pos.orders for today and this company
-        orders = self.env['pos.order'].search([
-            ('company_id', '=', self.company_id.id),
-            ('date_order', '>=', today.strftime('%Y-%m-%d 00:00:00')),
-            ('date_order', '<=', today.strftime('%Y-%m-%d 23:59:59')),
-            ('state', 'in', ['paid', 'done', 'invoiced'])
-        ])
-
-        # Group by store (pos.config)
-        stores_data = {}
-        for order in orders:
-            config = order.session_id.config_id
-            if config not in stores_data:
-                stores_data[config] = {'sales': 0.0, 'receipts': 0, 'profit': 0.0}
-            
-            stores_data[config]['sales'] += order.amount_total
-            stores_data[config]['receipts'] += 1
-            
-            margin = getattr(order, 'margin', 0.0)
-            stores_data[config]['profit'] += margin
-
-        manager_name = self.pos_manager_name or 'Manager'
-        date_str = today.strftime('%d %b %Y')
-        phone = manager_phone.replace(' ', '').replace('+', '')
-
-        for config, data in stores_data.items():
-            store_name = config.name
-            sales = f"${data['sales']:,.2f}"
-            receipts = str(data['receipts'])
-            profit = f"${data['profit']:,.2f}"
-            
-            free_text_json = {
-                'free_text_1': manager_name,
-                'free_text_2': date_str,
-                'free_text_3': sales,
-                'free_text_4': store_name,
-                'free_text_5': receipts,
-                'free_text_6': profit,
-            }
-            
-            local_partner = self.env['res.partner'].search([('mobile', '=', manager_phone)], limit=1)
-            if not local_partner:
-                local_partner = self.env.user.partner_id
-                
-            target_model = wa_template.model_id.model or 'res.partner'
-            target_record = self.env[target_model].sudo().search([], limit=1)
-            if not target_record:
-                target_record = local_partner
-            
-            mail_msg = target_record.sudo().message_post(
-                body=f'[WhatsApp Template Sent: {wa_template.template_name} - {store_name}]',
-                message_type='comment',
-                subtype_xmlid='mail.mt_note',
-                author_id=self.env.user.partner_id.id,
-            )
-            msg_vals = {
-                'wa_account_id': self.id,
-                'mobile_number': phone,
-                'wa_template_id': wa_template.id,
-                'free_text_json': free_text_json,
-                'mail_message_id': mail_msg.id,
-                'body': f'[WhatsApp Template Sent: {wa_template.template_name} - {store_name}]',
-                'state': 'outgoing',
-                'message_type': 'outbound',
-            }
-            wa_msg = self.env['whatsapp.message'].create(msg_vals)
-            wa_msg._send(force_send_by_cron=False)
 
     def _generate_balance_message(self, student_name, parent_name, balance):
         return f"Hello {parent_name}, the current balance for {student_name} is {balance}."
