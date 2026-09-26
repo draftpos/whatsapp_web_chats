@@ -183,24 +183,21 @@ class WhatsAppSaaSTenant(models.Model):
             if not local_partner:
                 local_partner = self.env.user.partner_id
                 
-            channel = account.sudo()._find_active_channel(phone, create_if_not_found=True)
-            
             target_model = template.model_id.model or 'res.partner'
-            if channel:
-                mail_msg = channel.sudo().message_post(
-                    body=f'[SaaS Template: {template.template_name}]',
-                    message_type='comment',
-                    subtype_xmlid='mail.mt_comment',
-                    author_id=self.env.user.partner_id.id,
-                )
+            if target_model == 'res.partner' and local_partner:
+                target_record = local_partner
             else:
-                target_record = self.env[target_model].sudo().search([], limit=1) or local_partner
-                mail_msg = target_record.sudo().message_post(
-                    body=f'[SaaS Template: {template.template_name}]',
-                    message_type='comment',
-                    subtype_xmlid='mail.mt_note',
-                    author_id=self.env.user.partner_id.id,
-                )
+                target_record = self.env[target_model].sudo().search([], limit=1)
+                if not target_record:
+                    target_record = local_partner # Fallback
+            
+            # Post message to the exact model required by the template to avoid Odoo template validation error
+            mail_msg = target_record.sudo().message_post(
+                body=f'[SaaS Template Sent: {template.template_name}]',
+                message_type='comment',
+                subtype_xmlid='mail.mt_note',
+                author_id=self.env.user.partner_id.id,
+            )
             
             msg_vals = {
                 'wa_account_id': account.id,
