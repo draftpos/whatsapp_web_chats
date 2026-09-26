@@ -173,15 +173,43 @@ class WhatsAppSaaSTenant(models.Model):
 
     def _send_whatsapp_message(self, account, phone, template, variables):
         try:
-            # We use standard WhatsApp composer to send the template
-            composer = self.env['whatsapp.composer'].with_context(
-                default_wa_account_id=account.id,
-                default_wa_template_id=template.id,
-                default_phone=phone,
-            ).create({})
+            free_text_json = {}
+            for i, var in enumerate(variables):
+                free_text_json[f'free_text_{i+1}'] = var
+
+            local_partner = self.env['res.partner'].search([('mobile', '=', phone)], limit=1)
+            if not local_partner:
+                local_partner = self.env.user.partner_id
+                
+            target_model = template.model_id.model or 'res.partner'
+            target_record = self.env[target_model].sudo().search([], limit=1)
+            if not target_record:
+                target_record = local_partner
+
+            mail_msg = target_record.sudo().message_post(
+                body=f'[SaaS Template Sent: {template.template_name}]',
+                message_type='comment',
+                subtype_xmlid='mail.mt_note',
+                author_id=self.env.user.partner_id.id,
+            )
             
-            # Send action
-            composer.action_send_whatsapp_template()
+            msg_vals = {
+                'wa_account_id': account.id,
+                'mobile_number': phone,
+                'wa_template_id': template.id,
+                'free_text_json': free_text_json,
+                'mail_message_id': mail_msg.id,
+                'body': f'[SaaS Template Sent: {template.template_name}]',
+                'state': 'outgoing',
+                'message_type': 'outbound',
+            }
+            # Add explicit free_text variables
+            for i, var in enumerate(variables):
+                msg_vals[f'free_text_{i+1}'] = var
+
+            wa_msg = self.env['whatsapp.message'].create(msg_vals)
+            wa_msg._send(force_send_by_cron=False)
+            
             _logger.info(f"SaaS notification sent successfully to {phone}")
         except Exception as e:
             _logger.error(f"Failed to send WA SaaS message to {phone}: {e}")
