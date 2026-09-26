@@ -1229,8 +1229,12 @@ export class WhatsAppChatsAction extends Component {
                 const num2Clean = num2.replace(/\D/g, '');
                 const num3Clean = num3.replace(/\D/g, '');
 
+                const previewText = c.last_message_preview ? c.last_message_preview.toLowerCase() : "";
+                const cachedMessages = this.messageCache && this.messageCache[c.id] ? this.messageCache[c.id] : [];
+                const messagesText = cachedMessages.map(m => m.body ? m.body.toLowerCase() : "").join(" ");
+
                 const searchableText = [
-                    name, num1, num2, num3, num1Clean, num2Clean, num3Clean
+                    name, num1, num2, num3, num1Clean, num2Clean, num3Clean, previewText, messagesText
                 ].join(" ");
                 
                 return queryParts.every(part => {
