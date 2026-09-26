@@ -118,8 +118,6 @@ class WhatsAppSaaSTenant(models.Model):
             if has_local_saas:
                 try:
                     stores = self.env['havanoposdesk.store'].sudo().search([('tenant_id', '=', int(tenant.tenant_id))])
-                    from odoo.addons.havanoposdesk_odoo.inventory.controllers.api import API
-                    api_controller = API()
 
                     for store in stores:
                         # Query today's POS orders for this store directly from local models
