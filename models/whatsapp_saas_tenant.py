@@ -153,22 +153,33 @@ class WhatsAppSaaSTenant(models.Model):
                             total = store.get('sales_total', 0)
                             num_orders = store.get('orders_count', 0)
                             currency = store.get('currency', '$')
-                            store_lines.append(
-                                f"🏪 *{store.get('name')}*\n"
-                                f"   Sales: {currency}{total:,.2f}  |  Orders: {num_orders}"
-                            )
+                            store_name = store.get('name', 'Main Branch')
+                            avg_order = (total / num_orders) if num_orders > 0 else 0.0
+                            
+                            formatted_date = current_date.strftime("%d %b %Y")
+                            
+                            # Template pos_daily_sales_summary expects 6 variables:
+                            # 1: Name, 2: Date, 3: Total Sales, 4: Branch, 5: Orders, 6: Average Amount
+                            variables = [
+                                tenant.tenant_name,
+                                formatted_date,
+                                f"{currency}{total:,.2f}",
+                                store_name,
+                                str(num_orders),
+                                f"{currency}{avg_order:,.2f}"
+                            ]
+                            
+                            if account.saas_daily_sales_template_id:
+                                self._send_whatsapp_message(
+                                    account,
+                                    tenant.tenant_phone,
+                                    account.saas_daily_sales_template_id,
+                                    variables
+                                )
                 except Exception as e:
                     _logger.error(f"Error fetching remote sales for tenant {tenant.tenant_name}: {e}")
 
-            if store_lines and account.saas_daily_sales_template_id:
-                sales_data_str = "\n\n".join(store_lines)
-                self._send_whatsapp_message(
-                    account,
-                    tenant.tenant_phone,
-                    account.saas_daily_sales_template_id,
-                    [tenant.tenant_name, sales_data_str]
-                )
-                tenant.last_sales_sent_date = current_date
+            tenant.last_sales_sent_date = current_date
 
 
     def _send_whatsapp_message(self, account, phone, template, variables):
