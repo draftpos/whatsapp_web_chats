@@ -212,9 +212,7 @@ class WhatsAppSaaSTenant(models.Model):
                 'state': 'outgoing',
                 'message_type': 'outbound',
             }
-            # Add explicit free_text variables
-            for i, var in enumerate(variables):
-                msg_vals[f'free_text_{i+1}'] = var
+            # Variables are passed via free_text_json only (free_text_N fields don't exist in Odoo 19)
 
             wa_msg = self.env['whatsapp.message'].create(msg_vals)
             wa_msg._send(force_send_by_cron=False)
