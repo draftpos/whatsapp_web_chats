@@ -95,6 +95,15 @@
                                     icon="fa-calendar"/>
                         </div>
                     </page>
+                    <page string="POS Integration" name="pos_integration">
+                        <group>
+                            <field name="allow_pos_sales_summary"/>
+                            <field name="pos_sales_wa_template_id" invisible="not allow_pos_sales_summary" options="{'no_create': True}"/>
+                            <field name="pos_manager_name" invisible="not allow_pos_sales_summary"/>
+                            <field name="pos_manager_mobile" invisible="not allow_pos_sales_summary" placeholder="+1234567890"/>
+                            <field name="pos_sales_auto_send_frequency" invisible="not allow_pos_sales_summary"/>
+                        </group>
+                    </page>
                 </notebook>
             </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
