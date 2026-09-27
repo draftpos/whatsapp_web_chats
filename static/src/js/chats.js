@@ -1106,6 +1106,38 @@ export class WhatsAppChatsAction extends Component {
 
     onChatSearchInput(ev) {
         this.state.chatSearch = ev.target.value;
+        const query = this.state.chatSearch.trim().toLowerCase();
+        
+        if (this._globalSearchTimeout) {
+            clearTimeout(this._globalSearchTimeout);
+        }
+        
+        if (query && query.length >= 3) {
+            this._globalSearchTimeout = setTimeout(async () => {
+                try {
+                    let args = [query];
+                    if (this.state.selectedAccount) {
+                        args.push(parseInt(this.state.selectedAccount));
+                    }
+                    const results = await this.orm.call("whatsapp.account", "search_global_messages", args);
+                    if (results && results.length > 0) {
+                        results.forEach(msg => {
+                            if (!this.messageCache[msg.channel_id]) {
+                                this.messageCache[msg.channel_id] = [];
+                            }
+                            const exists = this.messageCache[msg.channel_id].find(m => m.id === msg.id);
+                            if (!exists) {
+                                this.messageCache[msg.channel_id].push(msg);
+                            }
+                        });
+                        // Trigger reactivity for filteredChannels to re-evaluate
+                        this.state.channels = [...this.state.channels];
+                    }
+                } catch (e) {
+                    console.error("Global message search failed:", e);
+                }
+            }, 500);
+        }
     }
 
     toggleInChatSearch() {

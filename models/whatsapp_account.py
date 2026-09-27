@@ -2282,4 +2282,114 @@ class WhatsAppAccount(models.Model):
                 acc._send_group_auto_message(ch)
                 time.sleep(0.1)
 
- 
+    @api.model
+    def search_global_messages(self, query, wa_account_id=None):
+        if not query or len(query) < 3:
+            return []
+            
+        current_company = self.env.company
+        domain = [
+            ('model', '=', 'discuss.channel'),
+            ('body', 'ilike', query),
+            ('message_type', '!=', 'user_notification')
+        ]
+        
+        channel_domain = [
+            ('channel_type', '=', 'whatsapp'),
+            '|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)
+        ]
+        if wa_account_id:
+            channel_domain.append(('wa_account_id', '=', int(wa_account_id)))
+            
+        if not self.env.is_admin():
+            if hasattr(self.env.user, 'whatsapp_account_ids'):
+                channel_domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
+                
+        channels = self.env['discuss.channel'].sudo().search(channel_domain)
+        if not channels:
+            return []
+            
+        domain.append(('res_id', 'in', channels.ids))
+        
+        messages = self.env['mail.message'].sudo().search(domain, order='id desc', limit=100)
+        
+        wa_msgs = self.env['whatsapp.message'].sudo().search([('mail_message_id', 'in', messages.ids)])
+        wa_map = {wa.mail_message_id.id: wa for wa in wa_msgs if wa.mail_message_id}
+        
+        import re
+        def clean_name(n):
+            if not n: return n
+            return re.sub(r'\s*\(\s*School\s*\)', '', n, flags=re.IGNORECASE).strip()
+            
+        public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
+        
+        res = []
+        for m in messages:
+            channel = self.env['discuss.channel'].sudo().browse(m.res_id)
+            body_text = re.sub(r'<[^>]+>', '', m.body or '').strip()
+            
+            if m.author_id and m.author_id.id == self.env.user.partner_id.id:
+                is_me = True
+            elif self.env.user.has_group('base.group_user'):
+                wa_rec = wa_map.get(m.id)
+                wa_state = wa_rec.state if wa_rec else False
+                if wa_state == 'received':
+                    is_me = False
+                elif m.author_id:
+                    if channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
+                        is_me = False
+                    else:
+                        if public_partner and m.author_id.id == public_partner.id:
+                            is_me = False
+                        else:
+                            is_me = True
+                else:
+                    is_me = False
+            else:
+                if m.author_id and channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
+                    is_me = True
+                else:
+                    is_me = False
+                    
+            date_str = m.date.strftime('%Y-%m-%dT%H:%M:%SZ') if m.date else False
+            
+            author_data = False
+            if m.author_id:
+                author_name = clean_name(m.author_id.name)
+                if public_partner and m.author_id.id == public_partner.id:
+                    customer = channel.whatsapp_partner_id
+                    author_name = clean_name(customer.name) if customer else clean_name(channel.name)
+                author_data = [m.author_id.id, author_name]
+                
+            att_data = []
+            if m.attachment_ids:
+                for att in m.attachment_ids:
+                    att_data.append({
+                        'id': att.id,
+                        'name': att.name,
+                        'mimetype': att.mimetype,
+                        'url': f'/web/content/{att.id}?download=true'
+                    })
+                    
+            wa_rec = wa_map.get(m.id)
+            
+            res.append({
+                'id': m.id,
+                'channel_id': m.res_id,
+                'body': m.body,
+                'bodyText': body_text,
+                'date': date_str,
+                'isMe': is_me,
+                'author_id': author_data,
+                'message_type': m.message_type,
+                'subtype_id': [m.subtype_id.id, m.subtype_id.name] if m.subtype_id else False,
+                'attachments': att_data,
+                'wa_state': wa_rec.state if wa_rec else False,
+                'wa_error': (wa_rec.failure_reason or wa_rec.failure_type) if wa_rec and wa_rec.state == 'error' else False,
+                'wa_is_starred': wa_rec.wa_is_starred if wa_rec else False,
+                'wa_is_pinned': wa_rec.wa_is_pinned if wa_rec else False,
+                'wa_reaction': wa_rec.wa_reaction if wa_rec else False,
+                'wa_reaction_me': wa_rec.wa_reaction_me if wa_rec else False,
+            })
+            
+        return res
