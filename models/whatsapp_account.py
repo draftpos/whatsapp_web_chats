@@ -493,7 +493,7 @@ class WhatsAppAccount(models.Model):
         return False
 
     @api.model
-    def get_whatsapp_web_channels(self, wa_account_id=None, limit=5000, offset=0):
+    def get_whatsapp_web_channels(self, wa_account_id=None, limit=5000, offset=0, channel_id=None):
         current_company = self.env.company
         domain = [
             ('channel_type', '=', 'whatsapp'),
@@ -503,7 +503,8 @@ class WhatsAppAccount(models.Model):
         ]
         if wa_account_id:
             domain.append(('wa_account_id', '=', int(wa_account_id)))
-            
+        if channel_id:
+            domain.append(('id', '=', int(channel_id)))
         if not self.env.is_admin():
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))

@@ -176,10 +176,13 @@ export class WhatsAppChatsAction extends Component {
                     let ch = this.state.channels.find(c => c.id === this.props.action.context.default_channel_id);
                     if (!ch) {
                         try {
-                            const [fetched] = await this.orm.searchRead('discuss.channel', [['id', '=', this.props.action.context.default_channel_id]], []);
-                            if (fetched) {
-                                this.state.channels.push(fetched);
-                                ch = fetched;
+                            const fetched = await this.orm.call('whatsapp.account', 'get_whatsapp_web_channels', [], {
+                                channel_id: this.props.action.context.default_channel_id,
+                                limit: 1
+                            });
+                            if (fetched && fetched.length > 0) {
+                                this.state.channels.push(fetched[0]);
+                                ch = fetched[0];
                             }
                         } catch (e) {
                             console.warn("Could not fetch default channel", e);
