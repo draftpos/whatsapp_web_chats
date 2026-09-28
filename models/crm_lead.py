@@ -81,7 +81,10 @@ class CrmLead(models.Model):
                 if clean_phone.startswith('0'):
                     clean_phone = '263' + clean_phone[1:]
                     
-                domain = [('channel_type', '=', 'whatsapp'), ('name', 'ilike', clean_phone)]
+                domain = [
+                    ('channel_type', '=', 'whatsapp'),
+                    ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone])
+                ]
                 if self.partner_id:
                     domain = ['|', ('whatsapp_partner_id', '=', self.partner_id.id)] + domain
                     

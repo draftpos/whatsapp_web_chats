@@ -168,37 +168,56 @@ export class WhatsAppChatsAction extends Component {
 
         onWillStart(async () => {
             // Fire and forget loadChannels so it doesn't block component mounting while fetching 50k chats over network
-            this.loadChannels().then(async () => {
-                if (this.state.hideSidebar && this.props.activeChannelId) {
-                    const ch = this.state.channels.find(c => c.id === this.props.activeChannelId);
-                    if (ch) this.selectChannel(ch);
-                } else if (this.state.hideSidebar && this.props.action?.context?.default_channel_id) {
-                    let ch = this.state.channels.find(c => c.id === this.props.action.context.default_channel_id);
-                    if (!ch) {
-                        try {
-                            const fetched = await this.orm.call('whatsapp.account', 'get_whatsapp_web_channels', [], {
-                                channel_id: this.props.action.context.default_channel_id,
-                                limit: 1
-                            });
-                            if (fetched && fetched.length > 0) {
-                                this.state.channels.push(fetched[0]);
-                                ch = fetched[0];
-                            }
-                        } catch (e) {
-                            console.warn("Could not fetch default channel", e);
-                        }
-                    }
-                    if (ch) this.selectChannel(ch);
-                }
-            });
-            await Promise.all([
+            this.loadChannels();
+
+            const initPromises = [
                 this.loadProducts(),
                 this.loadTemplates(),
                 this.loadTags(),
                 this.loadCountries(),
                 this.loadQuickReplies(),
                 this._preloadActionIds(),
-            ]);
+            ];
+
+            if (this.state.hideSidebar && this.props.action?.context?.default_channel_id) {
+                initPromises.push((async () => {
+                    try {
+                        const fetched = await this.orm.call('whatsapp.account', 'get_whatsapp_web_channels', [], {
+                            channel_id: this.props.action.context.default_channel_id,
+                            limit: 1
+                        });
+                        if (fetched && fetched.length > 0) {
+                            // Check if it was already pushed by loadChannels cache
+                            if (!this.state.channels.find(c => c.id === fetched[0].id)) {
+                                this.state.channels.push(fetched[0]);
+                            }
+                            this.selectChannel(fetched[0]);
+                        }
+                    } catch (e) {
+                        console.warn("Could not fetch default channel", e);
+                    }
+                })());
+            } else if (this.state.hideSidebar && this.props.activeChannelId) {
+                // If it's passed as a prop directly
+                initPromises.push((async () => {
+                    try {
+                        const fetched = await this.orm.call('whatsapp.account', 'get_whatsapp_web_channels', [], {
+                            channel_id: this.props.activeChannelId,
+                            limit: 1
+                        });
+                        if (fetched && fetched.length > 0) {
+                            if (!this.state.channels.find(c => c.id === fetched[0].id)) {
+                                this.state.channels.push(fetched[0]);
+                            }
+                            this.selectChannel(fetched[0]);
+                        }
+                    } catch (e) {
+                        console.warn("Could not fetch active channel", e);
+                    }
+                })());
+            }
+
+            await Promise.all(initPromises);
         });
         
         onMounted(() => {
