@@ -57,14 +57,18 @@ class WhatsAppSaaSTenant(models.Model):
         elif account.saas_app_url:
             try:
                 auth = (account.saas_username, account.saas_password) if account.saas_username and account.saas_password else None
-                response = requests.get(f"{account.saas_app_url.rstrip('/')}/api/get_users", auth=auth, timeout=10)
+                response = requests.get(f"{account.saas_app_url.rstrip('/')}/api/method/saas_api.www.api.get_users", auth=auth, timeout=10)
                 if response.status_code == 200:
                     data = response.json()
-                    for t in data.get('users', []):
+                    message_dict = data.get('message', {})
+                    users = message_dict.get('data', []) if isinstance(message_dict, dict) else []
+                    for t in users:
+                        phone = t.get('phone_number') or t.get('mobile_no') or t.get('phone')
+                        t_id = t.get('tenant_id') or t.get('id')
                         tenants_data.append({
-                            'id': str(t.get('id')),
-                            'name': t.get('name'),
-                            'phone': t.get('phone'),
+                            'id': str(t_id),
+                            'name': t.get('full_name') or t.get('name') or t.get('username'),
+                            'phone': phone,
                             'expiration_date': t.get('expiration_date') or t.get('subscription_end_date') or False
                         })
             except Exception as e:
@@ -142,30 +146,29 @@ class WhatsAppSaaSTenant(models.Model):
                 try:
                     auth = (account.saas_username, account.saas_password) if account.saas_username and account.saas_password else None
                     response = requests.get(
-                        f"{account.saas_app_url.rstrip('/')}/api/daily_sales",
+                        f"{account.saas_app_url.rstrip('/')}/api/reports/daily-sales",
                         params={'tenant_id': tenant.tenant_id},
                         auth=auth,
                         timeout=10
                     )
                     if response.status_code == 200:
                         data = response.json()
-                        for store in data.get('stores', []):
-                            total = store.get('sales_total', 0)
-                            num_orders = store.get('orders_count', 0)
-                            currency = store.get('currency', '$')
-                            store_name = store.get('name', 'Main Branch')
+                        records = data.get('data', [])
+                        if records:
+                            total = sum(r.get('total_sales', 0) for r in records)
+                            num_orders = sum(r.get('total_qty', 0) for r in records)
+                            currency = '$'
+                            store_name = 'Main Branch'
                             avg_order = (total / num_orders) if num_orders > 0 else 0.0
                             
                             formatted_date = current_date.strftime("%d %b %Y")
                             
-                            # Template pos_daily_sales_summary expects 6 variables:
-                            # 1: Name, 2: Date, 3: Total Sales, 4: Branch, 5: Orders, 6: Average Amount
                             variables = [
                                 tenant.tenant_name,
                                 formatted_date,
                                 f"{currency}{total:,.2f}",
                                 store_name,
-                                str(num_orders),
+                                str(int(num_orders)),
                                 f"{currency}{avg_order:,.2f}"
                             ]
                             
