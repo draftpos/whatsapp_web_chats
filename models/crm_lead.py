@@ -18,10 +18,13 @@ class CrmLead(models.Model):
     def _compute_wa_chat_channel_id(self):
         for lead in self:
             channel = False
-            if lead.phone or lead.mobile:
-                phone = lead.phone or lead.mobile
+            phone = lead.phone if hasattr(lead, 'phone') else False
+            mobile = lead.mobile if hasattr(lead, 'mobile') else False
+            
+            if phone or mobile:
+                phone_to_use = phone or mobile
                 # Format phone logic similar to JS formatWhatsAppNumber
-                clean_phone = ''.join(filter(str.isdigit, phone))
+                clean_phone = ''.join(filter(str.isdigit, phone_to_use))
                 if clean_phone.startswith('0'):
                     clean_phone = '263' + clean_phone[1:] # standard default in module
                     
