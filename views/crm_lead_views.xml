@@ -5,10 +5,11 @@
         <field name="model">crm.lead</field>
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='name']/.." position="after">
-                <div class="mt-3 mb-2 w-100">
-                    <field name="project_category" placeholder="Select Project Category..." class="w-100 fs-4"/>
-                </div>
+            <xpath expr="//field[@name='name']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
             </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_open_whatsapp_chat" type="object" class="oe_stat_button" icon="fa-whatsapp">

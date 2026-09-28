@@ -21,6 +21,12 @@ class CrmLead(models.Model):
         ('construction', 'Construction')
     ], string='Project Category')
 
+    @api.onchange('project_category')
+    def _onchange_project_category(self):
+        if self.project_category:
+            category_names = dict(self._fields['project_category'].selection)
+            self.name = category_names.get(self.project_category, self.project_category)
+
     def _compute_wa_unread_messages_count(self):
         for lead in self:
             count = 0
