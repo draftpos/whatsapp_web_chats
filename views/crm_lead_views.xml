@@ -11,10 +11,35 @@
                 </div>
             </xpath>
             <xpath expr="//notebook" position="inside">
-                <page string="Chats" name="whatsapp_chats">
+                <!-- In Odoo 17+, the badge attribute works to show counts on the tab. -->
+                <page string="Chats" name="whatsapp_chats" invisible="not wa_chat_channel_id" badge="wa_unread_messages_count">
                     <!-- We pass the current lead ID to the widget using a field -->
                     <field name="wa_chat_channel_id" widget="crm_whatsapp_chat_widget"/>
                 </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit Tree View to add the message counting column -->
+    <record id="crm_lead_view_tree_whatsapp" model="ir.ui.view">
+        <field name="name">crm.lead.view.tree.whatsapp</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_leads"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="wa_unread_messages_count" string="New WA Messages" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+    
+    <!-- Also inherit the opportunities tree view just in case -->
+    <record id="crm_case_tree_view_oppor_whatsapp" model="ir.ui.view">
+        <field name="name">crm.lead.view.tree.oppor.whatsapp</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_oppor"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="wa_unread_messages_count" string="New WA Messages" optional="show"/>
             </xpath>
         </field>
     </record>

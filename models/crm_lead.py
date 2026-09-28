@@ -10,10 +10,32 @@ class CrmLead(models.Model):
         store=False
     )
 
+    wa_unread_messages_count = fields.Integer(
+        string='New WA Messages',
+        compute='_compute_wa_unread_messages_count',
+        store=False
+    )
+
     project_category = fields.Selection([
         ('fitted_kitchens', 'Fitted Kitchens'),
         ('construction', 'Construction')
     ], string='Project Category')
+
+    def _compute_wa_unread_messages_count(self):
+        for lead in self:
+            count = 0
+            if lead.wa_chat_channel_id:
+                channel = lead.wa_chat_channel_id
+                count = getattr(channel, 'message_needaction_counter', 0)
+                if count == 0:
+                    count = getattr(channel, 'message_unread_counter', 0)
+                
+                # If native Odoo counters are 0, check the custom global unread flag
+                if count == 0 and getattr(channel, 'wa_is_unread_global', False):
+                    # Attempt to get actual unread count since last seen
+                    # or default to 1 so the badge appears
+                    count = 1
+            lead.wa_unread_messages_count = count
 
     def _compute_wa_chat_channel_id(self):
         for lead in self:
