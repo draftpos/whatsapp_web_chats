@@ -179,22 +179,26 @@ export class WhatsAppChatsAction extends Component {
                 this._preloadActionIds(),
             ];
 
-            if (this.state.hideSidebar && this.props.action?.context?.default_channel_id) {
+            const targetChannelId = this.props.action?.context?.default_channel_id || this.props.action?.params?.default_channel_id;
+
+            if (this.state.hideSidebar && targetChannelId) {
                 initPromises.push((async () => {
                     try {
                         const fetched = await this.orm.call('whatsapp.account', 'get_whatsapp_web_channels', [], {
-                            channel_id: this.props.action.context.default_channel_id,
+                            channel_id: targetChannelId,
                             limit: 1
                         });
-                        if (fetched && fetched.length > 0) {
-                            // Check if it was already pushed by loadChannels cache
-                            if (!this.state.channels.find(c => c.id === fetched[0].id)) {
-                                this.state.channels.push(fetched[0]);
+                        if (fetched && fetched.channels && fetched.channels.length > 0) {
+                            if (!this.state.channels.find(c => c.id === fetched.channels[0].id)) {
+                                this.state.channels.push(fetched.channels[0]);
                             }
-                            this.selectChannel(fetched[0]);
+                            this.selectChannel(fetched.channels[0]);
+                        } else {
+                            this.env.services.notification.add("Could not locate the requested chat in the database (channel ID: " + targetChannelId + ")", { type: "danger", sticky: true });
                         }
                     } catch (e) {
                         console.warn("Could not fetch default channel", e);
+                        this.env.services.notification.add("Failed to fetch chat: " + e.message, { type: "danger" });
                     }
                 })());
             } else if (this.state.hideSidebar && this.props.activeChannelId) {
@@ -218,6 +222,14 @@ export class WhatsAppChatsAction extends Component {
             }
 
             await Promise.all(initPromises);
+
+            if (this.state.hideSidebar) {
+                if (this.state.selectedChannel) {
+                    this.env.services.notification.add("DEBUG: Chat selected successfully! " + this.state.selectedChannel.id, { type: "info" });
+                } else {
+                    this.env.services.notification.add("DEBUG: Chat was NOT selected!", { type: "danger" });
+                }
+            }
         });
         
         onMounted(() => {
