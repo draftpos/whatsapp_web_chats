@@ -103,7 +103,7 @@ class CrmLead(models.Model):
 
         return {
             'type': 'ir.actions.client',
-            'tag': 'whatsapp_web_chats.chats',
+            'tag': 'whatsapp_web_chats.chats_client_action',
             'name': 'WhatsApp Chat',
             'context': {
                 'hide_sidebar': True,
