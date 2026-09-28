@@ -23,7 +23,7 @@
                 </div>
             </t>
             <t t-else="">
-                <div class="whatsapp-sidebar">
+                <div class="whatsapp-sidebar" t-attf-style="{{ state.hideSidebar ? 'display: none !important;' : '' }}">
                     <div class="whatsapp-header wa-sidebar-header" style="position: relative;">
                     <div style="display: flex; align-items: center; flex: 1;">
                         <t t-set="activeAcc" t-value="state.accounts.find(a => a.id.toString() === state.selectedAccount)"/>
@@ -352,7 +352,7 @@
                 <!-- Mobile-only Bottom Navigation Bar removed as per request -->
 
             </div>
-            <div class="whatsapp-main">
+            <div class="whatsapp-main" t-attf-style="{{ state.hideSidebar ? 'width: 100% !important; max-width: 100% !important; flex: 1 1 auto;' : '' }}">
                 <t t-if="state.selectedChannel">
                     <div class="whatsapp-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; cursor: pointer;" t-on-click="toggleContactInfo" title="Contact Info">

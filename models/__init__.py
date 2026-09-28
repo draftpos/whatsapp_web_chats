@@ -18,3 +18,4 @@ from . import whatsapp_dashboard
 from . import wa_contact_sharing
 from . import whatsapp_saas_integration
 from . import whatsapp_saas_tenant
+from . import crm_lead

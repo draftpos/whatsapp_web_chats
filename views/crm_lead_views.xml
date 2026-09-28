@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="crm_lead_view_form_whatsapp" model="ir.ui.view">
+        <field name="name">crm.lead.view.form.whatsapp</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]" position="after">
+                <div class="oe_title">
+                    <field name="project_category" widget="selection" placeholder="Select Category..."/>
+                </div>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Chats" name="whatsapp_chats">
+                    <!-- We pass the current lead ID to the widget using a field -->
+                    <field name="wa_chat_channel_id" widget="crm_whatsapp_chat_widget"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -5,7 +5,7 @@
     'license': 'LGPL-3',
     'author': 'Draft POS',
     'summary': 'Provides a WhatsApp Web-like interface for managing WhatsApp chats.',
-    'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup', 'dev_whatsapp_chatbot_ent'],
+    'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup', 'dev_whatsapp_chatbot_ent', 'crm'],
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
@@ -28,6 +28,7 @@
         'views/wa_contact_sharing_views.xml',
         'data/whatsapp_saas_cron.xml',
         'views/whatsapp_saas_views.xml',
+        'views/crm_lead_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -39,6 +40,8 @@
             'whatsapp_web_chats/static/src/js/chats.js',
             'whatsapp_web_chats/static/src/xml/dashboard_template.xml',
             'whatsapp_web_chats/static/src/js/dashboard.js',
+            'whatsapp_web_chats/static/src/xml/crm_chat_widget.xml',
+            'whatsapp_web_chats/static/src/js/crm_chat_widget.js',
         ],
     },
     'installable': True,

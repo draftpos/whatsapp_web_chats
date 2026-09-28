@@ -14,6 +14,7 @@ export class WhatsAppChatsAction extends Component {
         this.messageCache = {};
         
         this.state = useState({
+            hideSidebar: this.props.action?.context?.hide_sidebar || this.props.hideSidebar || false,
             channels: [],
             isSettingsOpen: false,
             chatFilter: 'all', // 'all' or 'unread'
@@ -167,8 +168,15 @@ export class WhatsAppChatsAction extends Component {
 
         onWillStart(async () => {
             // Fire and forget loadChannels so it doesn't block component mounting while fetching 50k chats over network
-            this.loadChannels();
-            this.loadChannels();
+            this.loadChannels().then(() => {
+                if (this.state.hideSidebar && this.props.activeChannelId) {
+                    const ch = this.state.channels.find(c => c.id === this.props.activeChannelId);
+                    if (ch) this.selectChannel(ch);
+                } else if (this.state.hideSidebar && this.props.action?.context?.default_channel_id) {
+                    const ch = this.state.channels.find(c => c.id === this.props.action.context.default_channel_id);
+                    if (ch) this.selectChannel(ch);
+                }
+            });
             await Promise.all([
                 this.loadProducts(),
                 this.loadTemplates(),
