@@ -60,3 +60,16 @@ class CrmLead(models.Model):
                 channel = self.env['discuss.channel'].search(domain, limit=1)
                 
             lead.wa_chat_channel_id = channel.id if channel else False
+
+    def action_open_whatsapp_chat(self):
+        self.ensure_one()
+        return {
+            'name': 'WhatsApp Chat',
+            'type': 'ir.actions.act_window',
+            'res_model': 'crm.lead',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'view_id': self.env.ref('whatsapp_web_chats.crm_lead_whatsapp_chat_dialog').id,
+            'target': 'new',
+        }
+
