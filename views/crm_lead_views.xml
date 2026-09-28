@@ -5,10 +5,10 @@
         <field name="model">crm.lead</field>
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='name']/.." position="after">
-                <div style="margin-top: 8px;">
-                    <field name="project_category" placeholder="Select Category..." class="form-select w-50"/>
-                </div>
+            <xpath expr="//div[hasclass('oe_title')]" position="after">
+                <group>
+                    <field name="project_category" placeholder="Select Category..."/>
+                </group>
             </xpath>
             <xpath expr="//notebook" position="inside">
                 <!-- In Odoo 17+, the badge attribute works to show counts on the tab. -->
