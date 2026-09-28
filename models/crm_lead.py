@@ -4,7 +4,7 @@ class CrmLead(models.Model):
     _inherit = 'crm.lead'
 
     wa_chat_channel_id = fields.Many2one(
-        'mail.channel', 
+        'discuss.channel', 
         string='WhatsApp Chat Channel', 
         compute='_compute_wa_chat_channel_id',
         store=False
@@ -32,6 +32,6 @@ class CrmLead(models.Model):
                 if lead.partner_id:
                     domain = ['|', ('whatsapp_partner_id', '=', lead.partner_id.id)] + domain
                 
-                channel = self.env['mail.channel'].search(domain, limit=1)
+                channel = self.env['discuss.channel'].search(domain, limit=1)
                 
             lead.wa_chat_channel_id = channel.id if channel else False
