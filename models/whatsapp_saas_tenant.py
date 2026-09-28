@@ -68,8 +68,11 @@ class WhatsAppSaaSTenant(models.Model):
                 })
         elif account.saas_app_url:
             try:
-                auth = (account.saas_username, account.saas_password) if account.saas_username and account.saas_password else None
-                response = requests.get(f"{account.saas_app_url.rstrip('/')}/api/method/saas_api.www.api.get_users", auth=auth, timeout=10)
+                headers = {}
+                if account.saas_username and account.saas_password:
+                    headers['Authorization'] = f'token {account.saas_username}:{account.saas_password}'
+                
+                response = requests.get(f"{account.saas_app_url.rstrip('/')}/api/method/saas_api.www.api.get_users", headers=headers, timeout=10)
                 if response.status_code == 200:
                     data = response.json()
                     message_dict = data.get('message', {})
@@ -156,11 +159,14 @@ class WhatsAppSaaSTenant(models.Model):
                     _logger.error(f"Error fetching local sales for tenant {tenant.tenant_name}: {e}")
             elif account.saas_app_url:
                 try:
-                    auth = (account.saas_username, account.saas_password) if account.saas_username and account.saas_password else None
+                    headers = {}
+                    if account.saas_username and account.saas_password:
+                        headers['Authorization'] = f'token {account.saas_username}:{account.saas_password}'
+                        
                     response = requests.get(
                         f"{account.saas_app_url.rstrip('/')}/api/reports/daily-sales",
                         params={'tenant_id': tenant.tenant_id},
-                        auth=auth,
+                        headers=headers,
                         timeout=10
                     )
                     if response.status_code == 200:
