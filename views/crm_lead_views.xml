@@ -5,9 +5,9 @@
         <field name="model">crm.lead</field>
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('oe_title')]" position="after">
-                <div class="oe_title">
-                    <field name="project_category" widget="selection" placeholder="Select Category..."/>
+            <xpath expr="//field[@name='name']/.." position="after">
+                <div style="margin-top: 8px;">
+                    <field name="project_category" placeholder="Select Category..." class="form-select w-50"/>
                 </div>
             </xpath>
             <xpath expr="//notebook" position="inside">
