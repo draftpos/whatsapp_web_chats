@@ -63,13 +63,44 @@ class CrmLead(models.Model):
 
     def action_open_whatsapp_chat(self):
         self.ensure_one()
+        channel_id = self.wa_chat_channel_id.id if self.wa_chat_channel_id else False
+        
+        if not channel_id:
+            phone = self.phone if hasattr(self, 'phone') else False
+            mobile = self.mobile if hasattr(self, 'mobile') else False
+            phone_to_use = phone or mobile
+            
+            if phone_to_use:
+                clean_phone = ''.join(filter(str.isdigit, phone_to_use))
+                if clean_phone.startswith('0'):
+                    clean_phone = '263' + clean_phone[1:]
+                    
+                domain = [('channel_type', '=', 'whatsapp'), ('name', 'ilike', clean_phone)]
+                if self.partner_id:
+                    domain = ['|', ('whatsapp_partner_id', '=', self.partner_id.id)] + domain
+                    
+                existing = self.env['discuss.channel'].search(domain, limit=1)
+                if existing:
+                    channel_id = existing.id
+                else:
+                    new_channel = self.env['discuss.channel'].sudo().create({
+                        'name': clean_phone,
+                        'channel_type': 'whatsapp',
+                        'whatsapp_partner_id': self.partner_id.id if self.partner_id else False,
+                    })
+                    channel_id = new_channel.id
+
+        if not channel_id:
+            from odoo.exceptions import UserError
+            raise UserError("Cannot start WhatsApp chat: The lead does not have a valid phone number.")
+
         return {
             'type': 'ir.actions.client',
             'tag': 'whatsapp_web_chats.chats',
             'name': 'WhatsApp Chat',
             'context': {
                 'hide_sidebar': True,
-                'default_channel_id': self.wa_chat_channel_id.id if self.wa_chat_channel_id else False
+                'default_channel_id': channel_id
             }
         }
 
