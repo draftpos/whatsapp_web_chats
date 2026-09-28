@@ -10,7 +10,7 @@
                     <field name="project_category" placeholder="Select Category..."/>
                 </group>
             </xpath>
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook/page[1]" position="before">
                 <!-- In Odoo 17+, the badge attribute works to show counts on the tab. -->
                 <page string="Chats" name="whatsapp_chats" badge="wa_unread_messages_count">
                     <!-- We pass the current lead ID to the widget using a field -->
