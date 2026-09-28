@@ -64,12 +64,12 @@ class CrmLead(models.Model):
     def action_open_whatsapp_chat(self):
         self.ensure_one()
         return {
+            'type': 'ir.actions.client',
+            'tag': 'whatsapp_web_chats.chats',
             'name': 'WhatsApp Chat',
-            'type': 'ir.actions.act_window',
-            'res_model': 'crm.lead',
-            'res_id': self.id,
-            'view_mode': 'form',
-            'view_id': self.env.ref('whatsapp_web_chats.crm_lead_whatsapp_chat_dialog').id,
-            'target': 'new',
+            'context': {
+                'hide_sidebar': True,
+                'default_channel_id': self.wa_chat_channel_id.id if self.wa_chat_channel_id else False
+            }
         }
 

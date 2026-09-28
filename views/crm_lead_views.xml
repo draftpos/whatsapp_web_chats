@@ -23,22 +23,7 @@
         </field>
     </record>
 
-    <!-- Dialog view to show the chat widget without the sidebar -->
-    <record id="crm_lead_whatsapp_chat_dialog" model="ir.ui.view">
-        <field name="name">crm.lead.whatsapp.chat.dialog</field>
-        <field name="model">crm.lead</field>
-        <field name="priority">999</field>
-        <field name="arch" type="xml">
-            <form string="WhatsApp Chat">
-                <sheet>
-                    <field name="wa_chat_channel_id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
-                </sheet>
-                <footer>
-                    <button string="Close" class="btn-secondary" special="cancel"/>
-                </footer>
-            </form>
-        </field>
-    </record>
+
 
     <!-- Inherit Tree View to add the message counting column -->
     <record id="crm_lead_view_tree_whatsapp" model="ir.ui.view">
