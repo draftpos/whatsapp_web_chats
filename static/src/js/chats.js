@@ -222,14 +222,6 @@ export class WhatsAppChatsAction extends Component {
             }
 
             await Promise.all(initPromises);
-
-            if (this.state.hideSidebar) {
-                if (this.state.selectedChannel) {
-                    this.env.services.notification.add("DEBUG: Chat selected successfully! " + this.state.selectedChannel.id, { type: "info" });
-                } else {
-                    this.env.services.notification.add("DEBUG: Chat was NOT selected!", { type: "danger" });
-                }
-            }
         });
         
         onMounted(() => {
