@@ -12,7 +12,7 @@
             </xpath>
             <xpath expr="//notebook" position="inside">
                 <!-- In Odoo 17+, the badge attribute works to show counts on the tab. -->
-                <page string="Chats" name="whatsapp_chats" invisible="not wa_chat_channel_id" badge="wa_unread_messages_count">
+                <page string="Chats" name="whatsapp_chats" badge="wa_unread_messages_count">
                     <!-- We pass the current lead ID to the widget using a field -->
                     <field name="wa_chat_channel_id" widget="crm_whatsapp_chat_widget"/>
                 </page>
