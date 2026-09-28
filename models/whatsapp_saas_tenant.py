@@ -43,8 +43,20 @@ class WhatsAppSaaSTenant(models.Model):
             local_tenants = self.env['havanoposdesk.tenant'].sudo().search([])
             for t in local_tenants:
                 phone = getattr(t, 'phone', '')
-                if not phone and hasattr(t, 'admin_id') and t.admin_id.phone:
+                if not phone and hasattr(t, 'admin_id') and getattr(t, 'admin_id'):
                     phone = t.admin_id.phone
+                
+                if not phone:
+                    # Look for an admin user belonging to this tenant
+                    admin_user = self.env['res.users'].sudo().search([
+                        ('tenant_id', '=', t.id),
+                        ('havano_role', 'in', ['admin', 'super_admin'])
+                    ], limit=1)
+                    if not admin_user:
+                        admin_user = self.env['res.users'].sudo().search([('tenant_id', '=', t.id)], limit=1)
+                    
+                    if admin_user:
+                        phone = admin_user.phone or getattr(admin_user.partner_id, 'phone', '') or getattr(admin_user.partner_id, 'mobile', '')
                 
                 exp_date = getattr(t, 'expiration_date', False) or getattr(t, 'subscription_end_date', False) or getattr(t, 'subscription_end', False)
                 
