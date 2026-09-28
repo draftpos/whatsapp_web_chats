@@ -16,4 +16,7 @@ CrmWhatsappChatWidget.props = {
     ...standardFieldProps,
 };
 
-registry.category("fields").add("crm_whatsapp_chat_widget", CrmWhatsappChatWidget);
+registry.category("fields").add("crm_whatsapp_chat_widget", {
+    component: CrmWhatsappChatWidget,
+    supportedTypes: ["many2one", "integer"],
+});
