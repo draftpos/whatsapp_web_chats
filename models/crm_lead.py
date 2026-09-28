@@ -92,6 +92,7 @@ class CrmLead(models.Model):
                     new_channel = self.env['discuss.channel'].sudo().create({
                         'name': clean_phone,
                         'channel_type': 'whatsapp',
+                        'whatsapp_number': clean_phone,
                         'whatsapp_partner_id': self.partner_id.id if self.partner_id else False,
                     })
                     channel_id = new_channel.id
