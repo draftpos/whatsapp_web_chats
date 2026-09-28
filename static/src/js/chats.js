@@ -168,12 +168,23 @@ export class WhatsAppChatsAction extends Component {
 
         onWillStart(async () => {
             // Fire and forget loadChannels so it doesn't block component mounting while fetching 50k chats over network
-            this.loadChannels().then(() => {
+            this.loadChannels().then(async () => {
                 if (this.state.hideSidebar && this.props.activeChannelId) {
                     const ch = this.state.channels.find(c => c.id === this.props.activeChannelId);
                     if (ch) this.selectChannel(ch);
                 } else if (this.state.hideSidebar && this.props.action?.context?.default_channel_id) {
-                    const ch = this.state.channels.find(c => c.id === this.props.action.context.default_channel_id);
+                    let ch = this.state.channels.find(c => c.id === this.props.action.context.default_channel_id);
+                    if (!ch) {
+                        try {
+                            const [fetched] = await this.orm.searchRead('discuss.channel', [['id', '=', this.props.action.context.default_channel_id]], []);
+                            if (fetched) {
+                                this.state.channels.push(fetched);
+                                ch = fetched;
+                            }
+                        } catch (e) {
+                            console.warn("Could not fetch default channel", e);
+                        }
+                    }
                     if (ch) this.selectChannel(ch);
                 }
             });
