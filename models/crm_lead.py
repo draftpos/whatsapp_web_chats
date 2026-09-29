@@ -56,7 +56,13 @@ class CrmLead(models.Model):
                 if clean_phone.startswith('0'):
                     clean_phone = '263' + clean_phone[1:] # standard default in module
                     
-                domain = [('channel_type', '=', 'whatsapp')]
+                domain = [
+                    ('channel_type', '=', 'whatsapp'),
+                    '|', ('tenant_id', '=', False), ('tenant_id', '=', self.env.company.id)
+                ]
+                if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+                    domain += [('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids)]
+                    
                 number_domain = ['|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone)]
                 if lead.partner_id:
                     domain += ['|', ('whatsapp_partner_id', '=', lead.partner_id.id)] + number_domain
@@ -81,7 +87,13 @@ class CrmLead(models.Model):
                 if clean_phone.startswith('0'):
                     clean_phone = '263' + clean_phone[1:]
                     
-                domain = [('channel_type', '=', 'whatsapp')]
+                domain = [
+                    ('channel_type', '=', 'whatsapp'),
+                    '|', ('tenant_id', '=', False), ('tenant_id', '=', self.env.company.id)
+                ]
+                if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+                    domain += [('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids)]
+                    
                 number_domain = ['|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone)]
                 if self.partner_id:
                     domain += ['|', ('whatsapp_partner_id', '=', self.partner_id.id)] + number_domain
@@ -92,7 +104,11 @@ class CrmLead(models.Model):
                 if existing:
                     channel_id = existing.id
                 else:
-                    wa_account = self.env['whatsapp.account'].sudo().search([], limit=1)
+                    account_domain = []
+                    if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+                        account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
+                    wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
+                    
                     new_channel = self.env['discuss.channel'].sudo().create({
                         'name': clean_phone,
                         'channel_type': 'whatsapp',
@@ -109,7 +125,7 @@ class CrmLead(models.Model):
         # Ensure the current user is a member of the channel so they can view it
         channel = self.env['discuss.channel'].sudo().browse(channel_id)
         if self.env.user.partner_id.id not in channel.channel_member_ids.mapped('partner_id.id'):
-            channel.sudo().write({'channel_member_ids': [(0, 0, {'partner_id': self.env.user.partner_id.id})]})
+            channel.sudo().add_members(self.env.user.partner_id.ids)
 
         return {
             'type': 'ir.actions.client',
