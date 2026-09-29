@@ -243,7 +243,7 @@ class DiscussChannel(models.Model):
             'default_name': f'Lead from {self.name or phone}',
             'default_phone': phone,
             'default_wa_chat_channel_id': self.id,
-            'default_type': 'opportunity',
+            'default_type': 'lead',
             'force_create_partner_from_whatsapp': True,
         }
         if self.whatsapp_partner_id:
