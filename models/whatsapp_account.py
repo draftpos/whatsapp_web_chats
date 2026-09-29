@@ -104,10 +104,14 @@ class WhatsAppAccount(models.Model):
             if not lead:
                 cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection)
                 readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
-                
+                import re
+                clean_contact_name = channel.name or channel.whatsapp_number
+                if clean_contact_name:
+                    clean_contact_name = re.sub(r'\s*\([^)]+\)\s*$', '', clean_contact_name).strip()
+                    
                 lead_vals = {
                     'name': readable_cat,
-                    'contact_name': channel.name or channel.whatsapp_number,
+                    'contact_name': clean_contact_name,
                     'phone': '+' + clean_wa,
                     'type': 'lead',
                     'project_category': self.auto_create_lead_category or 'fitted_kitchens'
@@ -1256,10 +1260,14 @@ class WhatsAppAccount(models.Model):
                 if not lead:
                     cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection)
                     readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
+                    import re
+                    clean_contact_name = profile_name or wa_id
+                    if clean_contact_name:
+                        clean_contact_name = re.sub(r'\s*\([^)]+\)\s*$', '', clean_contact_name).strip()
                     
                     lead_vals = {
                         'name': readable_cat,
-                        'contact_name': profile_name or wa_id,
+                        'contact_name': clean_contact_name,
                         'phone': wa_id,
                         'type': 'lead',
                     }

@@ -49,8 +49,8 @@ class CrmLead(models.Model):
     def _compute_wa_chat_channel_id(self):
         for lead in self:
             channel = False
-            phone = lead.phone if hasattr(lead, 'phone') else False
-            mobile = lead.mobile if hasattr(lead, 'mobile') else False
+            phone = lead.phone if 'phone' in lead._fields else False
+            mobile = lead.mobile if 'mobile' in lead._fields else False
             
             if phone or mobile:
                 phone_to_use = phone or mobile
@@ -81,8 +81,8 @@ class CrmLead(models.Model):
         channel_id = self.wa_chat_channel_id.id if self.wa_chat_channel_id else False
         
         if not channel_id:
-            phone = self.phone if hasattr(self, 'phone') else False
-            mobile = self.mobile if hasattr(self, 'mobile') else False
+            phone = self.phone if 'phone' in self._fields else False
+            mobile = self.mobile if 'mobile' in self._fields else False
             phone_to_use = phone or mobile
             
             if phone_to_use:
