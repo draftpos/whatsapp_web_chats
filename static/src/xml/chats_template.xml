@@ -607,7 +607,14 @@
                                                             <img class="message-img" t-attf-src="{{att.dataUrl}}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token || '', null, msg)" style="cursor: zoom-in; opacity: 0.7;"/>
                                                         </t>
                                                         <t t-else="">
-                                                            <img class="message-img" t-attf-src="/web/image/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token || '', null, msg)" style="cursor: zoom-in;"/>
+                                                            <div style="position:relative; display:inline-block; min-width:80px; min-height:60px;">
+                                                                <div class="img-shimmer" style="position:absolute; inset:0; border-radius:8px; background:linear-gradient(90deg,#e8e8e8 25%,#f5f5f5 50%,#e8e8e8 75%); background-size:200% 100%; animation:shimmer 1.2s infinite;"></div>
+                                                                <img class="message-img" loading="lazy"
+                                                                     t-attf-src="/web/image/{{att.id}}?width=600{{ att.access_token ? '&amp;access_token=' + att.access_token : '' }}"
+                                                                     t-on-click="(ev) => this.openMedia(att.id, ev, 'image', att.name, att.access_token || '', null, msg)"
+                                                                     style="cursor: zoom-in; position:relative; z-index:1;"
+                                                                     t-on-load="(ev) => ev.target.previousElementSibling.style.display='none'"/>
+                                                            </div>
                                                         </t>
                                                         <t t-if="msg.wa_state === 'pending'">
                                                             <div class="media-upload-progress" style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; border-radius:8px; z-index:2; pointer-events:none;">
@@ -802,7 +809,13 @@
                                                             <img class="message-img album-media" t-attf-src="{{att.dataUrl}}" style="object-fit: cover; width: 100%; height: 100%; border-radius: 4px; opacity: 0.7;"/>
                                                         </t>
                                                         <t t-else="">
-                                                            <img class="message-img album-media" t-attf-src="/web/image/{{att.id}}?{{ att.access_token ? 'access_token=' + att.access_token : '' }}" style="object-fit: cover; width: 100%; height: 100%; border-radius: 4px;"/>
+                                                            <div style="position:relative; width:100%; height:100%;">
+                                                                <div class="img-shimmer" style="position:absolute; inset:0; border-radius:4px; background:linear-gradient(90deg,#e8e8e8 25%,#f5f5f5 50%,#e8e8e8 75%); background-size:200% 100%; animation:shimmer 1.2s infinite;"></div>
+                                                                <img class="message-img album-media" loading="lazy"
+                                                                     t-attf-src="/web/image/{{att.id}}?width=400{{ att.access_token ? '&amp;access_token=' + att.access_token : '' }}"
+                                                                     style="object-fit: cover; width: 100%; height: 100%; border-radius: 4px; position:relative; z-index:1;"
+                                                                     t-on-load="(ev) => ev.target.previousElementSibling.style.display='none'"/>
+                                                            </div>
                                                         </t>
                                                     </t>
                                                     <!-- Loading spinner overlay for pending images -->
