@@ -112,6 +112,9 @@ class WhatsAppAccount(models.Model):
                     'type': 'lead',
                     'project_category': self.auto_create_lead_category or 'fitted_kitchens'
                 }
+                if channel.whatsapp_partner_id:
+                    lead_vals['partner_id'] = channel.whatsapp_partner_id.id
+                    lead_vals['email_from'] = channel.whatsapp_partner_id.email
                 if 'wa_last_message_date' in self.env['crm.lead']._fields:
                     lead_vals['wa_last_message_date'] = channel.write_date or fields.Datetime.now()
                     
@@ -1260,6 +1263,18 @@ class WhatsAppAccount(models.Model):
                         'phone': wa_id,
                         'type': 'lead',
                     }
+                    
+                    # Try to find the channel to extract the partner's email
+                    channel = self.env['discuss.channel'].sudo().search([
+                        ('channel_type', '=', 'whatsapp'),
+                        ('whatsapp_number', 'in', [wa_id, '+' + clean_wa]),
+                        ('wa_account_id', '=', self.id)
+                    ], limit=1)
+                    
+                    if channel and channel.whatsapp_partner_id:
+                        lead_vals['partner_id'] = channel.whatsapp_partner_id.id
+                        if channel.whatsapp_partner_id.email:
+                            lead_vals['email_from'] = channel.whatsapp_partner_id.email
                     if 'wa_last_message_date' in self.env['crm.lead']._fields:
                         lead_vals['wa_last_message_date'] = fields.Datetime.now()
                         
