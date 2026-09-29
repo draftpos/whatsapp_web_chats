@@ -66,6 +66,58 @@ class WhatsAppAccount(models.Model):
     
     is_school_installed = fields.Boolean(compute="_compute_is_school_installed")
 
+    def action_sync_historical_leads(self):
+        self.ensure_one()
+        if not self.auto_create_leads:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Sync Failed',
+                    'message': 'Please enable "Auto-Create Leads" first.',
+                    'sticky': False,
+                    'type': 'danger',
+                }
+            }
+            
+        channels = self.env['discuss.channel'].sudo().search([
+            ('channel_type', '=', 'whatsapp'), 
+            ('wa_account_id', '=', self.id)
+        ])
+        
+        created_count = 0
+        for channel in channels:
+            if not channel.whatsapp_number:
+                continue
+                
+            clean_wa = ''.join(c for c in channel.whatsapp_number if c.isdigit())
+            if not clean_wa:
+                continue
+                
+            lead = self.env['crm.lead'].sudo().search([
+                '|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)
+            ], limit=1)
+            
+            if not lead:
+                self.env['crm.lead'].sudo().create({
+                    'name': f"{channel.name or channel.whatsapp_number} (Historical Lead)",
+                    'phone': '+' + clean_wa,
+                    'type': 'lead',
+                    'project_category': self.auto_create_lead_category or 'fitted_kitchens'
+                })
+                created_count += 1
+                
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Sync Complete',
+                'message': f'Successfully generated {created_count} historical leads from existing chats!',
+                'sticky': False,
+                'type': 'success',
+            }
+        }
+
     def _compute_is_school_installed(self):
         for rec in self:
             rec.is_school_installed = 'havano.student' in self.env

@@ -42,7 +42,11 @@
                     <page string="Auto Message Share" name="auto_message_share">
                         <group>
                             <field name="auto_create_leads"/>
-                            <field name="auto_create_lead_category" invisible="not auto_create_leads"/>
+                            <label for="auto_create_lead_category" invisible="not auto_create_leads"/>
+                            <div class="o_row" invisible="not auto_create_leads">
+                                <field name="auto_create_lead_category"/>
+                                <button name="action_sync_historical_leads" type="object" string="Sync Existing Chats to CRM" class="btn btn-secondary"/>
+                            </div>
                             <field name="wa_group_auto_message_share"/>
                             <field name="wa_group_auto_message_text" invisible="not wa_group_auto_message_share"/>
                             <field name="wa_group_auto_message_link" invisible="not wa_group_auto_message_share"/>
