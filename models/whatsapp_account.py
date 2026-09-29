@@ -102,8 +102,11 @@ class WhatsAppAccount(models.Model):
             lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
             
             if not lead:
+                cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection)
+                readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
+                
                 self.env['crm.lead'].sudo().create({
-                    'name': f"{channel.name or channel.whatsapp_number} (Historical Lead)",
+                    'name': readable_cat,
                     'phone': '+' + clean_wa,
                     'type': 'lead',
                     'project_category': self.auto_create_lead_category or 'fitted_kitchens'
@@ -1234,8 +1237,11 @@ class WhatsAppAccount(models.Model):
                 lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
                 
                 if not lead:
+                    cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection)
+                    readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
+                    
                     lead_vals = {
-                        'name': f"{profile_name or wa_id} (WhatsApp Lead)",
+                        'name': readable_cat,
                         'phone': wa_id,
                         'type': 'lead',
                     }
