@@ -25,7 +25,7 @@
             <t t-else="">
                 <div class="whatsapp-sidebar" t-attf-style="{{ state.hideSidebar ? 'display: none !important;' : '' }}">
                     <div class="whatsapp-header wa-sidebar-header" style="position: relative;">
-                    <div style="display: flex; align-items: center; flex: 1;">
+                    <div style="display: flex; align-items: center; flex: 1; justify-content: space-between;">
                         <t t-set="activeAcc" t-value="state.accounts.find(a => a.id.toString() === state.selectedAccount)"/>
                         <!-- Profile Icon (Desktop & Mobile) -->
                         <div style="background-color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; cursor: pointer; flex-shrink: 0;" t-on-click="openProfileSettings" title="Profile Settings">
@@ -50,18 +50,20 @@
                             Delete <t t-esc="state.selectedChannels.length"/> Chat<t t-if="state.selectedChannels.length > 1">s</t>
                         </button>
                     </t>
-                    <!-- Desktop: plus + menu icons -->
-                    <i class="fa fa-plus-circle wa-desktop-only" t-on-click="openNewChatModal" style="margin-left: auto; margin-right: 22px; font-size: 18px; cursor: pointer; color: white;" title="New Chat"></i>
-                    <!-- Mobile header icons: new chat + menu (real features only) -->
-                    <div class="wa-mobile-only" style="display: flex; align-items: center; gap: 12px; margin-left: auto;">
-                        <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="New Chat" t-on-click="openNewChatModal">
+                    <!-- Desktop: plus + menu icons, spread apart -->
+                    <div class="wa-desktop-only" style="display: flex; align-items: center; gap: 28px; padding-right: 6px;">
+                        <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="font-size: 20px; cursor: pointer; color: white;" title="New Chat"></i>
+                        <i class="fa fa-ellipsis-v" t-on-click="toggleSidebarDropdown" style="font-size: 20px; cursor: pointer; color: white; position: relative;" title="Menu"></i>
+                    </div>
+                    <!-- Mobile header icons: new chat + menu -->
+                    <div class="wa-mobile-only" style="display: flex; align-items: center; gap: 16px; margin-left: auto;">
+                        <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 4px; cursor: pointer; display: flex; align-items: center;" title="New Chat" t-on-click="openNewChatModal">
                             <i class="fa fa-pencil"/>
                         </button>
-                        <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 8px; cursor: pointer; display: flex; align-items: center;" title="Menu" t-on-click="toggleSidebarDropdown">
+                        <button style="background: transparent; border: none; color: white; font-size: 20px; padding: 4px; cursor: pointer; display: flex; align-items: center;" title="Menu" t-on-click="toggleSidebarDropdown">
                             <i class="fa fa-ellipsis-v"/>
                         </button>
                     </div>
-                    <i class="fa fa-ellipsis-v wa-desktop-only" t-on-click="toggleSidebarDropdown" style="font-size: 20px; cursor: pointer; color: white; position: relative; margin-right: 4px;" title="Menu"></i>
                     
                     <!-- Sidebar Dropdown Menu -->
                     <t t-if="state.showSidebarDropdown">
