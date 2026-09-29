@@ -425,7 +425,7 @@ export class WhatsAppChatsAction extends Component {
             if (tagDef) {
                 channel.wa_tags.push(tagDef);
                 if (tagDef.name.toLowerCase() === 'lead') {
-                    this.createCrmLead();
+                    this.createCrmLead(channelId);
                 }
             }
         }
@@ -4290,11 +4290,17 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
-    async createCrmLead() {
-        if (!this.state.selectedChannel) return;
-        this.toggleHeaderDropdown();
+    async createCrmLead(channelId) {
+        if (!channelId && this.state.selectedChannel) {
+            channelId = this.state.selectedChannel.id;
+        }
+        if (!channelId) return;
+        
+        if (this.state.showHeaderDropdown) {
+            this.toggleHeaderDropdown();
+        }
         try {
-            const action = await this.orm.call('discuss.channel', 'action_create_crm_lead_from_whatsapp', [[this.state.selectedChannel.id]]);
+            const action = await this.orm.call('discuss.channel', 'action_create_crm_lead_from_whatsapp', [[channelId]]);
             if (action) {
                 this.action.doAction(action);
             }

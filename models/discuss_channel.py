@@ -239,12 +239,19 @@ class DiscussChannel(models.Model):
             
         action['views'] = [(self.env.ref('crm.crm_lead_view_form').id, 'form')]
         action['target'] = 'new'
-        action['context'] = {
+        context = {
             'default_name': f'Lead from {self.name or phone}',
             'default_phone': phone,
-            'default_partner_id': self.whatsapp_partner_id.id if self.whatsapp_partner_id else False,
             'default_wa_chat_channel_id': self.id,
             'default_type': 'opportunity',
             'force_create_partner_from_whatsapp': True,
         }
+        if self.whatsapp_partner_id:
+            context['default_partner_id'] = self.whatsapp_partner_id.id
+            context['default_contact_name'] = self.whatsapp_partner_id.name
+            context['default_email_from'] = self.whatsapp_partner_id.email
+        else:
+            context['default_contact_name'] = self.name
+            
+        action['context'] = context
         return action
