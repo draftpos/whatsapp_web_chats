@@ -56,14 +56,14 @@ class CrmLead(models.Model):
                 if clean_phone.startswith('0'):
                     clean_phone = '263' + clean_phone[1:] # standard default in module
                     
-                domain = [
-                    ('channel_type', '=', 'whatsapp'), 
-                    ('name', 'ilike', clean_phone)
-                ]
+                domain = [('channel_type', '=', 'whatsapp')]
+                number_domain = ['|', '|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone), ('whatsapp_partner_id.mobile', 'ilike', clean_phone)]
                 if lead.partner_id:
-                    domain = ['|', ('whatsapp_partner_id', '=', lead.partner_id.id)] + domain
+                    domain += ['|', ('whatsapp_partner_id', '=', lead.partner_id.id)] + number_domain
+                else:
+                    domain += number_domain
                 
-                channel = self.env['discuss.channel'].search(domain, limit=1)
+                channel = self.env['discuss.channel'].sudo().search(domain, limit=1)
                 
             lead.wa_chat_channel_id = channel.id if channel else False
 
@@ -81,14 +81,14 @@ class CrmLead(models.Model):
                 if clean_phone.startswith('0'):
                     clean_phone = '263' + clean_phone[1:]
                     
-                domain = [
-                    ('channel_type', '=', 'whatsapp'),
-                    ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone])
-                ]
+                domain = [('channel_type', '=', 'whatsapp')]
+                number_domain = ['|', '|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone), ('whatsapp_partner_id.mobile', 'ilike', clean_phone)]
                 if self.partner_id:
-                    domain = ['|', ('whatsapp_partner_id', '=', self.partner_id.id)] + domain
+                    domain += ['|', ('whatsapp_partner_id', '=', self.partner_id.id)] + number_domain
+                else:
+                    domain += number_domain
                     
-                existing = self.env['discuss.channel'].search(domain, limit=1)
+                existing = self.env['discuss.channel'].sudo().search(domain, limit=1)
                 if existing:
                     channel_id = existing.id
                 else:
@@ -105,6 +105,11 @@ class CrmLead(models.Model):
         if not channel_id:
             from odoo.exceptions import UserError
             raise UserError("Cannot start WhatsApp chat: The lead does not have a valid phone number.")
+
+        # Ensure the current user is a member of the channel so they can view it
+        channel = self.env['discuss.channel'].sudo().browse(channel_id)
+        if self.env.user.partner_id.id not in channel.channel_member_ids.mapped('partner_id.id'):
+            channel.sudo().write({'channel_member_ids': [(0, 0, {'partner_id': self.env.user.partner_id.id})]})
 
         return {
             'type': 'ir.actions.client',
