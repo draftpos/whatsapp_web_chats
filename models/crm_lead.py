@@ -2,6 +2,9 @@ from odoo import models, fields, api
 
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
+    _order = 'wa_last_message_date desc, priority desc, id desc'
+
+    wa_last_message_date = fields.Datetime(string="Last WA Message Date", index=True)
 
     wa_chat_channel_id = fields.Many2one(
         'discuss.channel', 

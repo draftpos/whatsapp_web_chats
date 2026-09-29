@@ -105,12 +105,16 @@ class WhatsAppAccount(models.Model):
                 cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection)
                 readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
                 
-                self.env['crm.lead'].sudo().create({
+                lead_vals = {
                     'name': readable_cat,
                     'phone': '+' + clean_wa,
                     'type': 'lead',
                     'project_category': self.auto_create_lead_category or 'fitted_kitchens'
-                })
+                }
+                if 'wa_last_message_date' in self.env['crm.lead']._fields:
+                    lead_vals['wa_last_message_date'] = channel.write_date or fields.Datetime.now()
+                    
+                self.env['crm.lead'].sudo().create(lead_vals)
                 created_count += 1
                 
         return {
@@ -1155,6 +1159,15 @@ class WhatsAppAccount(models.Model):
                         channel.wa_is_unread_global = True
                         channel.wa_is_done = False
                         
+                        # Find the lead and bump its last message date so it sorts to the top
+                        if 'crm.lead' in self.env:
+                            lead_domain = [('phone', 'ilike', clean_phone)]
+                            if 'mobile' in self.env['crm.lead']._fields:
+                                lead_domain = ['|', ('phone', 'ilike', clean_phone), ('mobile', 'ilike', clean_phone)]
+                            lead = self.env['crm.lead'].sudo().search(lead_domain, limit=1)
+                            if lead and 'wa_last_message_date' in lead._fields:
+                                lead.sudo().write({'wa_last_message_date': fields.Datetime.now()})
+                        
                         # Cancel any pending auto follow-ups since the customer replied
                         self.env['whatsapp.scheduled.message'].sudo().search([
                             ('channel_id', '=', channel.id),
@@ -1245,6 +1258,9 @@ class WhatsAppAccount(models.Model):
                         'phone': wa_id,
                         'type': 'lead',
                     }
+                    if 'wa_last_message_date' in self.env['crm.lead']._fields:
+                        lead_vals['wa_last_message_date'] = fields.Datetime.now()
+                        
                     if 'project_category' in self.env['crm.lead']._fields and self.auto_create_lead_category:
                         lead_vals['project_category'] = self.auto_create_lead_category
                         
