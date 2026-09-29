@@ -1810,10 +1810,14 @@
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
                 <div class="modal-content" style="background: white; width: 400px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                     <div class="modal-header" style="background: #008069; color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="font-size: 16px; font-weight: 500;">New Chat</span>
+                            <button t-on-click="() => { this.closeNewChatModal(); this.openQuickChatModal(); }"
+                                    style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); border-radius: 14px; padding: 3px 12px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 5px;">
+                                <i class="fa fa-bolt"/> Start Quick Chat
+                            </button>
                             <t t-if="state.selectedContacts?.length > 0">
-                                <span style="margin-left: 15px; font-size: 13px;"><t t-esc="state.selectedContacts?.length"/> selected</span>
+                                <span style="margin-left: 5px; font-size: 13px;"><t t-esc="state.selectedContacts?.length"/> selected</span>
                                 <i class="fa fa-trash" t-on-click="deleteSelectedContacts" style="margin-left: 10px; cursor: pointer; color: #ffcccc;" title="Delete Selected Contacts"></i>
                             </t>
                         </div>
