@@ -153,9 +153,25 @@ class CrmLead(models.Model):
                 
         records = super().create(vals_list)
         
+        lead_tag = self.env['wa.chat.tag'].sudo().search([('name', '=ilike', 'lead%')], limit=1)
         for record in records:
             if self.env.context.get('force_create_partner_from_whatsapp') and record.wa_chat_channel_id and record.partner_id:
                 if not record.wa_chat_channel_id.whatsapp_partner_id:
                     record.wa_chat_channel_id.whatsapp_partner_id = record.partner_id.id
+            
+            if record.wa_chat_channel_id and lead_tag:
+                if lead_tag.id not in record.wa_chat_channel_id.wa_tag_ids.ids:
+                    record.wa_chat_channel_id.sudo().write({'wa_tag_ids': [(4, lead_tag.id)]})
                     
         return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'phone' in vals or 'mobile' in vals or 'partner_id' in vals:
+            lead_tag = self.env['wa.chat.tag'].sudo().search([('name', '=ilike', 'lead%')], limit=1)
+            if lead_tag:
+                for record in self:
+                    if record.wa_chat_channel_id:
+                        if lead_tag.id not in record.wa_chat_channel_id.wa_tag_ids.ids:
+                            record.wa_chat_channel_id.sudo().write({'wa_tag_ids': [(4, lead_tag.id)]})
+        return res
