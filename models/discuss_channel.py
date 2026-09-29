@@ -244,6 +244,7 @@ class DiscussChannel(models.Model):
             'default_phone': phone,
             'default_partner_id': self.whatsapp_partner_id.id if self.whatsapp_partner_id else False,
             'default_wa_chat_channel_id': self.id,
-            'default_type': 'opportunity'
+            'default_type': 'opportunity',
+            'force_create_partner_from_whatsapp': True,
         }
         return action

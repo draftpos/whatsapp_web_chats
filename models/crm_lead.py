@@ -137,3 +137,25 @@ class CrmLead(models.Model):
             }
         }
 
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if self.env.context.get('force_create_partner_from_whatsapp') and not vals.get('partner_id'):
+                partner_name = vals.get('contact_name') or vals.get('partner_name') or vals.get('name') or 'WhatsApp Contact'
+                partner_vals = {
+                    'name': partner_name,
+                    'phone': vals.get('phone'),
+                    'email': vals.get('email_from'),
+                }
+                partner = self.env['res.partner'].create(partner_vals)
+                vals['partner_id'] = partner.id
+                
+        records = super().create(vals_list)
+        
+        for record in records:
+            if self.env.context.get('force_create_partner_from_whatsapp') and record.wa_chat_channel_id and record.partner_id:
+                if not record.wa_chat_channel_id.whatsapp_partner_id:
+                    record.wa_chat_channel_id.whatsapp_partner_id = record.partner_id.id
+                    
+        return records
