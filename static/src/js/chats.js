@@ -422,7 +422,12 @@ export class WhatsAppChatsAction extends Component {
             channel.wa_tags = channel.wa_tags.filter(t => t.id !== tagId);
         } else {
             const tagDef = this.state.availableTags.find(t => t.id === tagId);
-            if (tagDef) channel.wa_tags.push(tagDef);
+            if (tagDef) {
+                channel.wa_tags.push(tagDef);
+                if (tagDef.name.toLowerCase() === 'lead') {
+                    this.createCrmLead();
+                }
+            }
         }
         
         try {
