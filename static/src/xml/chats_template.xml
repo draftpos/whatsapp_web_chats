@@ -51,7 +51,7 @@
                         </button>
                     </t>
                     <!-- Desktop: plus + menu icons, spread apart -->
-                    <div class="wa-desktop-only" style="display: flex; align-items: center; gap: 24px; padding-right: 4px; margin-left: auto;">
+                    <div class="wa-desktop-only" style="display: flex; align-items: center; gap: 40px; padding-right: 12px; margin-left: auto;">
                         <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="font-size: 20px; cursor: pointer; color: white;" title="New Chat"></i>
                         <i class="fa fa-ellipsis-v" t-on-click="toggleSidebarDropdown" style="font-size: 20px; cursor: pointer; color: white; position: relative;" title="Menu"></i>
                     </div>
