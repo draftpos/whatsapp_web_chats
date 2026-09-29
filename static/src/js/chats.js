@@ -4061,7 +4061,7 @@ export class WhatsAppChatsAction extends Component {
     }
 
     openAddQuickReply() {
-        this.state.newQuickReply = { shortcut: '', body: '' };
+        this.state.newQuickReply = { shortcut: '', body: '', files: [] };
         this.state.showAddQuickReplyModal = true;
     }
 
@@ -4076,10 +4076,33 @@ export class WhatsAppChatsAction extends Component {
             return;
         }
         try {
-            await this.orm.create('whatsapp.quick.reply', [{
+            let attachment_ids = [];
+            if (this.state.newQuickReply.files && this.state.newQuickReply.files.length > 0) {
+                for (const file of this.state.newQuickReply.files) {
+                    const base64Data = file.dataUrl.split(',')[1];
+                    const attId = await this.orm.create('ir.attachment', [{
+                        name: file.name,
+                        type: 'binary',
+                        datas: base64Data,
+                        res_model: 'whatsapp.quick.reply',
+                    }]);
+                    attachment_ids.push(attId[0]);
+                }
+            }
+
+            const qrIds = await this.orm.create('whatsapp.quick.reply', [{
                 shortcut: shortcut || false,
                 body: body.trim(),
             }]);
+            
+            if (attachment_ids.length > 0) {
+                await this.orm.write('whatsapp.quick.reply', qrIds, {
+                    attachment_ids: [[6, 0, attachment_ids]]
+                });
+                await this.orm.write('ir.attachment', attachment_ids, {
+                    res_id: qrIds[0]
+                });
+            }
             await this.loadQuickReplies();
             this.state.showAddQuickReplyModal = false;
             this.comingSoon(null, 'Quick reply saved!');
@@ -4093,6 +4116,35 @@ export class WhatsAppChatsAction extends Component {
             }
             alert(errMsg);
         }
+    }
+
+    onQuickReplyFileChange(ev) {
+        const files = ev.target.files;
+        if (!files || files.length === 0) return;
+        
+        if (!this.state.newQuickReply.files) {
+            this.state.newQuickReply.files = [];
+        }
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.state.newQuickReply.files.push({
+                    name: file.name,
+                    dataUrl: e.target.result,
+                    type: file.type
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+        // Reset the input so the same files can be selected again if removed
+        ev.target.value = '';
+    }
+
+    removeQuickReplyFile(name) {
+        if (!this.state.newQuickReply.files) return;
+        this.state.newQuickReply.files = this.state.newQuickReply.files.filter(f => f.name !== name);
     }
 
     // ─── Emoji Reaction ───────────────────────────────────────────────────────
