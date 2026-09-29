@@ -25,7 +25,7 @@
             <t t-else="">
                 <div class="whatsapp-sidebar" t-attf-style="{{ state.hideSidebar ? 'display: none !important;' : '' }}">
                     <div class="whatsapp-header wa-sidebar-header" style="position: relative;">
-                    <div style="display: flex; align-items: center; flex: 1; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; flex: 1;">
                         <t t-set="activeAcc" t-value="state.accounts.find(a => a.id.toString() === state.selectedAccount)"/>
                         <!-- Profile Icon (Desktop & Mobile) -->
                         <div style="background-color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; cursor: pointer; flex-shrink: 0;" t-on-click="openProfileSettings" title="Profile Settings">
@@ -37,7 +37,7 @@
                             </t>
                         </div>
                         <!-- Desktop: Chats text -->
-                        <div style="display: flex; align-items: center; color: #ffffff;" class="wa-desktop-only">
+                        <div style="display: flex; align-items: center; color: #ffffff; font-weight: 500;" class="wa-desktop-only">
                             <span>Chats</span>
                         </div>
                         <!-- Mobile: bold WhatsApp title -->
@@ -51,7 +51,7 @@
                         </button>
                     </t>
                     <!-- Desktop: plus + menu icons, spread apart -->
-                    <div class="wa-desktop-only" style="display: flex; align-items: center; gap: 28px; padding-right: 6px;">
+                    <div class="wa-desktop-only" style="display: flex; align-items: center; gap: 24px; padding-right: 4px; margin-left: auto;">
                         <i class="fa fa-plus-circle" t-on-click="openNewChatModal" style="font-size: 20px; cursor: pointer; color: white;" title="New Chat"></i>
                         <i class="fa fa-ellipsis-v" t-on-click="toggleSidebarDropdown" style="font-size: 20px; cursor: pointer; color: white; position: relative;" title="Menu"></i>
                     </div>
