@@ -3520,6 +3520,7 @@ export class WhatsAppChatsAction extends Component {
             } else {
                 // One or more files, send each media directly with its attachment
                 const channelId = this.state.selectedChannel.id;
+                const tempMsgs = [];
                 for (let i = 0; i < pendingFiles.length; i++) {
                     const pendingFile = pendingFiles[i];
                     const isFirst = (i === 0);
@@ -3549,10 +3550,19 @@ export class WhatsAppChatsAction extends Component {
                         quoted_author: replyingToAuthor
                     };
                     this.state.messages.push(tempMsg);
-                    this.scrollToBottom();
+                    tempMsgs.push(tempMsg);
+                }
+                this.scrollToBottom();
 
-                    // Upload and send attachment immediately
-                    try {
+                (async () => {
+                    for (let i = 0; i < pendingFiles.length; i++) {
+                        const pendingFile = pendingFiles[i];
+                        const tempMsg = tempMsgs[i];
+                        const isFirst = (i === 0);
+                        const body = isFirst && messageBody.trim() ? messageBody : '';
+                        
+                        // Upload and send attachment sequentially
+                        try {
                         let fileToUpload = pendingFile.file;
                         if (!fileToUpload && pendingFile.dataUrl) {
                             fileToUpload = this.dataURLtoBlob(pendingFile.dataUrl);
@@ -3633,7 +3643,8 @@ export class WhatsAppChatsAction extends Component {
                         document.body.appendChild(banner);
                         setTimeout(() => banner.remove(), 6000);
                     }
-                }
+                    }
+                })();
             }
             
             this.scrollToBottom();
