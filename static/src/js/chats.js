@@ -2469,29 +2469,6 @@ export class WhatsAppChatsAction extends Component {
                     const tempTime = parseInt(parts[1]) || parseInt(parts[2]) || 0;
                     // Keep if pending or created less than 60 seconds ago
                     if (m.wa_state === 'pending' || (tempTime && now - tempTime < 60000)) {
-                        // For audio / media messages, check by attachment name
-                        if (m.attachment_ids && m.attachment_ids.length > 0) {
-                            const attName = m.attachment_ids[0].name;
-                            const attBase = attName ? attName.split('.')[0] : null;
-                            const alreadyReceived = this.state.messages.some(serverMsg => 
-                                serverMsg.isMe === true && 
-                                !(serverMsg.id && serverMsg.id.toString().startsWith('temp_')) &&
-                                serverMsg.attachment_ids &&
-                                serverMsg.attachment_ids.some(att => att.name && attBase && att.name.split('.')[0] === attBase)
-                            );
-                            return !alreadyReceived;
-                        } else if (m.bodyText) {
-                            const matchingServerMsg = this.state.messages.find(serverMsg => 
-                                serverMsg.isMe === true && 
-                                !(serverMsg.id && serverMsg.id.toString().startsWith('temp_')) &&
-                                serverMsg.bodyText === m.bodyText
-                            );
-                            if (matchingServerMsg) {
-                                matchingServerMsg.noAnimate = true;
-                                return false;
-                            }
-                            return true;
-                        }
                         return true;
                     }
                 }
