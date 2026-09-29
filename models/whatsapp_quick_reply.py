@@ -8,7 +8,8 @@ class WhatsAppQuickReply(models.Model):
     tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
 
     shortcut = fields.Char(string="Shortcut", help="Optional shortcut to easily find the quick reply (e.g. greeting)")
-    body = fields.Text(string="Message Body", required=True)
+    body = fields.Text(string="Message Body", required=False)
+    attachment_ids = fields.Many2many('ir.attachment', string="Attachments")
     account_id = fields.Many2one('whatsapp.account', string="WhatsApp Account", help="Leave blank if applicable to all accounts")
     is_pinned = fields.Boolean(string="Pinned", default=False)
     is_favorite = fields.Boolean(string="Favorite", default=False)
@@ -18,10 +19,6 @@ class WhatsAppQuickReply(models.Model):
     def create(self, vals_list):
         from odoo.exceptions import ValidationError
         for vals in vals_list:
-            if vals.get('body'):
-                duplicate = self.search([('body', '=ilike', str(vals.get('body')).strip())], limit=1)
-                if duplicate:
-                    raise ValidationError("A Quick Reply with this exact message already exists!")
             if vals.get('shortcut'):
                 duplicate = self.search([('shortcut', '=ilike', str(vals.get('shortcut')).strip())], limit=1)
                 if duplicate:
@@ -31,12 +28,7 @@ class WhatsAppQuickReply(models.Model):
     def write(self, vals):
         from odoo.exceptions import ValidationError
         for record in self:
-            body = vals.get('body', record.body)
             shortcut = vals.get('shortcut', record.shortcut)
-            if 'body' in vals and body:
-                duplicate = self.search([('body', '=ilike', str(body).strip()), ('id', '!=', record.id)], limit=1)
-                if duplicate:
-                    raise ValidationError("A Quick Reply with this exact message already exists!")
             if 'shortcut' in vals and shortcut:
                 duplicate = self.search([('shortcut', '=ilike', str(shortcut).strip()), ('id', '!=', record.id)], limit=1)
                 if duplicate:
@@ -53,7 +45,7 @@ class WhatsAppQuickReply(models.Model):
             domain = ['|', ('account_id', '=', account_id), ('account_id', '=', False)] + tenant_filter
         
         replies = self.search(domain)
-        return [{'id': r.id, 'shortcut': r.shortcut or '', 'body': r.body, 'is_pinned': r.is_pinned, 'is_favorite': r.is_favorite} for r in replies]
+        return [{'id': r.id, 'shortcut': r.shortcut or '', 'body': r.body or '', 'is_pinned': r.is_pinned, 'is_favorite': r.is_favorite, 'attachment_ids': [{'id': a.id, 'name': a.name, 'mimetype': a.mimetype} for a in r.attachment_ids]} for r in replies]
 
     def toggle_pin(self):
         for record in self:

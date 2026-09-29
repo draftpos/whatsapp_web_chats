@@ -2378,7 +2378,8 @@ export class WhatsAppChatsAction extends Component {
             if (tempTextMsgs.length > 0) {
                 // First, expire temp messages older than 15 seconds
                 for (const t of tempTextMsgs) {
-                    if (now - new Date(t.date).getTime() > 15000) {
+                    const tempTime = parseInt(t.id.toString().split('_')[1]);
+                    if (tempTime && now - tempTime > 15000) {
                         t._merged = true;
                     }
                 }
@@ -4031,8 +4032,38 @@ export class WhatsAppChatsAction extends Component {
     }
 
     selectQuickReply(qr) {
-        this.state.newMessage = (this.state.newMessage || '') + qr.body;
-        this.state.showTemplatesModal = false;
+        if (qr.attachment_ids && qr.attachment_ids.length > 0) {
+            this.state.showTemplatesModal = false;
+            const channelId = this.state.selectedChannel.id;
+            const messageBody = qr.body || '';
+            const kwargs = {
+                body: messageBody,
+                message_type: "whatsapp_message",
+                subtype_xmlid: "mail.mt_comment",
+                attachment_ids: qr.attachment_ids.map(a => a.id)
+            };
+            const tempMsgId = 'temp_' + Date.now();
+            const now = new Date();
+            const tempMsg = {
+                id: tempMsgId,
+                bodyText: messageBody,
+                isMe: true,
+                isSystem: false,
+                timeText: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+                date: now.toISOString().slice(0, 19).replace('T', ' '),
+                dateText: 'Today',
+                wa_state: 'pending',
+                attachment_ids: qr.attachment_ids.map(a => ({ id: 'temp_att', name: a.name, mimetype: a.mimetype }))
+            };
+            this.state.messages.push(tempMsg);
+            this.scrollToBottom();
+            
+            this.orm.call("whatsapp.account", "post_whatsapp_message", [channelId], kwargs)
+                .catch(e => console.error("Failed to send quick reply", e));
+        } else {
+            this.state.newMessage = (this.state.newMessage || '') + (qr.body || '');
+            this.state.showTemplatesModal = false;
+        }
     }
 
     openAddQuickReply() {
