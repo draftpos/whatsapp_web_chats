@@ -57,7 +57,7 @@ class CrmLead(models.Model):
                     clean_phone = '263' + clean_phone[1:] # standard default in module
                     
                 domain = [('channel_type', '=', 'whatsapp')]
-                number_domain = ['|', '|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone), ('whatsapp_partner_id.mobile', 'ilike', clean_phone)]
+                number_domain = ['|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone)]
                 if lead.partner_id:
                     domain += ['|', ('whatsapp_partner_id', '=', lead.partner_id.id)] + number_domain
                 else:
@@ -82,7 +82,7 @@ class CrmLead(models.Model):
                     clean_phone = '263' + clean_phone[1:]
                     
                 domain = [('channel_type', '=', 'whatsapp')]
-                number_domain = ['|', '|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone), ('whatsapp_partner_id.mobile', 'ilike', clean_phone)]
+                number_domain = ['|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone)]
                 if self.partner_id:
                     domain += ['|', ('whatsapp_partner_id', '=', self.partner_id.id)] + number_domain
                 else:
