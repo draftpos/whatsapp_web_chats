@@ -48,8 +48,11 @@ class WhatsAppAccount(models.Model):
     wa_group_auto_message_share = fields.Boolean("WhatsApp Group Auto Message Share", default=False)
     wa_group_auto_message_text = fields.Text("Auto Message Text", default="Hi you can also joing our group for Fitted Kitchen Designs more vairables group link")
     wa_group_auto_message_link = fields.Char("Auto Message Link")
-    auto_create_leads = fields.Boolean("Auto-Create Leads from Incoming Chats", default=False, help="If checked, new incoming chats will automatically generate a CRM Lead with 'Fitted Kitchens' category.")
-
+    auto_create_leads = fields.Boolean("Auto-Create Leads from Incoming Chats", default=False, help="If checked, new incoming chats will automatically generate a CRM Lead.")
+    auto_create_lead_category = fields.Selection([
+        ('fitted_kitchens', 'Fitted Kitchens'),
+        ('construction', 'Construction')
+    ], string='Default Lead Category')
     # School Integration
     allow_school_balances = fields.Boolean(string="Allow sending balances from school app", default=False)
     school_integration_type = fields.Selection([
@@ -1179,8 +1182,8 @@ class WhatsAppAccount(models.Model):
                         'phone': wa_id,
                         'type': 'lead',
                     }
-                    if 'project_category' in self.env['crm.lead']._fields:
-                        lead_vals['project_category'] = 'fitted_kitchens'
+                    if 'project_category' in self.env['crm.lead']._fields and self.auto_create_lead_category:
+                        lead_vals['project_category'] = self.auto_create_lead_category
                         
                     self.env['crm.lead'].sudo().create(lead_vals)
                     
