@@ -2802,8 +2802,8 @@ export class WhatsAppChatsAction extends Component {
             console.warn("Poll error", e);
         }
 
-        // Reload messages for the current open chat
-        if (this.state.selectedChannel) {
+        // Reload messages for the current open chat — but NOT during active uploads
+        if (this.state.selectedChannel && !this._uploadingCount) {
             try {
                 await this.loadMessages(this.state.selectedChannel.id);
             } catch(e) {
@@ -3531,7 +3531,10 @@ export class WhatsAppChatsAction extends Component {
                 }
                 this.scrollToBottom();
 
+                // Increment upload counter so polling skips message reload during bulk upload
+                this._uploadingCount = (this._uploadingCount || 0) + 1;
                 (async () => {
+                    try {
                     for (let i = 0; i < pendingFiles.length; i++) {
                         const pendingFile = pendingFiles[i];
                         const tempMsg = tempMsgs[i];
@@ -3620,6 +3623,9 @@ export class WhatsAppChatsAction extends Component {
                         document.body.appendChild(banner);
                         setTimeout(() => banner.remove(), 6000);
                     }
+                    }
+                    } finally {
+                        this._uploadingCount = Math.max(0, (this._uploadingCount || 1) - 1);
                     }
                 })();
             }

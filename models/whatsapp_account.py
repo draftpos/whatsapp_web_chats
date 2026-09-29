@@ -1684,42 +1684,42 @@ class WhatsAppAccount(models.Model):
                                 with odoo.registry(dbname).cursor() as new_cr:
                                     new_env = odoo.api.Environment(new_cr, odoo.SUPERUSER_ID, {})
                                     whatsapp_account = new_env['whatsapp.account']
-                            
-                                for att_id in heavy_media_att_ids:
-                                    att = new_env['ir.attachment'].browse(att_id)
-                                    if att.exists():
-                                        is_audio = att.mimetype and att.mimetype.startswith('audio/')
-                                        if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
-                                            is_audio = True
-                                        if is_audio:
-                                            whatsapp_account._compress_audio_attachment(att)
-                                        elif att.mimetype and att.mimetype.startswith('video/'):
-                                            whatsapp_account._compress_video_attachment(att)
-                                        elif att.mimetype and att.mimetype.startswith('image/'):
-                                            whatsapp_account._fix_image_attachment(att)
-                            
-                                wa_msgs = new_env['whatsapp.message'].search([
-                                    ('mail_message_id', '=', msg_id),
-                                    ('state', '=', 'outgoing')
-                                ])
+                                    
+                                    for att_id in heavy_media_att_ids:
+                                        att = new_env['ir.attachment'].browse(att_id)
+                                        if att.exists():
+                                            is_audio = att.mimetype and att.mimetype.startswith('audio/')
+                                            if att.mimetype == 'video/webm' and att.name and ('audio_message' in att.name or 'voice_' in att.name):
+                                                is_audio = True
+                                            if is_audio:
+                                                whatsapp_account._compress_audio_attachment(att)
+                                            elif att.mimetype and att.mimetype.startswith('video/'):
+                                                whatsapp_account._compress_video_attachment(att)
+                                            elif att.mimetype and att.mimetype.startswith('image/'):
+                                                whatsapp_account._fix_image_attachment(att)
                                 
-                                # Fix Odoo core bug where it splits a message with attachment and body into multiple whatsapp.messages
-                                if len(wa_msgs) > 1:
-                                    _logger.info(f"Odoo split message {msg_id} into {len(wa_msgs)} whatsapp messages. Cancelling duplicates.")
-                                    image_msg = wa_msgs.filtered(lambda w: w.attachment_id)
-                                    text_msg = wa_msgs.filtered(lambda w: not w.attachment_id and w.body)
-                                    if image_msg and text_msg:
-                                        # Merge the body of the text message into the attachment message
-                                        image_msg[0].write({'body': text_msg[0].body})
-                                    wa_msgs[1:].write({'state': 'cancel'})
-                                    wa_msgs = wa_msgs[0]
+                                    wa_msgs = new_env['whatsapp.message'].search([
+                                        ('mail_message_id', '=', msg_id),
+                                        ('state', '=', 'outgoing')
+                                    ])
+                                    
+                                    # Fix Odoo core bug where it splits a message with attachment and body into multiple whatsapp.messages
+                                    if len(wa_msgs) > 1:
+                                        _logger.info(f"Odoo split message {msg_id} into {len(wa_msgs)} whatsapp messages. Cancelling duplicates.")
+                                        image_msg = wa_msgs.filtered(lambda w: w.attachment_id)
+                                        text_msg = wa_msgs.filtered(lambda w: not w.attachment_id and w.body)
+                                        if image_msg and text_msg:
+                                            # Merge the body of the text message into the attachment message
+                                            image_msg[0].write({'body': text_msg[0].body})
+                                        wa_msgs[1:].write({'state': 'cancel'})
+                                        wa_msgs = wa_msgs[0]
 
-                                for wa_msg in wa_msgs:
-                                    _logger.info(f"PRE-SEND WA MSG BACKGROUND {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
-                                    try:
-                                        wa_msg._send(force_send_by_cron=False)
-                                    except Exception as send_err:
-                                        _logger.warning("Could not send whatsapp message in background %s: %s", wa_msg.id, send_err)
+                                    for wa_msg in wa_msgs:
+                                        _logger.info(f"PRE-SEND WA MSG BACKGROUND {wa_msg.id}: type={wa_msg.message_type}, body='{wa_msg.body}'")
+                                        try:
+                                            wa_msg._send(force_send_by_cron=False)
+                                        except Exception as send_err:
+                                            _logger.warning("Could not send whatsapp message in background %s: %s", wa_msg.id, send_err)
                             except Exception as e:
                                 _logger.error("Error in whatsapp background thread: %s", e)
 
