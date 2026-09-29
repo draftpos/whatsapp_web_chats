@@ -424,7 +424,7 @@ export class WhatsAppChatsAction extends Component {
             const tagDef = this.state.availableTags.find(t => t.id === tagId);
             if (tagDef) {
                 channel.wa_tags.push(tagDef);
-                if (tagDef.name.toLowerCase() === 'lead') {
+                if (tagDef.name.toLowerCase().includes('lead')) {
                     this.createCrmLead(channelId);
                 }
             }
