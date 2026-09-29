@@ -842,7 +842,10 @@ class WhatsAppAccount(models.Model):
         import re
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         
-        domain = ['|', '&', ('res_id', '=', int(channel_id)), ('model', '=', 'discuss.channel')]
+        domain = ['&', ('res_id', '=', int(channel_id)), ('model', '=', 'discuss.channel')]
+        # Filter out Odoo auto-generated thread link messages
+        domain = ['&'] + domain + ['!', ('body', 'ilike', 'Related Discussion Channel')]
+        domain = ['|'] + domain
         if channel.whatsapp_number:
             wa_msgs = self.env['whatsapp.message'].sudo().search([
                 ('mobile_number', 'in', [channel.whatsapp_number, '+' + channel.whatsapp_number]),
