@@ -107,6 +107,7 @@ class WhatsAppAccount(models.Model):
                 
                 lead_vals = {
                     'name': readable_cat,
+                    'contact_name': channel.name or channel.whatsapp_number,
                     'phone': '+' + clean_wa,
                     'type': 'lead',
                     'project_category': self.auto_create_lead_category or 'fitted_kitchens'
@@ -1255,6 +1256,7 @@ class WhatsAppAccount(models.Model):
                     
                     lead_vals = {
                         'name': readable_cat,
+                        'contact_name': profile_name or wa_id,
                         'phone': wa_id,
                         'type': 'lead',
                     }
