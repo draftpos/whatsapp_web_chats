@@ -94,9 +94,12 @@ class WhatsAppAccount(models.Model):
             if not clean_wa:
                 continue
                 
-            lead = self.env['crm.lead'].sudo().search([
-                '|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)
-            ], limit=1)
+            
+            search_domain = [('phone', 'ilike', clean_wa)]
+            if 'mobile' in self.env['crm.lead']._fields:
+                search_domain = ['|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)]
+                
+            lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
             
             if not lead:
                 self.env['crm.lead'].sudo().create({
@@ -1224,9 +1227,11 @@ class WhatsAppAccount(models.Model):
         if self.auto_create_leads and 'crm.lead' in self.env:
             for wa_id, profile_name in wa_names.items():
                 clean_wa = ''.join(c for c in wa_id if c.isdigit())
-                lead = self.env['crm.lead'].sudo().search([
-                    '|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)
-                ], limit=1)
+                search_domain = [('phone', 'ilike', clean_wa)]
+                if 'mobile' in self.env['crm.lead']._fields:
+                    search_domain = ['|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)]
+                    
+                lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
                 
                 if not lead:
                     lead_vals = {
