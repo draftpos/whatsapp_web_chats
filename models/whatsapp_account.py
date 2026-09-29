@@ -48,6 +48,7 @@ class WhatsAppAccount(models.Model):
     wa_group_auto_message_share = fields.Boolean("WhatsApp Group Auto Message Share", default=False)
     wa_group_auto_message_text = fields.Text("Auto Message Text", default="Hi you can also joing our group for Fitted Kitchen Designs more vairables group link")
     wa_group_auto_message_link = fields.Char("Auto Message Link")
+    auto_create_leads = fields.Boolean("Auto-Create Leads from Incoming Chats", default=False, help="If checked, new incoming chats will automatically generate a CRM Lead with 'Fitted Kitchens' category.")
 
     # School Integration
     allow_school_balances = fields.Boolean(string="Allow sending balances from school app", default=False)
@@ -1163,6 +1164,25 @@ class WhatsAppAccount(models.Model):
                 # If the name is basically just their phone number
                 if clean_name.endswith(clean_wa) or clean_name.startswith(clean_wa):
                     partner.sudo().write({'name': profile_name})
+
+        # Auto-create CRM leads for new incoming chats if the account is configured for it
+        if self.auto_create_leads and 'crm.lead' in self.env:
+            for wa_id, profile_name in wa_names.items():
+                clean_wa = ''.join(c for c in wa_id if c.isdigit())
+                lead = self.env['crm.lead'].sudo().search([
+                    '|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)
+                ], limit=1)
+                
+                if not lead:
+                    lead_vals = {
+                        'name': f"{profile_name or wa_id} (WhatsApp Lead)",
+                        'phone': wa_id,
+                        'type': 'lead',
+                    }
+                    if 'project_category' in self.env['crm.lead']._fields:
+                        lead_vals['project_category'] = 'fitted_kitchens'
+                        
+                    self.env['crm.lead'].sudo().create(lead_vals)
                     
         # Apply custom routing bot logic — use filtered value so echo-backs never trigger bot replies
         self._process_routing_bot(value)
