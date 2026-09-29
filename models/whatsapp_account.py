@@ -473,18 +473,30 @@ class WhatsAppAccount(models.Model):
     def mark_whatsapp_web_messages_read(self, channel_id):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         if channel.exists():
-            # Find the last message and explicitly mark it seen for the CURRENT user
+            # Find the last actual message in this channel
             last_msg = self.env['mail.message'].sudo().search([
                 ('model', '=', 'discuss.channel'),
-                ('res_id', '=', channel.id)
+                ('res_id', '=', channel.id),
+                ('message_type', 'not in', ['notification', 'user_notification']),
             ], order='id desc', limit=1)
             
             if last_msg:
-                # Make read status GLOBAL: If one agent reads it, it's read for everyone
-                members = self.env['discuss.channel.member'].sudo().search([
-                    ('channel_id', '=', channel.id)
-                ])
-                members.sudo().write({'seen_message_id': last_msg.id})
+                # Only mark read for the CURRENT user's member record, not all members.
+                # Marking all members would cause the next customer message to appear
+                # as if already seen for other agents who haven't opened the chat yet.
+                member = self.env['discuss.channel.member'].sudo().search([
+                    ('channel_id', '=', channel.id),
+                    ('partner_id', '=', self.env.user.partner_id.id),
+                ], limit=1)
+                if member:
+                    member.sudo().write({'seen_message_id': last_msg.id})
+                else:
+                    # Create member record for the current user if missing
+                    self.env['discuss.channel.member'].sudo().create({
+                        'channel_id': channel.id,
+                        'partner_id': self.env.user.partner_id.id,
+                        'seen_message_id': last_msg.id,
+                    })
             
             # Also clear our custom flag so the badge disappears
             if channel.wa_is_unread_global:
@@ -545,7 +557,7 @@ class WhatsAppAccount(models.Model):
         ])
         seen_ids = {m.channel_id.id: (m.seen_message_id.id if m.seen_message_id else 0) for m in members}
         
-        # 4. Prepare excluded partners
+        # 4. Prepare excluded partners (internal users — i.e. agents/bots, not customers)
         try:
             excluded = self.env.ref('base.group_user').sudo().users.mapped('partner_id').ids
         except Exception:
@@ -553,6 +565,28 @@ class WhatsAppAccount(models.Model):
         public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
         if public_partner:
             excluded.append(public_partner.id)
+        
+        # 5. Bulk count unread customer messages per channel using a single SQL query.
+        #    Count only real messages (not system notifications) authored by non-internal partners
+        #    that are newer than the current user's seen_message_id position.
+        unread_counts = {}
+        if channels.ids and excluded:
+            # Build a values table of (channel_id, seen_id) pairs for the current user
+            seen_pairs = [(c.id, seen_ids.get(c.id, 0)) for c in channels]
+            self.env.cr.execute("""
+                SELECT m.res_id, COUNT(m.id)
+                FROM mail_message m
+                JOIN (VALUES %s) AS s(channel_id, seen_id) ON m.res_id = s.channel_id AND m.id > s.seen_id
+                WHERE m.model = 'discuss.channel'
+                  AND m.message_type NOT IN ('notification', 'user_notification')
+                  AND (m.author_id IS NULL OR m.author_id NOT IN %s)
+                GROUP BY m.res_id
+            """ % (
+                ','.join('(%s,%s)' % p for p in seen_pairs),
+                '(%s)' % ','.join(str(e) for e in excluded)
+            ))
+            for row in self.env.cr.fetchall():
+                unread_counts[row[0]] = row[1]
 
         import re
         for c in channels:
@@ -595,30 +629,15 @@ class WhatsAppAccount(models.Model):
                     else:
                         last_msg_is_me = False
             
-            seen_id = seen_ids.get(c.id, 0)
-            
-            unread_count = 0
-            domain_unread = []
+            # Use the precomputed bulk unread count — only show badge if wa_is_unread_global is set
+            # (meaning a real customer message arrived) and the last message is not from us.
             if not c.wa_is_unread_global or last_msg_is_me:
                 unread_count = 0
                 if c.wa_is_unread_global:
                     c.sudo().write({'wa_is_unread_global': False})
             else:
-                domain_unread = [
-                    ('model', '=', 'discuss.channel'),
-                    ('res_id', '=', c.id),
-                    ('id', '>', seen_id),
-                    ('message_type', 'not in', ['notification', 'user_notification']),
-                ]
-                domain_unread = ['|', ('author_id', '=', False), ('author_id', 'not in', excluded)] + domain_unread
-                unread_count = self.env['mail.message'].sudo().search_count(domain_unread)
-            
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.debug("DEBUG unread: channel=%s, seen_id=%s, domain=%s, unread_count=%s", c.id, seen_id, domain_unread, unread_count)
+                unread_count = unread_counts.get(c.id, 0)
 
-            
-            import re
             def clean_name(n):
                 if not n: return n
                 # Strip any trailing parenthetical e.g. "(School)", "(Havano Support)", etc.
