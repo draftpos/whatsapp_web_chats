@@ -4285,6 +4285,20 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
+    async createCrmLead() {
+        if (!this.state.selectedChannel) return;
+        this.toggleHeaderDropdown();
+        try {
+            const action = await this.orm.call('discuss.channel', 'action_create_crm_lead_from_whatsapp', [[this.state.selectedChannel.id]]);
+            if (action) {
+                this.action.doAction(action);
+            }
+        } catch (e) {
+            console.error(e);
+            this.env.services.notification.add("Failed to create CRM Lead.", { type: "danger" });
+        }
+    }
+
     async viewContactProfile(channel, ev) {
         if (ev) ev.stopPropagation();
         this.state.showChatDropdownId = null;

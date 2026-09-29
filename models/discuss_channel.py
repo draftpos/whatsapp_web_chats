@@ -224,3 +224,26 @@ class DiscussChannel(models.Model):
         # We only override this to pass skip_auto_invite down, or we can just call super
         message = super().message_post(**kwargs)
         return message
+
+    def action_create_crm_lead_from_whatsapp(self):
+        self.ensure_one()
+        # Find if a lead already exists for this channel to avoid duplicates?
+        # The user said: 'create leads and i want to make it after slecting is lead in whatsapp it must create a lead in CRM'
+        
+        # We return an action to open the CRM Lead form view with context
+        action = self.env['ir.actions.act_window']._for_xml_id('crm.crm_lead_action_pipeline')
+        
+        phone = self.whatsapp_number
+        if self.whatsapp_partner_id and self.whatsapp_partner_id.phone:
+            phone = self.whatsapp_partner_id.phone
+            
+        action['views'] = [(self.env.ref('crm.crm_lead_view_form').id, 'form')]
+        action['target'] = 'new'
+        action['context'] = {
+            'default_name': f'Lead from {self.name or phone}',
+            'default_phone': phone,
+            'default_partner_id': self.whatsapp_partner_id.id if self.whatsapp_partner_id else False,
+            'default_wa_chat_channel_id': self.id,
+            'default_type': 'opportunity'
+        }
+        return action
