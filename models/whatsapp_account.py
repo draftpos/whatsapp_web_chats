@@ -921,12 +921,12 @@ class WhatsAppAccount(models.Model):
         domain = ['&'] + domain + ['!', ('body', 'ilike', 'Related Discussion Channel')]
         domain = ['|'] + domain
         if channel.whatsapp_number:
-            wa_msgs = self.env['whatsapp.message'].sudo().search([
+            wa_data = self.env['whatsapp.message'].sudo().search_read([
                 ('mobile_number', 'in', [channel.whatsapp_number, '+' + channel.whatsapp_number]),
                 ('wa_account_id', '=', channel.wa_account_id.id),
                 ('mail_message_id', '!=', False)
-            ])
-            wa_mail_ids = wa_msgs.mapped('mail_message_id').ids
+            ], ['mail_message_id'])
+            wa_mail_ids = [d['mail_message_id'][0] for d in wa_data if d.get('mail_message_id')]
             if wa_mail_ids:
                 domain.append(('id', 'in', wa_mail_ids))
             else:
@@ -937,7 +937,6 @@ class WhatsAppAccount(models.Model):
         messages = self.env['mail.message'].sudo().search(domain, order='id desc', offset=int(offset), limit=int(limit))
         messages = messages.sorted(key=lambda m: m.id)
         
-        import re
         def clean_name(n):
             if not n: return n
             return re.sub(r'\s*\(\s*School\s*\)', '', n, flags=re.IGNORECASE).strip()
@@ -946,7 +945,8 @@ class WhatsAppAccount(models.Model):
         wa_error = False
         if messages and channel.whatsapp_number:
             last_wa = self.env['whatsapp.message'].sudo().search([
-                ('mobile_number', 'ilike', channel.whatsapp_number)
+                ('mobile_number', 'in', [channel.whatsapp_number, '+' + channel.whatsapp_number]),
+                ('wa_account_id', '=', channel.wa_account_id.id)
             ], order='id desc', limit=1)
             if last_wa and last_wa.state == 'error':
                 wa_error = last_wa.failure_reason or last_wa.failure_type or 'Delivery failed'
@@ -962,9 +962,11 @@ class WhatsAppAccount(models.Model):
             clean_num = ''.join(filter(str.isdigit, channel.whatsapp_number))
             if clean_num:
                 outbound_wa_msgs = self.env['whatsapp.message'].sudo().search([
-                    ('mobile_number', 'ilike', clean_num),
+                    ('mobile_number', 'in', [clean_num, '+' + clean_num]),
                     ('message_type', '=', 'outbound')
                 ], order='id desc', limit=30)
+                
+        public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
         
         res = []
         for m in messages:
@@ -981,7 +983,6 @@ class WhatsAppAccount(models.Model):
                     if channel.whatsapp_partner_id and m.author_id.id == channel.whatsapp_partner_id.id:
                         is_me = False
                     else:
-                        public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
                         if public_partner and m.author_id.id == public_partner.id:
                             is_me = False
                         else:
@@ -997,7 +998,6 @@ class WhatsAppAccount(models.Model):
             # Format date as UTC ISO string so JS can parse it correctly
             date_str = m.date.strftime('%Y-%m-%dT%H:%M:%SZ') if m.date else False
             
-            public_partner = self.env.ref('base.public_partner', raise_if_not_found=False)
             author_data = False
             if m.author_id:
                 author_name = clean_name(m.author_id.name)
