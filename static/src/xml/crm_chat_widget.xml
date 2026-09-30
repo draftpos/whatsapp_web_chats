@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="whatsapp_web_chats.CrmChatWidget" owl="1">
-        <div style="height: 650px; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; width: 100vw; display: flex; flex-direction: column; overflow: hidden;">
+        <div style="height: 650px; width: calc(100% + 32px); margin: -16px; display: flex; flex-direction: column; overflow: hidden;">
             <!-- Loading state -->
             <t t-if="state.loading">
                 <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f0f2f5; color: #8696a0; font-size: 16px;">
