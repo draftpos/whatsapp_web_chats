@@ -13,16 +13,7 @@
             </xpath>
             <xpath expr="//notebook" position="inside">
                 <page string="WA Chats" name="wa_chats">
-                    <field name="wa_chat_channel_id" invisible="1"/>
-                    <group invisible="wa_chat_channel_id">
-                        <div class="alert alert-info" role="alert" style="margin-bottom: 0;">
-                            No active WhatsApp chat found for this lead. Click the button below to start a conversation.
-                        </div>
-                        <button name="action_open_whatsapp_chat" type="object" string="Start / Open Chat" class="btn-primary" icon="fa-whatsapp"/>
-                    </group>
-                    <div invisible="not wa_chat_channel_id" class="w-100 h-100">
-                        <field name="wa_chat_channel_id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
-                    </div>
+                    <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
                 </page>
             </xpath>
         </field>

@@ -182,6 +182,64 @@ class CrmLead(models.Model):
             }
         }
 
+    def _find_whatsapp_channel(self, create_if_missing=False):
+        """Find the WhatsApp channel for this lead. Optionally create one if missing."""
+        self.ensure_one()
+        phone = self.phone if 'phone' in self._fields else False
+        mobile = self.mobile if 'mobile' in self._fields else False
+        phone_to_use = phone or mobile
+
+        channel_id = False
+
+        if phone_to_use:
+            clean_phone = ''.join(filter(str.isdigit, phone_to_use))
+            if clean_phone.startswith('0'):
+                clean_phone = '263' + clean_phone[1:]
+
+            base_domain = [
+                ('channel_type', '=', 'whatsapp'),
+                '|', ('tenant_id', '=', False), ('tenant_id', '=', self.env.company.id)
+            ]
+
+            number_domain = [
+                '|',
+                ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
+                ('whatsapp_partner_id.phone', 'ilike', clean_phone)
+            ]
+            if self.partner_id:
+                search_domain = base_domain + ['|', ('whatsapp_partner_id', '=', self.partner_id.id)] + number_domain
+            else:
+                search_domain = base_domain + number_domain
+
+            existing = self.env['discuss.channel'].sudo().search(search_domain, order='id desc', limit=1)
+            if existing:
+                channel_id = existing.id
+            elif create_if_missing:
+                account_domain = []
+                if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+                    account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
+                wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
+                new_ch = self.env['discuss.channel'].sudo().create({
+                    'name': clean_phone,
+                    'channel_type': 'whatsapp',
+                    'whatsapp_number': clean_phone,
+                    'whatsapp_partner_id': self.partner_id.id if self.partner_id else False,
+                    'wa_account_id': wa_account.id if wa_account else False,
+                })
+                channel_id = new_ch.id
+
+        if channel_id:
+            channel = self.env['discuss.channel'].sudo().browse(channel_id)
+            if self.env.user.partner_id.id not in channel.channel_member_ids.mapped('partner_id.id'):
+                channel.sudo().add_members(self.env.user.partner_id.ids)
+
+        return channel_id
+
+    def get_whatsapp_channel_id_for_widget(self, create_if_missing=False):
+        """Called by the JS CrmWhatsappChatWidget to get the channel ID for this lead."""
+        self.ensure_one()
+        return self._find_whatsapp_channel(create_if_missing=create_if_missing)
+
 
     @api.model_create_multi
     def create(self, vals_list):
