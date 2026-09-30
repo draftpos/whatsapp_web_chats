@@ -12,7 +12,7 @@
                 <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
             </xpath>
             <xpath expr="//notebook" position="inside">
-                <page string="WA Chats" name="wa_chats">
+                <page string="WA Chats" name="wa_chats" style="padding: 0 !important;">
                     <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
                 </page>
             </xpath>
