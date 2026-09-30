@@ -477,6 +477,13 @@
                         <i class="fa fa-times" style="color: #8696a0; cursor: pointer; font-size: 16px; margin-left: 10px;" t-on-click="() => this.toggleInChatSearch()" title="Close search"/>
                     </div>
                     <div class="whatsapp-messages" t-ref="messagesContainer" t-on-scroll="(ev) => this.onMessagesScroll(ev)">
+                        <t t-if="state.isLoadingMoreMessages">
+                            <div style="display: flex; justify-content: center; padding: 10px 0; position: sticky; top: 0; z-index: 50; background: linear-gradient(rgba(229,221,213,1), rgba(229,221,213,0)); margin-bottom: -10px;">
+                                <div style="background: white; padding: 6px 12px; border-radius: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.15);">
+                                    <i class="fa fa-spinner fa-spin" style="font-size: 20px; color: #25D366;"/>
+                                </div>
+                            </div>
+                        </t>
                         <!-- Pinned Messages Banner -->
                         <t t-set="pinnedMsgs" t-value="(state.messages || []).filter(m => m.wa_is_pinned)"/>
                         <t t-if="pinnedMsgs.length > 0">
