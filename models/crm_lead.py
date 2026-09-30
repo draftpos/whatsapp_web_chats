@@ -47,34 +47,76 @@ class CrmLead(models.Model):
             lead.wa_unread_messages_count = count
 
     def _compute_wa_chat_channel_id(self):
+        base_domain = [
+            ('channel_type', '=', 'whatsapp'),
+            '|', ('tenant_id', '=', False), ('tenant_id', '=', self.env.company.id)
+        ]
+        if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+            base_domain += [('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids)]
+            
+        search_domains = []
+        lead_data = []
+        
         for lead in self:
-            channel = False
             phone = lead.phone if 'phone' in lead._fields else False
             mobile = lead.mobile if 'mobile' in lead._fields else False
+            clean_phone = False
             
             if phone or mobile:
                 phone_to_use = phone or mobile
-                # Format phone logic similar to JS formatWhatsAppNumber
                 clean_phone = ''.join(filter(str.isdigit, phone_to_use))
                 if clean_phone.startswith('0'):
-                    clean_phone = '263' + clean_phone[1:] # standard default in module
+                    clean_phone = '263' + clean_phone[1:]
                     
-                domain = [
-                    ('channel_type', '=', 'whatsapp'),
-                    '|', ('tenant_id', '=', False), ('tenant_id', '=', self.env.company.id)
-                ]
-                if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
-                    domain += [('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids)]
-                    
+            lead_data.append({
+                'lead': lead,
+                'clean_phone': clean_phone,
+                'partner_id': lead.partner_id.id if lead.partner_id else False
+            })
+            
+            if clean_phone:
                 number_domain = ['|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone)]
                 if lead.partner_id:
-                    domain += ['|', ('whatsapp_partner_id', '=', lead.partner_id.id)] + number_domain
+                    search_domains.append(['|', ('whatsapp_partner_id', '=', lead.partner_id.id)] + number_domain)
                 else:
-                    domain += number_domain
+                    search_domains.append(number_domain)
+                    
+        combined_lead_domain = []
+        if search_domains:
+            for _ in range(len(search_domains) - 1):
+                combined_lead_domain.append('|')
+            for d in search_domains:
+                combined_lead_domain.extend(d)
                 
-                channel = self.env['discuss.channel'].sudo().search(domain, limit=1)
+        all_channels = self.env['discuss.channel']
+        if combined_lead_domain:
+            final_domain = base_domain + combined_lead_domain
+            all_channels = self.env['discuss.channel'].sudo().search(final_domain)
+            
+        for data in lead_data:
+            lead = data['lead']
+            clean_phone = data['clean_phone']
+            partner_id = data['partner_id']
+            
+            if not clean_phone:
+                lead.wa_chat_channel_id = False
+                continue
                 
-            lead.wa_chat_channel_id = channel.id if channel else False
+            matched_channel = False
+            for ch in all_channels:
+                if partner_id and ch.whatsapp_partner_id.id == partner_id:
+                    matched_channel = ch
+                    break
+                if clean_phone and ch.whatsapp_number in [clean_phone, '+' + clean_phone]:
+                    matched_channel = ch
+                    break
+                if clean_phone and ch.whatsapp_partner_id and ch.whatsapp_partner_id.phone:
+                    ch_clean = ''.join(filter(str.isdigit, ch.whatsapp_partner_id.phone))
+                    if ch_clean and (clean_phone in ch_clean or ch_clean in clean_phone):
+                        matched_channel = ch
+                        break
+                        
+            lead.wa_chat_channel_id = matched_channel.id if matched_channel else False
 
     def action_open_whatsapp_chat(self):
         self.ensure_one()
