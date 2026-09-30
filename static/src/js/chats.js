@@ -209,11 +209,12 @@ export class WhatsAppChatsAction extends Component {
                             channel_id: this.props.activeChannelId,
                             limit: 1
                         });
-                        if (fetched && fetched.length > 0) {
-                            if (!this.state.channels.find(c => c.id === fetched[0].id)) {
-                                this.state.channels.push(fetched[0]);
+                        const channels = fetched && fetched.channels ? fetched.channels : (Array.isArray(fetched) ? fetched : []);
+                        if (channels.length > 0) {
+                            if (!this.state.channels.find(c => c.id === channels[0].id)) {
+                                this.state.channels.push(channels[0]);
                             }
-                            this.selectChannel(fetched[0]);
+                            this.selectChannel(channels[0]);
                         }
                     } catch (e) {
                         console.warn("Could not fetch active channel", e);
