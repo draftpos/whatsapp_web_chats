@@ -258,13 +258,9 @@ export class WhatsAppChatsAction extends Component {
             window.addEventListener('resize', this._updateMobileClass);
             this._updateMobileClass();
 
-            // Mobile view: handle hardware back button
-            this._onPopState = (ev) => {
-                if (this.state.isMobile && this.state.selectedChannel) {
-                    this.goBackToChatList(true);
-                }
-            };
-            window.addEventListener('popstate', this._onPopState);
+            // Mobile view: handle hardware back button (disabled to prevent Odoo router crash)
+            // this._onPopState = (ev) => { ... }
+            // window.addEventListener('popstate', this._onPopState);
 
             // Close dropdowns when clicking anywhere outside
             this._onDocumentClick = (ev) => {
@@ -358,7 +354,7 @@ export class WhatsAppChatsAction extends Component {
                 window.removeEventListener('resize', this._updateMobileClass);
             }
             if (this._onPopState) {
-                window.removeEventListener('popstate', this._onPopState);
+                // window.removeEventListener('popstate', this._onPopState);
             }
         });
     }
@@ -1757,10 +1753,7 @@ export class WhatsAppChatsAction extends Component {
         this.state.showContactInfo = false;
         const container = document.querySelector('.whatsapp-container');
         if (container) container.classList.remove('mobile-chat-open');
-        
-        if (this.state.isMobile && fromPopState !== true) {
-            window.history.back();
-        }
+        // window.history.back() removed to prevent Odoo router crash
     }
 
     selectChannel(channel, event) {
@@ -1776,9 +1769,7 @@ export class WhatsAppChatsAction extends Component {
         this.state.messages = this.messageCache[channel.id] || [];
         this.state.isSending = false;
 
-        if (this.state.isMobile) {
-            window.history.pushState({ chatOpen: true }, "");
-        }
+        // window.history.pushState removed to prevent Odoo router crash
 
         const loadId = Symbol();
         this.currentLoadId = loadId;
