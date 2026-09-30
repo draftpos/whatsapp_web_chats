@@ -11,15 +11,18 @@
             <xpath expr="//field[@name='name']" position="after">
                 <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
             </xpath>
-            <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_open_whatsapp_chat" type="object" class="oe_stat_button" icon="fa-whatsapp">
-                    <div class="o_stat_info">
-                        <span class="o_stat_value">
-                            <field name="wa_unread_messages_count"/> Unread
-                        </span>
-                        <span class="o_stat_text">WA Chats</span>
-                    </div>
-                </button>
+            <xpath expr="//notebook" position="inside">
+                <page string="WA Chats" name="wa_chats">
+                    <group>
+                        <group>
+                            <label for="wa_unread_messages_count" string="WhatsApp Chats"/>
+                            <div class="o_row">
+                                <field name="wa_unread_messages_count" nolabel="1" class="oe_inline"/> <span class="mx-2">Unread</span>
+                                <button name="action_open_whatsapp_chat" type="object" string="Open Chat" class="btn-primary oe_inline" icon="fa-whatsapp"/>
+                            </div>
+                        </group>
+                    </group>
+                </page>
             </xpath>
         </field>
     </record>
