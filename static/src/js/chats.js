@@ -1771,6 +1771,7 @@ export class WhatsAppChatsAction extends Component {
         this.state.selectedChannel = channel;
         this.state.selectedMessages = [];
         this.state.chatSearch = '';
+        this.state.messagesOffset = 0;
         this.state.messages = this.messageCache[channel.id] || [];
         this.state.isSending = false;
 
@@ -2105,7 +2106,6 @@ export class WhatsAppChatsAction extends Component {
                 return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
             }).filter(msg => !msg.isSystem || (msg.isSystem && msg.bodyText && msg.bodyText.trim() !== ''));
                 const currentMessages = [...this.state.messages];
-                mappedMessages.reverse(); // Older messages come first in display
                 
                 // Merge mapped older messages at the start, making sure not to duplicate
                 const currentIds = new Set(currentMessages.map(m => m.id));
@@ -2174,11 +2174,10 @@ export class WhatsAppChatsAction extends Component {
         try {
             let messages = [];
             try {
-                this.state.messagesOffset = 0;
                 messages = await this.orm.call(
                     "whatsapp.account",
                     "get_whatsapp_web_messages",
-                    [id, this.state.messagesOffset, 50],
+                    [id, 0, 50],
                     {},
                     { silent: true }
                 );
