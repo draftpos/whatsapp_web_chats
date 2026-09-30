@@ -916,25 +916,30 @@ class WhatsAppAccount(models.Model):
         import re
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         
-        domain = ['&', ('res_id', '=', int(channel_id)), ('model', '=', 'discuss.channel')]
-        # Filter out Odoo auto-generated thread link messages
-        domain = ['&'] + domain + ['!', ('body', 'ilike', 'Related Discussion Channel')]
-        domain = ['|'] + domain
+        # Optimize pagination by using a raw SQL query instead of loading all whatsapp messages into memory
+        query = """
+            SELECT id FROM mail_message 
+            WHERE 
+                (model = 'discuss.channel' AND res_id = %s AND (body NOT ILIKE '%%Related Discussion Channel%%' OR body IS NULL))
+        """
+        params = [int(channel_id)]
+        
         if channel.whatsapp_number:
-            wa_data = self.env['whatsapp.message'].sudo().search_read([
-                ('mobile_number', 'in', [channel.whatsapp_number, '+' + channel.whatsapp_number]),
-                ('wa_account_id', '=', channel.wa_account_id.id),
-                ('mail_message_id', '!=', False)
-            ], ['mail_message_id'])
-            wa_mail_ids = [d['mail_message_id'][0] for d in wa_data if d.get('mail_message_id')]
-            if wa_mail_ids:
-                domain.append(('id', 'in', wa_mail_ids))
-            else:
-                domain = domain[1:]
-        else:
-            domain = domain[1:]
+            query += """
+                OR id IN (
+                    SELECT mail_message_id FROM whatsapp_message 
+                    WHERE mobile_number IN (%s, %s) AND wa_account_id = %s AND mail_message_id IS NOT NULL
+                )
+            """
+            params.extend([channel.whatsapp_number, '+' + channel.whatsapp_number, channel.wa_account_id.id])
             
-        messages = self.env['mail.message'].sudo().search(domain, order='id desc', offset=int(offset), limit=int(limit))
+        query += " ORDER BY id DESC LIMIT %s OFFSET %s"
+        params.extend([int(limit), int(offset)])
+        
+        self.env.cr.execute(query, tuple(params))
+        message_ids = [row[0] for row in self.env.cr.fetchall()]
+        
+        messages = self.env['mail.message'].sudo().browse(message_ids)
         messages = messages.sorted(key=lambda m: m.id)
         
         def clean_name(n):
