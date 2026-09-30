@@ -2112,10 +2112,6 @@ export class WhatsAppChatsAction extends Component {
                 const newMessages = mappedMessages.filter(m => !currentIds.has(m.id));
                 
                 this.state.messages = [...newMessages, ...currentMessages];
-                
-                // Group messages to album again
-                this.state.messages = this.groupAlbums(this.state.messages);
-                
                 // Maintain scroll position after DOM update
                 if (el) {
                     // Give owl a moment to render
