@@ -91,6 +91,14 @@ def post_migrate(env, version):
         if system_group:
             env.cr.execute("INSERT INTO res_groups_users_rel (uid, gid) SELECT id, %s FROM res_users WHERE share=False ON CONFLICT DO NOTHING", (system_group.id,))
             
+        # Make WhatsApp Web Chats the default app
+        action = env.ref('whatsapp_web_chats.action_whatsapp_web_chats', raise_if_not_found=False)
+        if action:
+            # Set for existing internal users
+            env.cr.execute("UPDATE res_users SET action_id = %s WHERE share=False", (action.id,))
+            # Set default for new users
+            env['ir.default'].sudo().set('res.users', 'action_id', action.id)
+            
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(
