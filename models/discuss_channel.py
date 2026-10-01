@@ -58,7 +58,7 @@ class DiscussChannel(models.Model):
                     if number:
                         partner = self.env['res.partner'].search([('phone', 'ilike', number)], limit=1)
                         if not partner:
-                            partner = self.env['res.partner'].create({'name': number, 'phone': number})
+                            partner = self.env['res.partner'].with_context(skip_duplicate_check=True).create({'name': number, 'phone': number})
                         vals['whatsapp_partner_id'] = partner.id
         return super().create(vals_list)
 

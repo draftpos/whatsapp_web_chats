@@ -134,11 +134,6 @@
         </field>
     </record>
 
-    <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_flow" model="ir.actions.act_window">
-        <field name="name">Chatbot Flow</field>
-        <field name="res_model">wa.chatbot.flow</field>
-        <field name="view_mode">list,kanban,form</field>
-    </record>
 
     <!-- wa.chatbot.session -->
     <record id="wa_chatbot_session_view_kanban" model="ir.ui.view">
@@ -188,11 +183,6 @@
         </field>
     </record>
 
-    <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_session" model="ir.actions.act_window">
-        <field name="name">Chatbot Sessions</field>
-        <field name="res_model">wa.chatbot.session</field>
-        <field name="view_mode">list,kanban,form</field>
-    </record>
 
     <!-- wa.chatbot.keyword -->
     <record id="wa_chatbot_keyword_view_kanban" model="ir.ui.view">
@@ -243,11 +233,6 @@
         </field>
     </record>
 
-    <record id="dev_whatsapp_chatbot_ent.action_wa_chatbot_keyword" model="ir.actions.act_window">
-        <field name="name">Chatbot Keywords</field>
-        <field name="res_model">wa.chatbot.keyword</field>
-        <field name="view_mode">list,kanban,form</field>
-    </record>
     <!-- whatsapp.quick.reply -->
     <record id="whatsapp_quick_reply_view_kanban" model="ir.ui.view">
         <field name="name">whatsapp.quick.reply.kanban</field>
@@ -331,6 +316,102 @@
                     </t>
                 </templates>
             </kanban>
+        </field>
+    </record>
+
+    <!-- crm.lead (Leads & Opportunities) mobile kanban view -->
+    <record id="crm_lead_view_kanban_mobile" model="ir.ui.view">
+        <field name="name">crm.lead.kanban.mobile</field>
+        <field name="model">crm.lead</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile" default_order="wa_last_message_date desc">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="phone"/>
+                <field name="stage_id"/>
+                <field name="project_category"/>
+                <field name="wa_unread_messages_count"/>
+                <field name="wa_last_message_date"/>
+                <field name="user_id"/>
+                <field name="probability"/>
+                <field name="priority"/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="oe_kanban_global_click"
+                             style="padding: 14px 16px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.06); margin-bottom: 10px; background: white; border: 1px solid #f0f2f5; position: relative;">
+
+                            <!-- Top row: name + unread badge -->
+                            <div class="row m-0" style="margin-bottom: 4px; align-items: flex-start;">
+                                <div class="col-8" style="padding-right: 4px;">
+                                    <strong style="font-size: 15px; color: #111b21; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        <field name="name"/>
+                                    </strong>
+                                </div>
+                                <div class="col-4 text-end" style="padding-left: 4px;">
+                                    <!-- Unread WA message badge -->
+                                    <span t-if="record.wa_unread_messages_count.raw_value > 0"
+                                          class="badge rounded-pill"
+                                          style="background-color: #25D366; color: white; padding: 3px 8px; font-size: 11px;">
+                                        <i class="fa fa-whatsapp me-1"/>
+                                        <field name="wa_unread_messages_count"/>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Partner -->
+                            <div class="row m-0 mt-1" t-if="record.partner_id.value">
+                                <div class="col-12" style="font-size: 13px; color: #54656f;">
+                                    <i class="fa fa-user me-1" title="Contact"/>
+                                    <field name="partner_id"/>
+                                </div>
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="row m-0 mt-1" t-if="record.phone.value">
+                                <div class="col-12" style="font-size: 13px; color: #54656f;">
+                                    <i class="fa fa-phone me-1" title="Phone"/>
+                                    <field name="phone"/>
+                                </div>
+                            </div>
+
+                            <!-- Bottom row: stage + category + salesperson -->
+                            <div class="row m-0 mt-2" style="align-items: center;">
+                                <div class="col-7">
+                                    <span class="badge rounded-pill"
+                                          style="background-color: #e8f5e9; color: #25D366; padding: 3px 8px; font-size: 11px; font-weight: 600;">
+                                        <field name="stage_id"/>
+                                    </span>
+                                    <span t-if="record.project_category.value"
+                                          class="badge rounded-pill ms-1"
+                                          style="background-color: #fff3e0; color: #e67e22; padding: 3px 8px; font-size: 11px;">
+                                        <field name="project_category"/>
+                                    </span>
+                                </div>
+                                <div class="col-5 text-end" style="font-size: 11px; color: #8696a0;">
+                                    <t t-if="record.user_id.value">
+                                        <i class="fa fa-user-circle me-1"/>
+                                        <field name="user_id"/>
+                                    </t>
+                                </div>
+                            </div>
+
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- CRM action accessible from mobile nav -->
+    <record id="crm_lead_action_mobile" model="ir.actions.act_window">
+        <field name="name">Leads &amp; Opportunities</field>
+        <field name="res_model">crm.lead</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="context">{'search_default_assigned_leads': 0}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No leads yet. New WhatsApp chats can auto-create leads!
+            </p>
         </field>
     </record>
 

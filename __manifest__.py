@@ -5,7 +5,10 @@
     'license': 'LGPL-3',
     'author': 'Draft POS',
     'summary': 'Provides a WhatsApp Web-like interface for managing WhatsApp chats.',
-    'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup', 'dev_whatsapp_chatbot_ent', 'crm'],
+    'depends': ['mail', 'base', 'web', 'whatsapp', 'product', 'hr', 'auth_signup', 'crm'],
+    # dev_whatsapp_chatbot_ent is enterprise-only — listed as optional so the module
+    # installs cleanly on Community. The bridge views/menus in enterprise_chatbot_views.xml
+    # are loaded by post_init_hook when the enterprise chatbot module is present.
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
@@ -46,5 +49,7 @@
     },
     'installable': True,
     'application': True,
+    'post_init_hook': 'post_init_hook',
     'post_migrate': 'whatsapp_web_chats.post_migrate',
 }
+

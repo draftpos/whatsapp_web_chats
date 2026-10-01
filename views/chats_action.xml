@@ -43,6 +43,4 @@
     <!-- Move Templates to Configuration -->
     <menuitem id="whatsapp.whatsapp_template_menu" name="Templates" parent="whatsapp.whatsapp_configuration_menu" sequence="30"/>
 
-    <!-- Move Chatbot to Configuration (if dev_whatsapp_chatbot_ent exists) -->
-    <menuitem id="dev_whatsapp_chatbot_ent.menu_wa_chatbot_parent" name="Chatbot" parent="whatsapp.whatsapp_configuration_menu" sequence="30"/>
 </odoo>

@@ -32,6 +32,12 @@
                 <i class="fa fa-comments"/>
                 <span>Chats</span>
             </div>
+            <!-- CRM Leads shortcut -->
+            <div class="wa-bottom-nav-item" t-on-click="() => this.navigateToCrm()">
+                <i class="fa fa-briefcase"/>
+                <span>Leads</span>
+            </div>
+            <t t-if="this.hasChatbotEnt">
             <div t-attf-class="wa-bottom-nav-item {{ state.showMobileChatbotDropdown ? 'wa-bottom-nav-active' : '' }}" style="position: relative;" t-on-click="() => this.toggleMobileChatbotDropdown()">
                 <i class="fa fa-android"/>
                 <span>Chatbot</span>
@@ -45,6 +51,7 @@
                     </div>
                 </t>
             </div>
+            </t>
             <div t-attf-class="wa-bottom-nav-item {{ state.showMobileConfigDropdown ? 'wa-bottom-nav-active' : '' }}" style="position: relative;" t-on-click="() => this.toggleMobileConfigDropdown()">
                 <i class="fa fa-cogs"/>
                 <span>Configuration</span>

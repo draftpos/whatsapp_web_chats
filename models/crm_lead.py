@@ -251,7 +251,7 @@ class CrmLead(models.Model):
                     'phone': vals.get('phone'),
                     'email': vals.get('email_from'),
                 }
-                partner = self.env['res.partner'].create(partner_vals)
+                partner = self.env['res.partner'].with_context(skip_duplicate_check=True).create(partner_vals)
                 vals['partner_id'] = partner.id
                 
         records = super().create(vals_list)

@@ -146,6 +146,9 @@ export class WhatsAppChatsAction extends Component {
         
         this.myPartnerId = null;
         this.isAdmin = session.is_admin || session.is_superuser || false;
+        // True when dev_whatsapp_chatbot_ent (Enterprise chatbot) is installed.
+        // Controls visibility of the Chatbot section in the sidebar/mobile nav.
+        this.hasChatbotEnt = false;
         // Cache for pre-resolved action IDs (avoids XML ID lookup RPC on each click)
         this._actionIds = {};
         
@@ -177,6 +180,15 @@ export class WhatsAppChatsAction extends Component {
                 this.loadCountries(),
                 this.loadQuickReplies(),
                 this._preloadActionIds(),
+                // Detect Enterprise chatbot module presence
+                (async () => {
+                    try {
+                        await this.orm.call('ir.model.data', 'check_object_reference', ['dev_whatsapp_chatbot_ent', 'action_wa_chatbot']);
+                        this.hasChatbotEnt = true;
+                    } catch (_) {
+                        this.hasChatbotEnt = false;
+                    }
+                })(),
             ];
 
             const targetChannelId = this.props.action?.context?.default_channel_id || this.props.action?.params?.default_channel_id;
@@ -855,6 +867,16 @@ export class WhatsAppChatsAction extends Component {
     }
 
     /**
+     * Navigate to the CRM Leads & Opportunities view.
+     * Closes any open mobile dropdowns before navigating.
+     */
+    navigateToCrm() {
+        this.state.showMobileChatbotDropdown = false;
+        this.state.showMobileConfigDropdown = false;
+        this.state.showSidebarDropdown = false;
+        this.navigateTo('whatsapp_web_chats.crm_lead_action_mobile');
+    }
+    /**
      * Pre-resolves all navigation action XML IDs to database IDs at startup.
      * This eliminates the XML ID lookup RPC on each click, cutting navigation time roughly in half.
      */
@@ -865,6 +887,7 @@ export class WhatsAppChatsAction extends Component {
             'whatsapp_web_chats.whatsapp_quick_reply_config_action',
             'whatsapp.whatsapp_template_action',
             'whatsapp_web_chats.action_whatsapp_web_chats_config_settings',
+            'whatsapp_web_chats.crm_lead_action_mobile',
             'dev_whatsapp_chatbot_ent.action_wa_chatbot_dashboard',
             'dev_whatsapp_chatbot_ent.action_wa_chatbot',
             'dev_whatsapp_chatbot_ent.action_wa_chatbot_flow',

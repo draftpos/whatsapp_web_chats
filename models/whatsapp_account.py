@@ -5,35 +5,45 @@ import threading
 
 _logger = logging.getLogger(__name__)
 
-class WAChatbotSession(models.Model):
-    _name = 'wa.chatbot.session'
-    _inherit = 'wa.chatbot.session'
+try:
+    from odoo.addons.dev_whatsapp_chatbot_ent import models as _chatbot_ent_models  # noqa: F401
+    _CHATBOT_ENT_INSTALLED = True
+except ImportError:
+    _CHATBOT_ENT_INSTALLED = False
 
-    tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        # Prevent creating bot sessions if the account bot is disabled
-        filtered_vals = []
-        for vals in vals_list:
-            account_id = vals.get('account_id')
-            if not account_id and 'chatbot_id' in vals:
-                # Try to get account from chatbot
-                chatbot = self.env['wa.chatbot'].sudo().browse(vals['chatbot_id'])
-                if hasattr(chatbot, 'account_id'):
-                    account_id = chatbot.account_id.id
-            
-            if account_id:
-                account = self.env['whatsapp.account'].sudo().browse(account_id)
-                if account.exists() and hasattr(account, 'wa_bot_active') and not account.wa_bot_active:
-                    _logger.info("Blocked creation of wa.chatbot.session because wa_bot_active is False")
-                    continue
-            filtered_vals.append(vals)
-            
-        if not filtered_vals:
-            return self.env['wa.chatbot.session']
-            
-        return super().create(filtered_vals)
+# Only extend wa.chatbot.session when the Enterprise chatbot module is present.
+# On Community this model doesn't exist, so inheriting it would crash the registry.
+if _CHATBOT_ENT_INSTALLED:
+    class WAChatbotSession(models.Model):
+        _name = 'wa.chatbot.session'
+        _inherit = 'wa.chatbot.session'
+
+        tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
+
+        @api.model_create_multi
+        def create(self, vals_list):
+            # Prevent creating bot sessions if the account bot is disabled
+            filtered_vals = []
+            for vals in vals_list:
+                account_id = vals.get('account_id')
+                if not account_id and 'chatbot_id' in vals:
+                    # Try to get account from chatbot
+                    chatbot = self.env['wa.chatbot'].sudo().browse(vals['chatbot_id'])
+                    if hasattr(chatbot, 'account_id'):
+                        account_id = chatbot.account_id.id
+
+                if account_id:
+                    account = self.env['whatsapp.account'].sudo().browse(account_id)
+                    if account.exists() and hasattr(account, 'wa_bot_active') and not account.wa_bot_active:
+                        _logger.info("Blocked creation of wa.chatbot.session because wa_bot_active is False")
+                        continue
+                filtered_vals.append(vals)
+
+            if not filtered_vals:
+                return self.env['wa.chatbot.session']
+
+            return super().create(filtered_vals)
 
 class WhatsAppAccount(models.Model):
     _inherit = 'whatsapp.account'
@@ -916,7 +926,7 @@ class WhatsAppAccount(models.Model):
         import re
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         
-        # Optimize pagination by using a raw SQL query instead of loading all whatsapp messages into memory
+        # Optimize pagination by using a UNION to allow Postgres to use indexes on both sides
         query = """
             SELECT id FROM mail_message 
             WHERE 
@@ -1976,7 +1986,7 @@ class WhatsAppAccount(models.Model):
                 results.append({'id': existing.id, 'name': existing.name, 'phone': existing.phone, 'status': 'existing'})
             else:
                 try:
-                    new_partner = Partner.create({
+                    new_partner = Partner.with_context(skip_duplicate_check=True).create({
                         'name': name,
                         'phone': phone,
                     })
@@ -2107,7 +2117,7 @@ class WhatsAppAccount(models.Model):
         
         if not partner:
             try:
-                partner = self.env['res.partner'].sudo().create({
+                partner = self.env['res.partner'].sudo().with_context(skip_duplicate_check=True).create({
                     'name': number,
                     'phone': number,
                 })
@@ -2160,7 +2170,7 @@ class WhatsAppAccount(models.Model):
             if not partner and phone:
                 partner = self.env['res.partner'].sudo().search([('phone', 'ilike', phone)], limit=1)
                 if not partner:
-                    partner = self.env['res.partner'].sudo().create({
+                    partner = self.env['res.partner'].sudo().with_context(skip_duplicate_check=True).create({
                         'name': phone,
                         'phone': phone,
                     })

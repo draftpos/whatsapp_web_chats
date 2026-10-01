@@ -1,6 +1,38 @@
 from . import models
 from . import controllers
 from . import wizard
+import logging
+import os
+
+_logger = logging.getLogger(__name__)
+
+
+def post_init_hook(env):
+    """
+    Conditionally load enterprise chatbot bridge views when dev_whatsapp_chatbot_ent
+    is installed. Safe to call on every upgrade — skipped silently on Community.
+    """
+    if 'dev_whatsapp_chatbot_ent' in env.registry._init_modules:
+        _logger.info("whatsapp_web_chats: dev_whatsapp_chatbot_ent detected, loading enterprise bridge views.")
+        try:
+            from odoo.modules.module import get_module_path
+            module_path = get_module_path('whatsapp_web_chats')
+            xml_path = os.path.join(module_path, 'views', 'enterprise_chatbot_views.xml')
+            from odoo.tools import convert_file
+            convert_file(
+                env,
+                'whatsapp_web_chats',
+                xml_path,
+                {},
+                mode='init',
+                noupdate=False,
+                kind='data',
+            )
+        except Exception as e:
+            _logger.warning("whatsapp_web_chats: Failed to load enterprise chatbot views: %s", e)
+    else:
+        _logger.info("whatsapp_web_chats: dev_whatsapp_chatbot_ent not installed, skipping enterprise chatbot views (Community mode).")
+
 
 
 def post_migrate(env, version):
