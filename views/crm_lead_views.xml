@@ -11,17 +11,23 @@
             <xpath expr="//field[@name='name']" position="after">
                 <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
             </xpath>
-            <xpath expr="//sheet/group[1]" position="before">
-                <notebook name="main_tabs">
-                    <page name="lead_page" string="Lead">
-                    </page>
-                    <page name="wa_chats" string="WA Chats" style="padding: 0 !important;">
-                        <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
-                    </page>
-                </notebook>
+            <!-- 1. Add Lead and WA Chats pages to the existing notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page name="lead_page" string="Lead" sequence="1">
+                </page>
+                <page name="wa_chats" string="WA Chats" sequence="2" style="padding: 0 !important;">
+                    <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
+                </page>
             </xpath>
+            
+            <!-- 2. Move the main fields group into the Lead page -->
             <xpath expr="//sheet/group[1]" position="move">
                 <xpath expr="//page[@name='lead_page']" position="inside"/>
+            </xpath>
+            
+            <!-- 3. Move the entire notebook to the top (after the title) -->
+            <xpath expr="//notebook" position="move">
+                <xpath expr="//div[hasclass('oe_title')]" position="after"/>
             </xpath>
         </field>
     </record>
