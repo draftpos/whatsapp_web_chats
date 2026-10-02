@@ -11,28 +11,172 @@
             <xpath expr="//field[@name='name']" position="after">
                 <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
             </xpath>
-            <!-- 1. Add Lead and WA Chats pages to the existing notebook -->
-            <xpath expr="//notebook" position="inside">
-                <page name="lead_page" string="Lead" sequence="1">
-                </page>
-                <page name="wa_chats" string="WA Chats" sequence="2" style="padding: 0 !important;">
-                    <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
-                </page>
-            </xpath>
             
-            <!-- 2. Move the main fields group into the Lead page -->
-            <xpath expr="//sheet/group[1]" position="move">
-                <xpath expr="//page[@name='lead_page']" position="inside"/>
-            </xpath>
-            
-            <!-- 3. Move the entire notebook to the top (after the title) -->
-            <xpath expr="//notebook" position="move">
-                <xpath expr="//div[hasclass('oe_title')]" position="after"/>
+            <xpath expr="//sheet/group[1]" position="replace">
+                <notebook>
+                    <page name="lead_page" string="Lead">
+                        <group>
+                            <group name="lead_partner" invisible="type == 'opportunity'">
+                                <!-- Preload all the partner's information -->
+                                <field name="is_partner_visible" invisible='1'/>
+                                <field name="partner_id" widget="res_partner_many2one"
+                                    context="{
+                                        'default_parent_id': commercial_partner_id,
+                                        'default_name': contact_name,
+                                        'default_street': street,
+                                        'default_street2': street2,
+                                        'default_city': city,
+                                        'default_state_id': state_id,
+                                        'default_zip': zip,
+                                        'default_country_id': country_id,
+                                        'default_function': function,
+                                        'default_phone': phone,
+                                        'default_email': email_from,
+                                        'default_user_id': user_id,
+                                        'default_team_id': team_id,
+                                        'default_website': website,
+                                        'default_lang': lang_code,
+                                    }" invisible="not is_partner_visible"/>
+                                <field name="partner_name"/>
+                                <label for="street" string="Address"/>
+                                <div class="o_address_format">
+                                    <field name="street" placeholder="Street..." class="o_address_street"/>
+                                    <field name="street2" placeholder="Street 2..." class="o_address_street"/>
+                                    <field name="city" placeholder="City" class="o_address_city"/>
+                                    <field name="state_id" class="o_address_state" placeholder="State" options='{"no_open": True}'/>
+                                    <field name="zip" placeholder="ZIP" class="o_address_zip"/>
+                                    <field name="country_id" placeholder="Country" class="o_address_country" options='{"no_open": True, "no_create": True}'/>
+                                </div>
+                                <field name="website" widget="url" placeholder="e.g. https://www.odoo.com"/>
+                                <field name="lang_active_count" invisible="1"/>
+                                <field name="lang_code" invisible="1"/>
+                                <field name="lang_id" invisible="lang_active_count &lt;= 1"
+                                    options="{'no_quick_create': True, 'no_create_edit': True, 'no_open': True}"/>
+                            </group>
+
+                            <group name="opportunity_partner" invisible="type == 'lead'">
+                                <field name="partner_id"
+                                    widget="res_partner_many2one"
+                                    context="{'res_partner_search_mode': type == 'opportunity' and 'customer' or False,
+                                        'default_name': contact_name or partner_name,
+                                        'default_street': street,
+                                        'default_is_company': type == 'opportunity' and contact_name == False,
+                                        'default_company_name': type == 'opportunity' and partner_name,
+                                        'default_street2': street2,
+                                        'default_city': city,
+                                        'default_state_id': state_id,
+                                        'default_zip': zip,
+                                        'default_country_id': country_id,
+                                        'default_function': function,
+                                        'default_phone': phone,
+                                        'default_email': email_from,
+                                        'default_user_id': user_id,
+                                        'default_team_id': team_id,
+                                        'default_website': website,
+                                        'default_lang': lang_code,
+                                        'show_vat': True,
+                                    }"
+                                />
+                                <field name="is_blacklisted" invisible="1"/>
+                                <field name="partner_is_blacklisted" invisible="1"/>
+                                <field name="phone_blacklisted" invisible="1"/>
+                                <field name="email_state" invisible="1"/>
+                                <field name="phone_state" invisible="1"/>
+                                <field name="partner_email_update" invisible="1"/>
+                                <field name="partner_phone_update" invisible="1"/>
+                                <label for="email_from" class="oe_inline"/>
+                                <div class="o_row o_row_readonly">
+                                    <button name="mail_action_blacklist_remove" class="fa fa-ban text-danger"
+                                        title="This email is blacklisted for mass mailings. Click to unblacklist."
+                                        type="object" context="{'default_email': email_from}" groups="base.group_user"
+                                        invisible="not is_blacklisted"/>
+                                    <field name="email_from" string="Email" widget="email"/>
+                                    <span class="fa fa-exclamation-triangle text-warning oe_edit_only"
+                                        title="By saving this change, the customer email will also be updated."
+                                        invisible="not partner_email_update"/>
+                                </div>
+                                <label for="phone" class="oe_inline"/>
+                                <div class="o_row o_row_readonly">
+                                    <button name="phone_action_blacklist_remove" class="fa fa-ban text-danger"
+                                        title="This phone number is blacklisted for SMS Marketing. Click to unblacklist."
+                                        type="object" context="{'default_phone': phone}" groups="base.group_user"
+                                        invisible="not phone_blacklisted"/>
+                                    <field name="phone" widget="phone"/>
+                                    <span class="fa fa-exclamation-triangle text-warning oe_edit_only"
+                                        title="By saving this change, the customer phone number will also be updated."
+                                        invisible="not partner_phone_update"/>
+                                </div>
+                                <field name="lost_reason_id" invisible="won_status != 'lost'"
+                                    placeholder="Not specified"/>
+                                <field name="date_conversion" invisible="1"/>
+                                <field name="user_company_ids" invisible="1"/>
+                            </group>
+                            <group name="lead_info" invisible="type == 'opportunity'">
+                                <label for="contact_name"/>
+                                <div class="o_row">
+                                    <field name="contact_name"/>
+                                </div>
+                                <field name="is_blacklisted" invisible="1"/>
+                                <field name="phone_blacklisted" invisible="1"/>
+                                <field name="email_state" invisible="1"/>
+                                <field name="phone_state" invisible="1"/>
+                                <field name="partner_email_update" invisible="1"/>
+                                <field name="partner_phone_update" invisible="1"/>
+                                <label for="email_from_group_lead_info" class="oe_inline"/>
+                                <div class="o_row o_row_readonly">
+                                    <button name="mail_action_blacklist_remove" class="fa fa-ban text-danger"
+                                        title="This email is blacklisted for mass mailings. Click to unblacklist."
+                                        type="object" context="{'default_email': email_from}" groups="base.group_user"
+                                        invisible="not is_blacklisted"/>
+                                    <field name="email_from" id="email_from_group_lead_info" string="Email" widget="email"/>
+                                    <span class="fa fa-exclamation-triangle text-warning oe_edit_only"
+                                        title="By saving this change, the customer email will also be updated."
+                                        invisible="not partner_email_update"/>
+                                </div>
+                                <field name="email_cc" groups="base.group_no_one"/>
+                                <field name="function"/>
+                                <label for="phone_group_lead_info" class="oe_inline"/>
+                                <div class="o_row o_row_readonly">
+                                    <button name="phone_action_blacklist_remove" class="fa fa-ban text-danger"
+                                        title="This phone number is blacklisted for SMS Marketing. Click to unblacklist."
+                                        type="object" context="{'default_phone': phone}" groups="base.group_user"
+                                        invisible="not phone_blacklisted"/>
+                                    <field name="phone" id="phone_group_lead_info" widget="phone"/>
+                                    <span class="fa fa-exclamation-triangle text-warning oe_edit_only"
+                                        title="By saving this change, the customer phone number will also be updated."
+                                        invisible="not partner_phone_update"/>
+                                </div>
+                            </group>
+                            <field name="type" invisible="1"/>
+                            <group invisible="type == 'lead'">
+                                <field name="user_id" context="{'default_sales_team_id': team_id}"
+                                    widget="many2one_avatar_leader_user" teamField="team_id"/>
+                                <label for="date_deadline">Expected Closing</label>
+                                <div class="d-flex gap-3 align-items-center">
+                                    <field name="date_deadline" nolabel="1" class="oe_inline" placeholder="No closing estimate"/>
+                                    <field name="priority" widget="priority" nolabel="1" class="oe_inline align-top"/>
+                                </div>
+                                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
+                            </group>
+                            <group invisible="type == 'opportunity'">
+                                <field name="user_id" context="{'default_sales_team_id': team_id}"
+                                    widget="many2one_avatar_leader_user" teamField="team_id"/>
+                                <field name="team_id" options="{'no_open': True, 'no_create': True}" context="{'kanban_view_ref': 'sales_team.crm_team_view_kanban'}"/>
+                            </group>
+                            <group name="lead_priority" invisible="type == 'opportunity'">
+                                <field name="priority" widget="priority"/>
+                                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
+                            </group>
+                        </group>
+
+                    </page>
+                    <page name="wa_chats" string="WA Chats" style="padding: 0 !important;">
+                        <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
+                    </page>
+                </notebook>
             </xpath>
         </field>
     </record>
-
-
 
     <!-- Inherit Tree View to add the message counting column -->
     <record id="crm_lead_view_tree_whatsapp" model="ir.ui.view">
