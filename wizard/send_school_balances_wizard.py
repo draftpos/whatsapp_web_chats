@@ -309,9 +309,9 @@ class SendSchoolBalancesWizard(models.TransientModel):
         if self.document_type == 'statement':
             domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('amount_residual', '>', 0)]
         elif self.document_type == 'billing':
-            domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('invoice_date', '=', self.filter_date)]
+            domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('invoice_date', '=', self.filter_date.strftime('%Y-%m-%d') if self.filter_date else False)]
         elif self.document_type == 'receipt':
-            domain = [('date', '=', self.filter_date), ('state', '=', 'posted')]
+            domain = [('date', '=', self.filter_date.strftime('%Y-%m-%d') if self.filter_date else False), ('state', '=', 'posted')]
         
         # To apply filters remotely, we need to first find the matching students
         student_domain = []
