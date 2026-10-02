@@ -220,7 +220,7 @@
 
                     </page>
                     <page name="wa_chats" string="WA Chats" style="padding: 0 !important;">
-                        <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
+                        <div class="w-100"><field name="id" widget="crm_whatsapp_chat_widget" nolabel="1" style="width: 100% !important;"/></div>
                     </page>
                 </notebook>
             </xpath>
