@@ -11,12 +11,17 @@
             <xpath expr="//field[@name='name']" position="after">
                 <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
             </xpath>
-            <xpath expr="//div[hasclass('oe_title')]" position="before">
-                <notebook>
-                    <page string="WA Chats" name="wa_chats" style="padding: 0 !important;">
+            <xpath expr="//sheet/group" position="before">
+                <notebook name="main_tabs">
+                    <page name="lead_page" string="Lead">
+                    </page>
+                    <page name="wa_chats" string="WA Chats" style="padding: 0 !important;">
                         <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1"/>
                     </page>
                 </notebook>
+            </xpath>
+            <xpath expr="//sheet/group" position="move">
+                <xpath expr="//page[@name='lead_page']" position="inside"/>
             </xpath>
         </field>
     </record>
