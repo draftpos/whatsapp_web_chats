@@ -11,7 +11,7 @@
             <xpath expr="//field[@name='name']" position="after">
                 <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
             </xpath>
-            <xpath expr="//sheet/group" position="before">
+            <xpath expr="//sheet/group[1]" position="before">
                 <notebook name="main_tabs">
                     <page name="lead_page" string="Lead">
                     </page>
@@ -20,7 +20,7 @@
                     </page>
                 </notebook>
             </xpath>
-            <xpath expr="//sheet/group" position="move">
+            <xpath expr="//sheet/group[1]" position="move">
                 <xpath expr="//page[@name='lead_page']" position="inside"/>
             </xpath>
         </field>
