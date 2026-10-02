@@ -36,6 +36,18 @@ class WhatsAppAccount(models.Model):
         help="Comma-separated list of days before expiration to send warning (e.g. '5,4,3,2,1')."
     )
 
+    saas_timezone = fields.Selection(
+        string="SaaS Timezone",
+        selection='_tz_get',
+        default='Africa/Harare',
+        required=True,
+        help="Timezone used to determine the correct local time for scheduling daily sales and expiration messages."
+    )
+
+    @api.model
+    def _tz_get(self):
+        return [(tz, tz) for tz in sorted(__import__('pytz').all_timezones)]
+
     saas_tenant_count = fields.Integer(
         string="Tenants",
         compute='_compute_saas_tenant_count',

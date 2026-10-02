@@ -131,89 +131,179 @@ class WhatsAppSaaSTenant(models.Model):
                 })
 
     def _process_daily_sales(self, account):
-        tz = timezone(self.env.user.tz or 'UTC')
+        # Use the timezone configured on the WhatsApp account
+        tz = timezone(account.saas_timezone or 'Africa/Harare')
         now = datetime.now(tz)
         current_time_float = now.hour + now.minute / 60.0
         current_date = now.date()
 
-        # Find tenants whose scheduled time is reached and haven't received it today
+        _logger.info(
+            f"Daily sales cron fired at {account.saas_timezone} time: {now.strftime('%Y-%m-%d %H:%M')} "
+            f"(float={current_time_float:.2f}) for account '{account.name}'"
+        )
+
+        # Find tenants whose scheduled time has been reached and
+        # who have NOT yet received the report today (duplicate guard level 1)
         tenants_to_send = self.search([
             ('account_id', '=', account.id),
+            ('tenant_phone', '!=', False),
             ('scheduled_time', '<=', current_time_float),
-            '|', ('last_sales_sent_date', '!=', current_date), ('last_sales_sent_date', '=', False)
+            '|',
+            ('last_sales_sent_date', '=', False),
+            ('last_sales_sent_date', '<', current_date),
         ])
 
+        total_tenants = len(tenants_to_send)
+        _logger.info(
+            f"Daily sales: {total_tenants} tenant(s) eligible (time={current_time_float:.2f}) "
+            f"for account '{account.name}'"
+        )
+
+        if not total_tenants:
+            return
+
         has_local_saas = 'havanoposdesk.tenant' in self.env
+        sent_count = 0
+        skip_count = 0
+        fail_count = 0
 
-        for tenant in tenants_to_send:
-            store_lines = []
-            if has_local_saas:
-                try:
-                    stores = self.env['havanoposdesk.store'].sudo().search([('tenant_id', '=', int(tenant.tenant_id))])
+        for idx, tenant in enumerate(tenants_to_send, 1):
+            # --- Duplicate guard level 2: re-read from DB inside loop ---
+            # (protects against concurrent cron instances)
+            tenant.invalidate_recordset()
+            if tenant.last_sales_sent_date and tenant.last_sales_sent_date >= current_date:
+                _logger.info(
+                    f"[{idx}/{total_tenants}] Tenant {tenant.tenant_name}: "
+                    f"already sent today ({tenant.last_sales_sent_date}), skipping"
+                )
+                skip_count += 1
+                continue
 
-                    for store in stores:
-                        # Query today's POS orders for this store directly from local models
-                        today_start = datetime.now(timezone(self.env.user.tz or 'UTC')).replace(
-                            hour=0, minute=0, second=0, microsecond=0
+            # --- Wrap each tenant in its own savepoint so one failure ---
+            # --- never blocks the remaining tenants                    ---
+            try:
+                with self.env.cr.savepoint():
+                    message_sent = False
+
+                    if has_local_saas:
+                        stores = self.env['havanoposdesk.store'].sudo().search(
+                            [('tenant_id', '=', int(tenant.tenant_id))]
                         )
-                        orders = self.env['pos.order'].sudo().search([
-                            ('store_id', '=', store.id),
-                            ('date_order', '>=', today_start.strftime('%Y-%m-%d %H:%M:%S')),
-                            ('state', 'in', ['done', 'invoiced']),
-                        ])
-                        total = sum(orders.mapped('amount_total'))
-                        num_orders = len(orders)
-                        currency = store.currency_id.symbol if hasattr(store, 'currency_id') and store.currency_id else '$'
-                        store_lines.append(
-                            f"🏪 *{store.name}*\n"
-                            f"   Sales: {currency}{total:,.2f}  |  Orders: {num_orders}"
-                        )
-                except Exception as e:
-                    _logger.error(f"Error fetching local sales for tenant {tenant.tenant_name}: {e}")
-            elif account.saas_app_url:
-                try:
-                    headers = {}
-                    if account.saas_username and account.saas_password:
-                        headers['Authorization'] = f'token {account.saas_username}:{account.saas_password}'
-                        
-                    response = requests.get(
-                        f"{account.saas_app_url.rstrip('/')}/api/reports/daily-sales",
-                        params={'tenant_id': tenant.tenant_id},
-                        headers=headers,
-                        timeout=10
-                    )
-                    if response.status_code == 200:
-                        data = response.json()
-                        records = data.get('data', [])
-                        if records:
-                            total = sum(r.get('total_sales', 0) for r in records)
-                            num_orders = sum(r.get('total_qty', 0) for r in records)
-                            currency = '$'
-                            store_name = 'Main Branch'
+                        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                        for store in stores:
+                            orders = self.env['pos.order'].sudo().search([
+                                ('store_id', '=', store.id),
+                                ('date_order', '>=', today_start.strftime('%Y-%m-%d %H:%M:%S')),
+                                ('state', 'in', ['done', 'invoiced']),
+                            ])
+                            total = sum(orders.mapped('amount_total'))
+                            num_orders = len(orders)
+                            currency = (
+                                store.currency_id.symbol
+                                if hasattr(store, 'currency_id') and store.currency_id
+                                else '$'
+                            )
                             avg_order = (total / num_orders) if num_orders > 0 else 0.0
-                            
-                            formatted_date = current_date.strftime("%d %b %Y")
-                            
                             variables = [
                                 tenant.tenant_name,
-                                formatted_date,
-                                f"{currency}{total:,.2f}",
-                                store_name,
+                                current_date.strftime('%d %b %Y'),
+                                f'{currency}{total:,.2f}',
+                                store.name,
                                 str(int(num_orders)),
-                                f"{currency}{avg_order:,.2f}"
+                                f'{currency}{avg_order:,.2f}',
                             ]
-                            
                             if account.saas_daily_sales_template_id:
                                 self._send_whatsapp_message(
                                     account,
                                     tenant.tenant_phone,
                                     account.saas_daily_sales_template_id,
-                                    variables
+                                    variables,
                                 )
-                except Exception as e:
-                    _logger.error(f"Error fetching remote sales for tenant {tenant.tenant_name}: {e}")
+                                message_sent = True
 
-            tenant.last_sales_sent_date = current_date
+                    elif account.saas_app_url:
+                        headers = {}
+                        if account.saas_username and account.saas_password:
+                            headers['Authorization'] = (
+                                f'token {account.saas_username}:{account.saas_password}'
+                            )
+                        url = f"{account.saas_app_url.rstrip('/')}/api/reports/daily-sales"
+                        _logger.info(
+                            f"[{idx}/{total_tenants}] Fetching {url} "
+                            f"for tenant '{tenant.tenant_name}' (id={tenant.tenant_id})"
+                        )
+                        response = requests.get(
+                            url,
+                            params={'tenant_id': tenant.tenant_id},
+                            headers=headers,
+                            timeout=15,
+                        )
+                        if response.status_code == 200:
+                            data = response.json()
+                            records = data.get('data', [])
+                            if records:
+                                total = sum(r.get('total_sales', 0) for r in records)
+                                num_orders = sum(r.get('total_qty', 0) for r in records)
+                                avg_order = (total / num_orders) if num_orders > 0 else 0.0
+                                variables = [
+                                    tenant.tenant_name,
+                                    current_date.strftime('%d %b %Y'),
+                                    f'${total:,.2f}',
+                                    'Main Branch',
+                                    str(int(num_orders)),
+                                    f'${avg_order:,.2f}',
+                                ]
+                                if account.saas_daily_sales_template_id:
+                                    self._send_whatsapp_message(
+                                        account,
+                                        tenant.tenant_phone,
+                                        account.saas_daily_sales_template_id,
+                                        variables,
+                                    )
+                                    message_sent = True
+                            else:
+                                _logger.warning(
+                                    f"[{idx}/{total_tenants}] No sales data for "
+                                    f"'{tenant.tenant_name}' — message skipped"
+                                )
+                        else:
+                            _logger.error(
+                                f"[{idx}/{total_tenants}] API error {response.status_code} "
+                                f"for '{tenant.tenant_name}': {response.text[:200]}"
+                            )
+                    else:
+                        _logger.warning(
+                            f"No data source configured for account '{account.name}'"
+                        )
+
+                    # Mark as sent ONLY if a message was dispatched
+                    if message_sent:
+                        tenant.last_sales_sent_date = current_date
+                        sent_count += 1
+                        _logger.info(
+                            f"[{idx}/{total_tenants}] ✓ Sent to '{tenant.tenant_name}' "
+                            f"({tenant.tenant_phone})"
+                        )
+                    else:
+                        skip_count += 1
+
+                # Commit after every 10 tenants to avoid holding a long transaction
+                if idx % 10 == 0:
+                    self.env.cr.execute('SELECT 1')  # keep connection alive
+
+            except Exception as e:
+                fail_count += 1
+                _logger.error(
+                    f"[{idx}/{total_tenants}] FAILED for tenant '{tenant.tenant_name}': {e}",
+                    exc_info=True,
+                )
+                # Savepoint is automatically rolled back; continue with next tenant
+
+        _logger.info(
+            f"Daily sales complete for '{account.name}': "
+            f"sent={sent_count}, skipped={skip_count}, failed={fail_count}, "
+            f"total_eligible={total_tenants}"
+        )
 
 
     def _send_whatsapp_message(self, account, phone, template, variables):
@@ -278,8 +368,9 @@ class WhatsAppSaaSTenant(models.Model):
     def _process_expirations(self, account):
         if not account.saas_expiration_template_id or not account.saas_expiration_days:
             return
-            
-        tz = timezone(self.env.user.tz or 'UTC')
+
+        # Use the timezone configured on the WhatsApp account
+        tz = timezone(account.saas_timezone or 'Africa/Harare')
         now = datetime.now(tz)
         current_date = now.date()
         current_time_float = now.hour + now.minute / 60.0

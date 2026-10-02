@@ -54,6 +54,7 @@
                             <field name="saas_daily_sales_template_id"/>
                             <field name="saas_expiration_template_id"/>
                             <field name="saas_expiration_days" invisible="not saas_expiration_template_id" placeholder="5,4,3,2,1"/>
+                            <field name="saas_timezone"/>
                         </group>
                     </group>
                     <div class="o_row mt-3" invisible="not saas_integration_active">
