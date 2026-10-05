@@ -242,7 +242,8 @@ class CrmLead(models.Model):
 
     def read(self, fields=None, load='_classic_read'):
         """ Auto-assign unassigned WhatsApp leads when a user opens them """
-        if len(self) == 1 and not self.env.su and self.env.user.has_group('sales_team.group_sale_salesman'):
+        is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
+        if len(self) == 1 and not is_super and self.env.user.has_group('sales_team.group_sale_salesman'):
             if not self.sudo().user_id:
                 self.sudo().write({'user_id': self.env.user.id})
         return super(CrmLead, self).read(fields=fields, load=load)

@@ -601,7 +601,7 @@ class WhatsAppAccount(models.Model):
             domain.append(('wa_account_id', '=', int(wa_account_id)))
         if channel_id:
             domain.append(('id', '=', int(channel_id)))
-        is_super = self.env.is_admin() or self.env.user.is_whatsapp_super_admin
+        is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
         if not is_super:
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
@@ -933,7 +933,7 @@ class WhatsAppAccount(models.Model):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         
         # Auto-assign chat to the user if it's unassigned
-        is_super = self.env.is_admin() or self.env.user.is_whatsapp_super_admin
+        is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
         if not channel.wa_agent_id and not is_super:
             channel.wa_agent_id = self.env.user.id
             

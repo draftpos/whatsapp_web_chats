@@ -63,7 +63,7 @@ class DiscussChannel(models.Model):
 
                 # Auto-assign agent if a normal user creates the chat (e.g. from CRM or WhatsApp UI)
                 if not vals.get('wa_agent_id') and not self.env.su:
-                    is_super = self.env.is_admin() or getattr(self.env.user, 'is_whatsapp_super_admin', False)
+                    is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
                     if not is_super:
                         vals['wa_agent_id'] = self.env.user.id
         return super().create(vals_list)
