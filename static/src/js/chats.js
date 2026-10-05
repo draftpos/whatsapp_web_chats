@@ -942,20 +942,26 @@ export class WhatsAppChatsAction extends Component {
                     this.myPartnerId = user_data[0].partner_id[0];
                 }
             } catch (e) {
+                if (e && e.message === "Component is destroyed") return;
                 console.warn("Could not load myPartnerId", e);
             }
         }
         
         if (this.state.accounts.length === 0) {
-            this.state.accounts = await this.orm.call(
-                "whatsapp.account",
-                "get_whatsapp_web_accounts",
-                [],
-                {},
-                { silent: true }
-            );
-            if (this.state.accounts.length > 0) {
-                this.state.selectedAccount = this.state.accounts[0].id.toString();
+            try {
+                this.state.accounts = await this.orm.call(
+                    "whatsapp.account",
+                    "get_whatsapp_web_accounts",
+                    [],
+                    {},
+                    { silent: true }
+                );
+                if (this.state.accounts.length > 0) {
+                    this.state.selectedAccount = this.state.accounts[0].id.toString();
+                }
+            } catch (e) {
+                if (e && e.message === "Component is destroyed") return;
+                console.warn("Could not load accounts", e);
             }
         }
 
@@ -1106,6 +1112,7 @@ export class WhatsAppChatsAction extends Component {
             this.state.hasMoreChannels = (this._lastFetchedCount === limit);
             this.state.isDownloadingHistory = false;
         } catch(e) {
+            if (e && e.message === "Component is destroyed") return;
             console.error("Error loading channels:", e);
             this.state.isDownloadingHistory = false;
         } finally {
