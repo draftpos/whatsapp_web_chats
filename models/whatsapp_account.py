@@ -926,7 +926,7 @@ class WhatsAppAccount(models.Model):
         import re
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         
-        # Optimize pagination by using a UNION to allow Postgres to use indexes on both sides
+        # Optimize pagination by using a raw SQL query instead of loading all whatsapp messages into memory
         query = """
             SELECT id FROM mail_message 
             WHERE 
