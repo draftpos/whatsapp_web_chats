@@ -154,13 +154,17 @@ class CrmLead(models.Model):
                         account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
                     wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
                     
-                    new_channel = self.env['discuss.channel'].sudo().create({
+                    is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
+                    create_vals = {
                         'name': clean_phone,
                         'channel_type': 'whatsapp',
                         'whatsapp_number': clean_phone,
                         'whatsapp_partner_id': self.partner_id.id if self.partner_id else False,
                         'wa_account_id': wa_account.id if wa_account else False,
-                    })
+                    }
+                    if not is_super:
+                        create_vals['wa_agent_id'] = self.env.user.id
+                    new_channel = self.env['discuss.channel'].sudo().create(create_vals)
                     channel_id = new_channel.id
 
         if not channel_id:
@@ -219,13 +223,17 @@ class CrmLead(models.Model):
                 if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
                     account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
                 wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
-                new_ch = self.env['discuss.channel'].sudo().create({
+                is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
+                create_vals = {
                     'name': clean_phone,
                     'channel_type': 'whatsapp',
                     'whatsapp_number': clean_phone,
                     'whatsapp_partner_id': self.partner_id.id if self.partner_id else False,
                     'wa_account_id': wa_account.id if wa_account else False,
-                })
+                }
+                if not is_super:
+                    create_vals['wa_agent_id'] = self.env.user.id
+                new_ch = self.env['discuss.channel'].sudo().create(create_vals)
                 channel_id = new_ch.id
 
         if channel_id:
