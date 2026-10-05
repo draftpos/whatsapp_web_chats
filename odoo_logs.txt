@@ -1,0 +1,4 @@
+
+
+--- ERRORS ---
+[sudo] password for amakoni: tail: cannot open '/var/log/odoo/odoo-server.log' for reading: No such file or directory

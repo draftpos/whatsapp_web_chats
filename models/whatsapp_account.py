@@ -132,6 +132,8 @@ class WhatsAppAccount(models.Model):
                 if 'wa_last_message_date' in self.env['crm.lead']._fields:
                     lead_vals['wa_last_message_date'] = channel.write_date or fields.Datetime.now()
                     
+                # Leave unassigned so the first normal user to open it in CRM gets it
+                lead_vals['user_id'] = channel.wa_agent_id.id if channel.wa_agent_id else False
                 self.env['crm.lead'].sudo().create(lead_vals)
                 created_count += 1
                 
@@ -1315,6 +1317,8 @@ class WhatsAppAccount(models.Model):
                     if 'project_category' in self.env['crm.lead']._fields and self.auto_create_lead_category:
                         lead_vals['project_category'] = self.auto_create_lead_category
                         
+                    # Leave unassigned so the first normal user to open it in CRM gets it
+                    lead_vals['user_id'] = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
                     self.env['crm.lead'].sudo().create(lead_vals)
                     
         # Apply custom routing bot logic — use filtered value so echo-backs never trigger bot replies
