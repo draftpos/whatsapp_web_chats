@@ -240,6 +240,12 @@ class CrmLead(models.Model):
         self.ensure_one()
         return self._find_whatsapp_channel(create_if_missing=create_if_missing)
 
+    def read(self, fields=None, load='_classic_read'):
+        """ Auto-assign unassigned WhatsApp leads when a user opens them """
+        if len(self) == 1 and not self.env.su and self.env.user.has_group('sales_team.group_sale_salesman'):
+            if not self.sudo().user_id:
+                self.sudo().write({'user_id': self.env.user.id})
+        return super(CrmLead, self).read(fields=fields, load=load)
 
     @api.model_create_multi
     def create(self, vals_list):
