@@ -1186,8 +1186,12 @@ class WhatsAppAccount(models.Model):
                 if clean_phone:
                     channel = self.env['discuss.channel'].sudo().search([
                         ('channel_type', '=', 'whatsapp'),
+                        ('wa_account_id', '=', self.id),
+                        '|',
                         ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
-                        ('wa_account_id', '=', self.id)
+                        '|',
+                        ('whatsapp_partner_id.phone', 'in', [clean_phone, '+' + clean_phone]),
+                        ('whatsapp_partner_id.mobile', 'in', [clean_phone, '+' + clean_phone])
                     ], limit=1)
                     if channel:
                         if channel.whatsapp_number != clean_phone:
