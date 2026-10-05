@@ -248,30 +248,31 @@ class CrmLead(models.Model):
         self.ensure_one()
         return self._find_whatsapp_channel(create_if_missing=create_if_missing)
 
-    def _wa_auto_assign_on_open(self):
-        """ First normal user to open an unassigned lead becomes its salesperson,
+    def _wa_auto_assign_to_current_user(self):
+        """ Normal user who interacts with an unassigned lead becomes its salesperson,
         and the linked WhatsApp chat is assigned to the same user. """
-        if len(self) != 1 or self.env.context.get('wa_skip_autoassign'):
+        if self.env.context.get('wa_skip_autoassign'):
             return
         user = self.env.user
         is_super = self.env.su or getattr(user, 'is_whatsapp_super_admin', False)
         if is_super or user._is_public() or not user.has_group('sales_team.group_sale_salesman'):
             return
-        lead = self.sudo()
-        if not lead.exists():
-            return
-        # Leads created by the webhook (sudo) may carry OdooBot as salesperson: treat as unassigned
-        if not lead.user_id or lead.user_id.id == SUPERUSER_ID:
-            lead.with_context(wa_skip_autoassign=True).write({'user_id': user.id})
-            channel = lead.wa_chat_channel_id.sudo()
-            if channel:
-                ch_vals = {}
-                if not channel.wa_agent_id or channel.wa_agent_id.id == SUPERUSER_ID:
-                    ch_vals['wa_agent_id'] = user.id
-                if ch_vals:
-                    channel.write(ch_vals)
-                if user.partner_id.id not in channel.channel_member_ids.mapped('partner_id.id'):
-                    channel.add_members(user.partner_id.ids)
+        for lead in self:
+            lead = lead.sudo()
+            if not lead.exists():
+                continue
+            # Leads created by the webhook (sudo) may carry OdooBot as salesperson: treat as unassigned
+            if not lead.user_id or lead.user_id.id == SUPERUSER_ID:
+                lead.with_context(wa_skip_autoassign=True).write({'user_id': user.id})
+                channel = lead.wa_chat_channel_id.sudo()
+                if channel:
+                    ch_vals = {}
+                    if not channel.wa_agent_id or channel.wa_agent_id.id == SUPERUSER_ID:
+                        ch_vals['wa_agent_id'] = user.id
+                    if ch_vals:
+                        channel.write(ch_vals)
+                    if user.partner_id.id not in channel.channel_member_ids.mapped('partner_id.id'):
+                        channel.add_members(user.partner_id.ids)
 
     @api.model
     def web_search_read(self, *args, **kwargs):
@@ -280,7 +281,8 @@ class CrmLead(models.Model):
 
     def web_read(self, specification):
         """ Auto-assign unassigned leads when a normal user opens them in the form view """
-        self._wa_auto_assign_on_open()
+        if len(self) == 1:
+            self._wa_auto_assign_to_current_user()
         return super().web_read(specification)
 
     @api.model_create_multi
@@ -311,6 +313,7 @@ class CrmLead(models.Model):
         return records
 
     def write(self, vals):
+        self._wa_auto_assign_to_current_user()
         res = super().write(vals)
         if 'phone' in vals or 'mobile' in vals or 'partner_id' in vals:
             lead_tag = self.env['wa.chat.tag'].sudo().search([('name', '=ilike', 'lead%')], limit=1)

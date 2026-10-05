@@ -229,6 +229,37 @@ class DiscussChannel(models.Model):
     def message_post(self, **kwargs):
         # We only override this to pass skip_auto_invite down, or we can just call super
         message = super().message_post(**kwargs)
+        
+        # If normal user replies to an unassigned whatsapp channel, auto-assign
+        if getattr(self, 'channel_type', False) == 'whatsapp':
+            user = self.env.user
+            is_super = self.env.su or getattr(user, 'is_whatsapp_super_admin', False)
+            if not is_super and not user._is_public() and user.has_group('sales_team.group_sale_salesman'):
+                # Check if unassigned
+                if not self.wa_agent_id or self.wa_agent_id.id == SUPERUSER_ID:
+                    self.sudo().write({'wa_agent_id': user.id})
+                
+                # Check if there is an unassigned lead for this channel
+                clean_phone = ''.join(filter(str.isdigit, str(self.whatsapp_number or '')))
+                domain = ['|', ('user_id', '=', False), ('user_id', '=', SUPERUSER_ID)]
+                
+                match_domain = []
+                if self.whatsapp_partner_id:
+                    match_domain.append(('partner_id', '=', self.whatsapp_partner_id.id))
+                if clean_phone:
+                    match_domain.append('|')
+                    match_domain.append(('phone', 'ilike', clean_phone[-8:] if len(clean_phone) > 8 else clean_phone))
+                    match_domain.append(('mobile', 'ilike', clean_phone[-8:] if len(clean_phone) > 8 else clean_phone))
+                    
+                if match_domain:
+                    if len(match_domain) > 1 and match_domain[0] != '|':
+                        domain.append('|')
+                    domain.extend(match_domain)
+                    leads = self.env['crm.lead'].sudo().search(domain)
+                    matching_leads = leads.filtered(lambda l: l.wa_chat_channel_id.id == self.id)
+                    if matching_leads:
+                        matching_leads.with_context(wa_skip_autoassign=True).write({'user_id': user.id})
+                    
         return message
 
     def action_create_crm_lead_from_whatsapp(self):
