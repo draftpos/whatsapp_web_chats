@@ -477,7 +477,7 @@ class WhatsAppAccount(models.Model):
         current_company = self.env.company
         domain = ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
         
-        if not self.env.is_admin():
+        if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)):
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('id', 'in', self.env.user.whatsapp_account_ids.ids))
             
@@ -2481,9 +2481,11 @@ class WhatsAppAccount(models.Model):
         if wa_account_id:
             channel_domain.append(('wa_account_id', '=', int(wa_account_id)))
             
-        if not self.env.is_admin():
+        if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)):
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 channel_domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
+            # Non-superadmins (incl. normal Odoo admins) only search unassigned chats or their own
+            channel_domain += ['|', ('wa_agent_id', '=', False), ('wa_agent_id', '=', self.env.user.id)]
                 
         channels = self.env['discuss.channel'].sudo().search(channel_domain)
         if not channels:

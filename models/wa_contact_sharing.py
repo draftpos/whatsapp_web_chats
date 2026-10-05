@@ -44,7 +44,7 @@ class WhatsappAccount(models.Model):
         ]
         
         # Admin or 'all' mode just gets the tenant-filtered domain above
-        if not self.env.is_admin() and mode != 'all':
+        if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and mode != 'all':
             allowed_accounts = self.env.user.whatsapp_account_ids
             
             if mode == 'isolated':

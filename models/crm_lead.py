@@ -51,7 +51,7 @@ class CrmLead(models.Model):
             ('channel_type', '=', 'whatsapp'),
             '|', ('tenant_id', '=', False), ('tenant_id', '=', self.env.company.id)
         ]
-        if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+        if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and hasattr(self.env.user, 'whatsapp_account_ids'):
             base_domain += [('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids)]
             
         search_domains = []
@@ -136,7 +136,7 @@ class CrmLead(models.Model):
                     ('channel_type', '=', 'whatsapp'),
                     '|', ('tenant_id', '=', False), ('tenant_id', '=', self.env.company.id)
                 ]
-                if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+                if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and hasattr(self.env.user, 'whatsapp_account_ids'):
                     domain += [('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids)]
                     
                 number_domain = ['|', ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]), ('whatsapp_partner_id.phone', 'ilike', clean_phone)]
@@ -150,7 +150,7 @@ class CrmLead(models.Model):
                     channel_id = existing.id
                 else:
                     account_domain = []
-                    if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+                    if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and hasattr(self.env.user, 'whatsapp_account_ids'):
                         account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
                     wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
                     
@@ -220,7 +220,7 @@ class CrmLead(models.Model):
                 channel_id = existing.id
             elif create_if_missing:
                 account_domain = []
-                if not self.env.is_admin() and hasattr(self.env.user, 'whatsapp_account_ids'):
+                if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and hasattr(self.env.user, 'whatsapp_account_ids'):
                     account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
                 wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
                 is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
