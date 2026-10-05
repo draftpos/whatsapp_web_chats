@@ -608,9 +608,10 @@ class WhatsAppAccount(models.Model):
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
             
-            # User specifically requested that ALL chats (even those assigned to others)
-            # must be visible to normal admins in the WhatsApp Chat Dashboard.
-            # So we no longer filter by wa_agent_id here.
+            # Non-superadmins only see unassigned chats OR chats assigned to them
+            domain.append('|')
+            domain.append(('wa_agent_id', '=', False))
+            domain.append(('wa_agent_id', '=', self.env.user.id))
         
         channels = self.env['discuss.channel'].sudo().search(domain, limit=int(limit), offset=int(offset), order='write_date desc, id desc')
         
@@ -2503,6 +2504,8 @@ class WhatsAppAccount(models.Model):
         if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)):
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 channel_domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
+            # Non-superadmins (incl. normal Odoo admins) only search unassigned chats or their own
+            channel_domain += ['|', ('wa_agent_id', '=', False), ('wa_agent_id', '=', self.env.user.id)]
                 
         channels = self.env['discuss.channel'].sudo().search(channel_domain)
         if not channels:
