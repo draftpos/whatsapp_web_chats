@@ -194,12 +194,7 @@
                             </t>
                         </t>
                         <div t-attf-class="whatsapp-chat-item {{ state.selectedChannel and state.selectedChannel.id === channel.id ? 'active' : '' }} {{ state.selectedChannels.includes(channel.id) ? 'selected-bg' : '' }} {{ state.selectedChannels?.length > 0 ? 'selection-mode' : '' }}" t-on-click="(ev) => this.selectChannel(channel, ev)" t-attf-style="flex-direction: column; align-items: stretch; justify-content: center; {{ state.showChatDropdownId === channel.id ? 'z-index: 100;' : '' }}">
-                            <t t-if="channel.wa_agent_id">
-                                <div class="chat-agent-row" style="font-size:11px; color:#1976D2; font-weight:bold; display:flex; align-items:center; margin-bottom: 4px; padding-left: 5px;">
-                                    <i class="fa fa-user-circle" style="margin-right:4px;"></i>
-                                    <t t-esc="channel.wa_agent_id[1]"/>
-                                </div>
-                            </t>
+
                             <div style="display: flex; align-items: center; width: 100%;">
                             <div class="chat-selection" t-on-click="(ev) => this.toggleChannelSelection(channel.id, ev)">
                                 <t t-if="state.selectedChannels.includes(channel.id)">
@@ -231,6 +226,12 @@
                                     </div>
                                     </div>
                                     <div class="chat-time-col" style="display:flex; flex-direction:column; align-items:flex-end;">
+                                        <t t-if="channel.wa_agent_id">
+                                            <div style="font-size:10px; color:#1976D2; font-weight:bold; display:flex; align-items:center; margin-bottom: 2px;">
+                                                <i class="fa fa-user-circle" style="margin-right:3px;"></i>
+                                                <t t-esc="channel.wa_agent_id[1]"/>
+                                            </div>
+                                        </t>
                                         <t t-if="channel.wa_is_urgent">
                                             <span style="background-color: #f24a4a; color: white; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 2px;">URGENT</span>
                                         </t>
