@@ -2339,6 +2339,28 @@ class WhatsAppAccount(models.Model):
             return False
         full_text = f"{text} {link}".strip() if (text and link) else (text or link)
 
+        phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
+        import re
+        clean_phone = re.sub(r'\D', '', str(phone or ''))
+        if not clean_phone:
+            return False
+
+        # Check if ANY channel for this account & phone has already received the invite
+        existing_sent = self.env['discuss.channel'].sudo().search([
+            ('channel_type', '=', 'whatsapp'),
+            ('wa_account_id', '=', self.id),
+            ('wa_group_invite_sent', '=', True),
+            '|',
+            ('whatsapp_number', '=', clean_phone),
+            ('whatsapp_number', '=', f"+{clean_phone}")
+        ], limit=1)
+
+        if existing_sent:
+            # Mark this channel as sent as well so we skip it efficiently in the future
+            if not channel.wa_group_invite_sent:
+                channel.sudo().write({'wa_group_invite_sent': True})
+            return False
+
         # ── Atomic claim: only the first caller wins ──────────────────────────────
         # UPDATE ... WHERE wa_group_invite_sent = FALSE returns the number of rows
         # updated. If 0, another process already claimed it — bail out immediately.
@@ -2353,12 +2375,6 @@ class WhatsAppAccount(models.Model):
             return False
         # Invalidate ORM cache so subsequent reads see the committed value
         channel.invalidate_recordset(['wa_group_invite_sent'])
-
-        phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
-        import re
-        clean_phone = re.sub(r'\D', '', str(phone or ''))
-        if not clean_phone:
-            return False
 
         import requests
         url = f"https://graph.facebook.com/v19.0/{self.phone_uid}/messages"
