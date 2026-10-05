@@ -6,7 +6,7 @@ import threading
 _logger = logging.getLogger(__name__)
 
 try:
-    from odoo.addons.dev_whatsapp_chatbot_ent import models as _chatbot_ent_models  # noqa: F401
+    from odoo.addons.dev_whatsapp_chatbot_ent import models as _chatbot_ent_models  # type: ignore # noqa: F401
     _CHATBOT_ENT_INSTALLED = True
 except ImportError:
     _CHATBOT_ENT_INSTALLED = False
