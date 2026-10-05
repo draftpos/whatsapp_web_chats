@@ -7,6 +7,7 @@ class ResUsers(models.Model):
     tenant_id = fields.Many2one('res.company', string='Tenant', default=lambda self: self.env.company)
     wa_department = fields.Many2one('hr.department', string='WhatsApp Department')
     whatsapp_account_ids = fields.Many2many('whatsapp.account', 'wa_account_res_users_rel', 'user_id', 'account_id', string='WhatsApp Accounts')
+    is_whatsapp_super_admin = fields.Boolean(string="Is WhatsApp Super Admin", default=False)
 
     @api.model
     def _signup_create_user(self, values):
