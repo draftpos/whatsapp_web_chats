@@ -601,7 +601,8 @@ class WhatsAppAccount(models.Model):
             domain.append(('wa_account_id', '=', int(wa_account_id)))
         if channel_id:
             domain.append(('id', '=', int(channel_id)))
-        if not self.env.is_admin():
+        is_super = self.env.is_admin() or self.env.user.has_group('whatsapp_web_chats.group_whatsapp_superadmin')
+        if not is_super:
             if hasattr(self.env.user, 'whatsapp_account_ids'):
                 domain.append(('wa_account_id', 'in', self.env.user.whatsapp_account_ids.ids))
             
@@ -932,7 +933,8 @@ class WhatsAppAccount(models.Model):
         channel = self.env['discuss.channel'].sudo().browse(int(channel_id))
         
         # Auto-assign chat to the user if it's unassigned
-        if not channel.wa_agent_id and not self.env.is_admin():
+        is_super = self.env.is_admin() or self.env.user.has_group('whatsapp_web_chats.group_whatsapp_superadmin')
+        if not channel.wa_agent_id and not is_super:
             channel.wa_agent_id = self.env.user.id
             
         # Optimize pagination by using a raw SQL query instead of loading all whatsapp messages into memory

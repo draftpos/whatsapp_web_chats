@@ -10,6 +10,7 @@
     # installs cleanly on Community. The bridge views/menus in enterprise_chatbot_views.xml
     # are loaded by post_init_hook when the enterprise chatbot module is present.
     'data': [
+        'security/whatsapp_security.xml',
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
         'data/ir_config_parameter_data.xml',
