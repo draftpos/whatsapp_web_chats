@@ -2333,6 +2333,12 @@ class WhatsAppAccount(models.Model):
         if not channel or channel.channel_type != 'whatsapp':
             return False
 
+        text = (self.wa_group_auto_message_text or '').strip()
+        link = (self.wa_group_auto_message_link or '').strip()
+        if not text and not link:
+            return False
+        full_text = f"{text} {link}".strip() if (text and link) else (text or link)
+
         # ── Atomic claim: only the first caller wins ──────────────────────────────
         # UPDATE ... WHERE wa_group_invite_sent = FALSE returns the number of rows
         # updated. If 0, another process already claimed it — bail out immediately.
@@ -2347,12 +2353,6 @@ class WhatsAppAccount(models.Model):
             return False
         # Invalidate ORM cache so subsequent reads see the committed value
         channel.invalidate_recordset(['wa_group_invite_sent'])
-
-        text = (self.wa_group_auto_message_text or '').strip()
-        link = (self.wa_group_auto_message_link or '').strip()
-        if not text and not link:
-            return False
-        full_text = f"{text} {link}".strip() if (text and link) else (text or link)
 
         phone = channel.whatsapp_number or (channel.whatsapp_partner_id and channel.whatsapp_partner_id.phone)
         import re
