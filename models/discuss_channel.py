@@ -292,3 +292,13 @@ class DiscussChannel(models.Model):
             
         action['context'] = context
         return action
+
+    def add_members(self, partner_ids=None, guest_ids=None, invite_to_rtc_call=False, post_joined_message=True):
+        if any(c.channel_type == 'whatsapp' for c in self):
+            post_joined_message = False
+        return super().add_members(
+            partner_ids=partner_ids,
+            guest_ids=guest_ids,
+            invite_to_rtc_call=invite_to_rtc_call,
+            post_joined_message=post_joined_message
+        )
