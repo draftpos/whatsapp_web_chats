@@ -18,6 +18,8 @@ class WhatsAppSignup(AuthSignupHome):
                     
         return response
 
+from odoo import http
+
 class WhatsAppWebhookOverride(http.Controller):
     @http.route('/whatsapp/webhook/', type='http', auth='public', methods=['GET', 'POST'], csrf=False)
     def webhookpost(self, **kwargs):
