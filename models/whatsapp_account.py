@@ -1153,6 +1153,17 @@ class WhatsAppAccount(models.Model):
             return request.make_response("success", status=200)
 
     def _process_messages(self, value):
+        import traceback
+        import logging
+        _logger = logging.getLogger(__name__)
+        try:
+            self._process_messages_inner(value)
+        except Exception as e:
+            _logger.error(f"CRITICAL WEBHOOK ERROR: {e}")
+            _logger.error(traceback.format_exc())
+            raise e
+
+    def _process_messages_inner(self, value):
         import logging
         _logger = logging.getLogger(__name__)
         _logger.error(f"DEBUG_WEBHOOK_START: value={value}")
