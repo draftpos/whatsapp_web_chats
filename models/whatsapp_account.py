@@ -1264,6 +1264,24 @@ class WhatsAppAccount(models.Model):
             value['messages'] = filtered_messages
 
             res = super()._process_messages(value)
+            
+            # For newly created channels, they might have missed the unread flag in the pre-super logic
+            for message in filtered_messages:
+                wa_id = message.get('from', '')
+                clean_phone = ''.join([c for c in str(wa_id) if c.isdigit()])
+                if clean_phone:
+                    channel = self.env['discuss.channel'].sudo().search([
+                        ('channel_type', '=', 'whatsapp'),
+                        ('wa_account_id', '=', self.id),
+                        '|',
+                        ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
+                        '|',
+                        ('whatsapp_partner_id.phone', 'in', [clean_phone, '+' + clean_phone]),
+                        ('whatsapp_partner_id.mobile', 'in', [clean_phone, '+' + clean_phone])
+                    ], limit=1)
+                    if channel and not channel.wa_is_unread_global:
+                        channel.sudo().write({'wa_is_unread_global': True, 'wa_is_done': False})
+                        
         finally:
             if not self.wa_bot_active and original_chatbot:
                 self.sudo().write({'chatbot_id': original_chatbot.id})
