@@ -1140,6 +1140,10 @@ class WhatsAppAccount(models.Model):
 
 
     def _process_messages(self, value):
+        import logging
+        _logger = logging.getLogger(__name__)
+        _logger.error(f"DEBUG_WEBHOOK_START: value={value}")
+        
         # Temporarily disable the chatbot if wa_bot_active is False
         original_chatbot = False
         if not self.wa_bot_active:
@@ -1262,8 +1266,10 @@ class WhatsAppAccount(models.Model):
             # This prevents base Odoo from processing or re-sending our own echo-back messages
             value = dict(value)
             value['messages'] = filtered_messages
-
+            
+            _logger.error("DEBUG_WEBHOOK_BEFORE_SUPER")
             res = super()._process_messages(value)
+            _logger.error(f"DEBUG_WEBHOOK_AFTER_SUPER: res={res}")
             
             # For newly created channels, they might have missed the unread flag in the pre-super logic
             for message in filtered_messages:
