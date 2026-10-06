@@ -247,9 +247,13 @@ class DiscussChannel(models.Model):
                 if self.whatsapp_partner_id:
                     match_domain.append(('partner_id', '=', self.whatsapp_partner_id.id))
                 if clean_phone:
-                    match_domain.append('|')
-                    match_domain.append(('phone', 'ilike', clean_phone[-8:] if len(clean_phone) > 8 else clean_phone))
-                    match_domain.append(('mobile', 'ilike', clean_phone[-8:] if len(clean_phone) > 8 else clean_phone))
+                    phone_q = clean_phone[-8:] if len(clean_phone) > 8 else clean_phone
+                    if 'mobile' in self.env['crm.lead']._fields:
+                        match_domain.append('|')
+                        match_domain.append(('phone', 'ilike', phone_q))
+                        match_domain.append(('mobile', 'ilike', phone_q))
+                    else:
+                        match_domain.append(('phone', 'ilike', phone_q))
                     
                 if match_domain:
                     if len(match_domain) > 1 and match_domain[0] != '|':

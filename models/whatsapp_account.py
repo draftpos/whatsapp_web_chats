@@ -1214,15 +1214,16 @@ class WhatsAppAccount(models.Model):
                 # Mark channel as unread for genuine incoming messages
                 clean_phone = sender_phone
                 if clean_phone:
+                    phone_variants = [clean_phone, '+' + clean_phone]
+                    partner_domain = [('whatsapp_partner_id.phone', 'in', phone_variants)]
+                    if 'mobile' in self.env['res.partner']._fields:
+                        partner_domain = ['|'] + partner_domain + [('whatsapp_partner_id.mobile', 'in', phone_variants)]
                     channel = self.env['discuss.channel'].sudo().search([
                         ('channel_type', '=', 'whatsapp'),
                         ('wa_account_id', '=', self.id),
                         '|',
-                        ('whatsapp_number', 'in', [clean_phone, '+' + clean_phone]),
-                        '|',
-                        ('whatsapp_partner_id.phone', 'in', [clean_phone, '+' + clean_phone]),
-                        ('whatsapp_partner_id.mobile', 'in', [clean_phone, '+' + clean_phone])
-                    ], limit=1)
+                        ('whatsapp_number', 'in', phone_variants),
+                    ] + partner_domain, limit=1)
                     if channel:
                         if channel.whatsapp_number != clean_phone:
                             channel.sudo().write({'whatsapp_number': clean_phone})
