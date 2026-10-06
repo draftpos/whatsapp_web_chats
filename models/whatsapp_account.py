@@ -706,13 +706,15 @@ class WhatsAppAccount(models.Model):
                     if last_msg_wa_state == 'received':
                         last_msg_is_me = False
                     elif last_message.author_id:
-                        if c.whatsapp_partner_id and last_message.author_id.id == c.whatsapp_partner_id.id:
-                            last_msg_is_me = False
+                        is_internal = False
+                        if last_message.author_id.sudo().user_ids:
+                            is_internal = any(u.has_group('base.group_user') for u in last_message.author_id.sudo().user_ids)
+                        
+                        root_partner = self.env.ref('base.partner_root', raise_if_not_found=False)
+                        if is_internal or (root_partner and last_message.author_id.id == root_partner.id):
+                            last_msg_is_me = True
                         else:
-                            if public_partner and last_message.author_id.id == public_partner.id:
-                                last_msg_is_me = False
-                            else:
-                                last_msg_is_me = True
+                            last_msg_is_me = False
                     else:
                         last_msg_is_me = False
                 else:
