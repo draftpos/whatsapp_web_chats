@@ -217,7 +217,13 @@
                             </div>
                             <div class="chat-info">
                                 <div class="chat-name-row" style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                    <div class="chat-name-col" style="display:flex; flex-direction:column;">
+                                    <div class="chat-name-col" style="display:flex; flex-direction:column; align-items:flex-start; min-width:0;">
+                                        <t t-if="channel.wa_agent_id">
+                                            <div style="font-size:10px; color:#1976D2; font-weight:bold; display:flex; align-items:center; margin-bottom: 1px;">
+                                                <i class="fa fa-user-circle" style="margin-right:3px;"></i>
+                                                <t t-esc="channel.wa_agent_id[1]"/>
+                                            </div>
+                                        </t>
                                         <div class="chat-name">
                                         <t t-esc="channel.name || 'Unknown'"/>
                                         <t t-if="channel.wa_is_favourite">
@@ -226,12 +232,6 @@
                                     </div>
                                     </div>
                                     <div class="chat-time-col" style="display:flex; flex-direction:column; align-items:flex-end;">
-                                        <t t-if="channel.wa_agent_id">
-                                            <div style="font-size:10px; color:#1976D2; font-weight:bold; display:flex; align-items:center; margin-bottom: 2px;">
-                                                <i class="fa fa-user-circle" style="margin-right:3px;"></i>
-                                                <t t-esc="channel.wa_agent_id[1]"/>
-                                            </div>
-                                        </t>
                                         <t t-if="channel.wa_is_urgent">
                                             <span style="background-color: #f24a4a; color: white; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 2px;">URGENT</span>
                                         </t>
