@@ -18,3 +18,25 @@ class WhatsAppSignup(AuthSignupHome):
                     
         return response
 
+class WhatsAppWebhookOverride(http.Controller):
+    @http.route('/whatsapp/webhook/', type='http', auth='public', methods=['GET', 'POST'], csrf=False)
+    def webhookpost(self, **kwargs):
+        import logging
+        import traceback
+        _logger = logging.getLogger(__name__)
+        _logger.error(f"CRITICAL WEBHOOK OVERRIDE HIT: method={request.httprequest.method}, kwargs={kwargs}")
+        try:
+            if request.httprequest.method == 'GET':
+                return request.make_response(kwargs.get('hub.challenge', ''), status=200)
+            if request.httprequest.method == 'POST':
+                data = request.get_json_data()
+                _logger.error(f"CRITICAL WEBHOOK PAYLOAD: {data}")
+                for entry in data.get('entry', []):
+                    for change in entry.get('changes', []):
+                        value = change.get('value', {})
+                        request.env['whatsapp.account'].sudo()._process_messages(value)
+                return request.make_response("success", status=200)
+        except Exception as e:
+            _logger.error(f"CRITICAL WEBHOOK EXCEPTION: {e}")
+            _logger.error(traceback.format_exc())
+            return request.make_response("success", status=200)
