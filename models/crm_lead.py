@@ -2,7 +2,7 @@ from odoo import models, fields, api, SUPERUSER_ID
 
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
-    _order = 'wa_last_message_date desc, priority desc, id desc'
+    _order = 'create_date desc, id desc'
 
     wa_last_message_date = fields.Datetime(string="Last WA Message Date", index=True)
 
@@ -23,6 +23,22 @@ class CrmLead(models.Model):
         ('fitted_kitchens', 'Fitted Kitchens'),
         ('construction', 'Construction')
     ], string='Project Category')
+
+    wa_hourly_activity = fields.Char(string="Hourly Activity")
+    wa_to_do = fields.Char(string="To Do")
+    wa_due_date = fields.Date(string="Due Date")
+    wa_next_followup_date = fields.Date(string="Next Follow Up Date")
+    wa_days_left = fields.Integer(string="Days Left for Next Lead", compute='_compute_wa_days_left', store=False)
+
+    @api.depends('wa_next_followup_date')
+    def _compute_wa_days_left(self):
+        today = fields.Date.today()
+        for lead in self:
+            if lead.wa_next_followup_date:
+                delta = lead.wa_next_followup_date - today
+                lead.wa_days_left = delta.days
+            else:
+                lead.wa_days_left = 0
 
     @api.onchange('project_category')
     def _onchange_project_category(self):

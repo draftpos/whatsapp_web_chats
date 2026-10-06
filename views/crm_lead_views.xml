@@ -216,6 +216,14 @@
                                 <field name="priority" widget="priority"/>
                                 <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
                             </group>
+                            <group name="custom_wa_tracking" string="Tracking &amp; Follow Up">
+                                <field name="wa_hourly_activity"/>
+                                <field name="wa_to_do"/>
+                                <field name="wa_due_date"/>
+                                <field name="wa_next_followup_date"/>
+                                <field name="wa_days_left"/>
+                                <field name="create_date" string="Lead Created Date" readonly="1"/>
+                            </group>
                         </group>
 
                     </page>
@@ -239,6 +247,12 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
                 <field name="wa_unread_messages_count" string="New WA Messages" optional="show"/>
+                <field name="wa_hourly_activity" optional="show"/>
+                <field name="wa_to_do" optional="show"/>
+                <field name="wa_due_date" optional="show"/>
+                <field name="create_date" string="Created Date" optional="show"/>
+                <field name="wa_next_followup_date" optional="show"/>
+                <field name="wa_days_left" optional="show"/>
             </xpath>
         </field>
     </record>
@@ -251,6 +265,12 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
                 <field name="wa_unread_messages_count" string="New WA Messages" optional="show"/>
+                <field name="wa_hourly_activity" optional="show"/>
+                <field name="wa_to_do" optional="show"/>
+                <field name="wa_due_date" optional="show"/>
+                <field name="create_date" string="Created Date" optional="show"/>
+                <field name="wa_next_followup_date" optional="show"/>
+                <field name="wa_days_left" optional="show"/>
             </xpath>
         </field>
     </record>
