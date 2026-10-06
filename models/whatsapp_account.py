@@ -1139,6 +1139,19 @@ class WhatsAppAccount(models.Model):
         return {'success': True}
 
 
+    def _process_webhook(self):
+        try:
+            return super()._process_webhook()
+        except Exception as e:
+            import traceback
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.error(f"CRITICAL WEBHOOK ERROR: {e}")
+            _logger.error(traceback.format_exc())
+            # return 200 to prevent Meta from disabling webhook
+            from odoo.http import request
+            return request.make_response("success", status=200)
+
     def _process_messages(self, value):
         import logging
         _logger = logging.getLogger(__name__)
