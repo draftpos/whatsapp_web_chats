@@ -477,11 +477,7 @@ class WhatsAppAccount(models.Model):
         current_company = self.env.company
         domain = ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
         
-        if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)):
-            if hasattr(self.env.user, 'whatsapp_account_ids'):
-                domain.append(('id', 'in', self.env.user.whatsapp_account_ids.ids))
-            
-        accounts = self.sudo().search_read(
+        accounts = self.search_read(
             domain,
             ['id', 'name', 'image_1920', 'wa_bot_active', 'tenant_id'],
         )
