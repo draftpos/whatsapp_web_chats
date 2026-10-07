@@ -472,10 +472,11 @@ class WhatsAppAccount(models.Model):
 
     @api.model
     def get_whatsapp_web_accounts(self):
-        """Return WhatsApp accounts scoped to the current tenant (company).
-        Falls back to including legacy accounts with no tenant_id so no data is lost."""
         current_company = self.env.company
         domain = ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
+        is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
+        if not is_super and hasattr(self.env.user, 'whatsapp_account_ids'):
+            domain.append(('id', 'in', self.env.user.whatsapp_account_ids.ids))
         
         accounts = self.search_read(
             domain,
