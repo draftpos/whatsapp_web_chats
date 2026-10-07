@@ -36,15 +36,15 @@ def merge_duplicates(env):
                     messages.write({'res_id': primary.id})
                     merged_count += len(messages)
                     
-                # Move any channel members (if needed)
-                # Odoo normally handles members, but we can ensure the current agent is on the primary
+                # Ensure members from the duplicate are in the primary channel
                 for member in dup.channel_member_ids:
-                    if not env['discuss.channel.member'].search([('channel_id', '=', primary.id), ('partner_id', '=', member.partner_id.id)]):
-                        member.write({'channel_id': primary.id})
-                    else:
-                        member.unlink()
+                    if not env['discuss.channel.member'].sudo().search([('channel_id', '=', primary.id), ('partner_id', '=', member.partner_id.id)]):
+                        env['discuss.channel.member'].sudo().create({
+                            'channel_id': primary.id,
+                            'partner_id': member.partner_id.id
+                        })
                 
-                # Delete the duplicate channel
+                # Delete the duplicate channel (this will cascade and delete its member records)
                 dup.unlink()
                 deleted_count += 1
                 
