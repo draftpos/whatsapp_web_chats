@@ -652,6 +652,7 @@ export class WhatsAppChatsAction extends Component {
 
     async selectAccount(accountId) {
         this.state.selectedAccount = accountId.toString();
+        try { localStorage.setItem('wa_selected_account', accountId.toString()); } catch (e) {}
         this.state.isAccountDropdownOpen = false;
         await this.loadChannels();
     }
@@ -957,7 +958,13 @@ export class WhatsAppChatsAction extends Component {
                     { silent: true }
                 );
                 if (this.state.accounts.length > 0) {
-                    this.state.selectedAccount = this.state.accounts[0].id.toString();
+                    let savedAccount = null;
+                    try { savedAccount = localStorage.getItem('wa_selected_account'); } catch (e) {}
+                    if (savedAccount && this.state.accounts.find(a => a.id.toString() === savedAccount)) {
+                        this.state.selectedAccount = savedAccount;
+                    } else {
+                        this.state.selectedAccount = this.state.accounts[0].id.toString();
+                    }
                 }
             } catch (e) {
                 if (e && e.message === "Component is destroyed") return;
