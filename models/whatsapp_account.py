@@ -109,6 +109,9 @@ class WhatsAppAccount(models.Model):
             if 'mobile' in self.env['crm.lead']._fields:
                 search_domain = ['|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)]
                 
+            if 'wa_account_id' in self.env['crm.lead']._fields:
+                search_domain.append(('wa_account_id', '=', self.id))
+                
             lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
             
             if not lead:
@@ -134,6 +137,14 @@ class WhatsAppAccount(models.Model):
                     
                 # Leave unassigned so the first normal user to open it in CRM gets it
                 lead_vals['user_id'] = channel.wa_agent_id.id if channel.wa_agent_id else False
+                if not lead_vals['user_id']:
+                    account_users = self.env['res.users'].sudo().search([('whatsapp_account_ids', 'in', self.id)], limit=1)
+                    if account_users:
+                        lead_vals['user_id'] = account_users.id
+                
+                if 'wa_account_id' in self.env['crm.lead']._fields:
+                    lead_vals['wa_account_id'] = self.id
+
                 self.env['crm.lead'].sudo().create(lead_vals)
                 created_count += 1
                 
@@ -1232,6 +1243,10 @@ class WhatsAppAccount(models.Model):
                             lead_domain = [('phone', 'ilike', clean_phone)]
                             if 'mobile' in self.env['crm.lead']._fields:
                                 lead_domain = ['|', ('phone', 'ilike', clean_phone), ('mobile', 'ilike', clean_phone)]
+                                
+                            if 'wa_account_id' in self.env['crm.lead']._fields:
+                                lead_domain.append(('wa_account_id', '=', self.id))
+                                
                             lead = self.env['crm.lead'].sudo().search(lead_domain, limit=1)
                             if lead and 'wa_last_message_date' in lead._fields:
                                 lead.sudo().write({'wa_last_message_date': fields.Datetime.now()})
@@ -1317,6 +1332,9 @@ class WhatsAppAccount(models.Model):
                 if 'mobile' in self.env['crm.lead']._fields:
                     search_domain = ['|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)]
                     
+                if 'wa_account_id' in self.env['crm.lead']._fields:
+                    search_domain.append(('wa_account_id', '=', self.id))
+                    
                 lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
                 
                 if not lead:
@@ -1353,6 +1371,14 @@ class WhatsAppAccount(models.Model):
                         
                     # Leave unassigned so the first normal user to open it in CRM gets it
                     lead_vals['user_id'] = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
+                    if not lead_vals['user_id']:
+                        account_users = self.env['res.users'].sudo().search([('whatsapp_account_ids', 'in', self.id)], limit=1)
+                        if account_users:
+                            lead_vals['user_id'] = account_users.id
+                    
+                    if 'wa_account_id' in self.env['crm.lead']._fields:
+                        lead_vals['wa_account_id'] = self.id
+
                     self.env['crm.lead'].sudo().create(lead_vals)
                     
         # Apply custom routing bot logic — use filtered value so echo-backs never trigger bot replies

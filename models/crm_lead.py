@@ -5,6 +5,7 @@ class CrmLead(models.Model):
     _order = 'create_date desc, id desc'
 
     wa_last_message_date = fields.Datetime(string="Last WA Message Date", index=True)
+    wa_account_id = fields.Many2one('whatsapp.account', string='WhatsApp Account', index=True)
 
     wa_chat_channel_id = fields.Many2one(
         'discuss.channel', 
