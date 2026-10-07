@@ -654,6 +654,11 @@ export class WhatsAppChatsAction extends Component {
         this.state.selectedAccount = accountId.toString();
         try { localStorage.setItem('wa_selected_account', accountId.toString()); } catch (e) {}
         this.state.isAccountDropdownOpen = false;
+        
+        // Immediately clear the UI so we don't see the old account's chats while loading
+        this.state.channels = [];
+        this.state.selectedChannel = null;
+        
         await Promise.all([
             this.loadChannels(),
             this.loadTemplates(),
