@@ -42,7 +42,7 @@ class WhatsAppQuickReply(models.Model):
         tenant_filter = ['|', ('tenant_id', '=', False), ('tenant_id', '=', current_company.id)]
         domain = [('account_id', '=', False)] + tenant_filter
         if account_id:
-            domain = ['|', ('account_id', '=', account_id), ('account_id', '=', False)] + tenant_filter
+            domain = [('account_id', '=', account_id)] + tenant_filter
         
         replies = self.search(domain)
         return [{'id': r.id, 'shortcut': r.shortcut or '', 'body': r.body or '', 'is_pinned': r.is_pinned, 'is_favorite': r.is_favorite, 'attachment_ids': [{'id': a.id, 'name': a.name, 'mimetype': a.mimetype} for a in r.attachment_ids]} for r in replies]

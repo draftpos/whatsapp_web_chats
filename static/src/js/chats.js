@@ -654,7 +654,11 @@ export class WhatsAppChatsAction extends Component {
         this.state.selectedAccount = accountId.toString();
         try { localStorage.setItem('wa_selected_account', accountId.toString()); } catch (e) {}
         this.state.isAccountDropdownOpen = false;
-        await this.loadChannels();
+        await Promise.all([
+            this.loadChannels(),
+            this.loadTemplates(),
+            this.loadQuickReplies()
+        ]);
     }
 
     async openNewChatModal() {
@@ -4117,9 +4121,11 @@ export class WhatsAppChatsAction extends Component {
                 }
             }
 
+            const accountId = this.state.selectedAccount ? parseInt(this.state.selectedAccount) : false;
             const qrIds = await this.orm.create('whatsapp.quick.reply', [{
                 shortcut: shortcut || false,
                 body: body.trim(),
+                account_id: accountId
             }]);
             
             if (attachment_ids.length > 0) {
