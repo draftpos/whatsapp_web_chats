@@ -1090,6 +1090,9 @@ export class WhatsAppChatsAction extends Component {
                     }
                     
                     await new Promise(resolve => setTimeout(resolve, 50));
+                } else if (!append && currentOffset === 0) {
+                    // First page is empty, clear the channels explicitly
+                    this.state.channels = [];
                 }
                 
                 if (fetchedChannels.length < limit || append) {
