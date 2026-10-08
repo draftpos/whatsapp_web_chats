@@ -584,11 +584,12 @@ export class WhatsAppChatsAction extends Component {
         }
     }
 
-    async loadTemplates() {
+    async loadTemplates(forceAccountId = null) {
         try {
             let domain = [["status", "=", "approved"]];
-            if (this.state.selectedAccount) {
-                domain.push(["wa_account_id", "=", parseInt(this.state.selectedAccount)]);
+            const accountIdToUse = forceAccountId || this.state.selectedAccount;
+            if (accountIdToUse) {
+                domain.push(["wa_account_id", "=", parseInt(accountIdToUse)]);
             }
             const templates = await this.orm.searchRead(
                 "whatsapp.template",
@@ -3927,6 +3928,18 @@ export class WhatsAppChatsAction extends Component {
         this.state.showPlusMenu = false;
         this.state.showTemplatesModal = true;
         this.state.quickReplyTab = (tab === 'templates') ? 'templates' : 'quick';
+        
+        let accountIdToUse = this.state.selectedAccount;
+        if (this.state.selectedChannel && this.state.selectedChannel.wa_account_id) {
+            if (Array.isArray(this.state.selectedChannel.wa_account_id)) {
+                accountIdToUse = this.state.selectedChannel.wa_account_id[0];
+            } else {
+                accountIdToUse = this.state.selectedChannel.wa_account_id;
+            }
+        }
+        if (accountIdToUse) {
+            this.loadTemplates(accountIdToUse);
+        }
     }
 
     closeTemplatesModal() {
