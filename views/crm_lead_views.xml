@@ -4,8 +4,6 @@
         <field name="name">crm.lead.view.form.whatsapp</field>
         <field name="model">crm.lead</field>
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
-        <!-- We give this view a higher priority (lower number) so it applies before others, or a lower priority (higher number) so it applies after?
-             Actually, if we apply it after the custom module, we can replace their structure. -->
         <field name="priority" eval="99"/>
         <field name="arch" type="xml">
             <!-- Replace the main sheet layout to encapsulate everything into a Notebook -->
@@ -17,7 +15,7 @@
                         <div class="oe_title mw-100">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h1 class="flex-grow-1">
-                                    <field class="text-break" options="{'line_breaks': False}" widget="text" name="name" placeholder="e.g. Product Pricing" invisible="1"/>
+                                    <field class="text-break" options="{'line_breaks': False}" widget="text" name="name" placeholder="e.g. Product Pricing"/>
                                     <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
                                 </h1>
                             </div>
@@ -87,12 +85,15 @@
                 </notebook>
             </xpath>
 
-            <!-- Remove the original custom module elements so they aren't duplicated -->
-            <xpath expr="//group[@invisible='1']" position="replace">
+            <!-- Hide the original custom module elements so they aren't duplicated -->
+            <xpath expr="//group[@invisible='1']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
-            <xpath expr="//group[@col='3']" position="replace">
+            <xpath expr="//group[@col='3']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
-            <xpath expr="//div[hasclass('d-flex')][field[@name='lead_properties']]" position="replace">
+            <xpath expr="//div[hasclass('d-flex')][field[@name='lead_properties']]" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
             
         </field>
