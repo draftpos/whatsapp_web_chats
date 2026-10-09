@@ -37,21 +37,53 @@
                             </h2>
                         </div>
                         
-                        <!-- Move the original invisible group here just in case -->
-                        <xpath expr="//group[@invisible='1']" position="move"/>
-                        <!-- Move the lead properties d-flex here -->
-                        <xpath expr="//div[hasclass('d-flex')][field[@name='lead_properties']]" position="move"/>
-                        <!-- Move the entire custom CRM layout (Columns 1, 2, 3) inside the Lead tab -->
-                        <xpath expr="//group[@col='3']" position="move"/>
-                        
+                        <!-- Paste the custom CRM layout inside the Lead tab -->
+                        <group col="3">
+                            <group string="Contact &amp; Basic Info">
+                                <field name="contact_name" string="First Name"/>
+                                <field name="partner_name" string="Organization/Store Name"/>
+                                <field name="email_from" string="Email"/>
+                                <field name="phone" string="Phone"/>
+                                <field name="website" string="Website"/>
+                                <field name="source_id" string="Source"/>
+                                <field name="crm_product_id" string="Product Interest" options="{'no_create': True}"/>
+                            </group>
+                            <group string="Deal &amp; Sales Info">
+                                <field name="user_id" string="Salesperson" domain="[('share', '=', False), ('active', '=', True)]"/>
+                                <field name="team_id" string="Sales Team"/>
+                                <field name="priority" widget="priority"/>
+                                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
+                                <field name="last_chatter" string="Last Chatter" readonly="1"/>
+                                <field name="custom_next_contact_date" string="Next Contact Date"/>
+                                <field name="custom_response_status" string="Response Status"/>
+                                <field name="custom_deal_size" string="Deal Size $"/>
+                                <field name="custom_quote" string="Quote"/>
+                                <field name="custom_quote_date" string="Quote Date"/>
+                                <field name="custom_proposal_status" string="Proposal"/>
+                                <field name="custom_proposal_date" string="Proposal Date"/>
+                            </group>
+                            <group string="Address &amp; Additional Info">
+                                <field name="city" string="City/Town"/>
+                                <field name="street" string="Full Address"/>
+                                <field name="custom_technician" string="Technician"/>
+                                <field name="custom_type_of_business" string="Type of Business"/>
+                                <field name="custom_demo_done" string="Demo Done"/>
+                                <field name="custom_demo_type" string="Demo Done Online/Onsite" invisible="custom_demo_done != 'yes'"/>
+                            </group>
+                        </group>
                     </page>
                     
                     <!-- WA Chats Tab -->
                     <page name="wa_chats" string="WA Chats" style="padding: 0 !important;">
-                        <div class="w-100"><field name="id" widget="crm_whatsapp_chat_widget" nolabel="1" style="width: 100% !important;"/></div>
+                        <div class="w-100 h-100"><field name="id" widget="crm_whatsapp_chat_widget" nolabel="1" style="width: 100% !important;"/></div>
                     </page>
                 </notebook>
             </xpath>
+
+            <!-- Remove the original custom module elements so they aren't duplicated -->
+            <xpath expr="//group[@invisible='1']" position="replace"/>
+            <xpath expr="//group[@col='3']" position="replace"/>
+            <xpath expr="//div[hasclass('d-flex')][field[@name='lead_properties']]" position="replace"/>
             
         </field>
     </record>
