@@ -109,12 +109,19 @@ class WhatsAppAccount(models.Model):
             if 'mobile' in self.env['crm.lead']._fields:
                 search_domain = ['|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)]
                 
+            # Allow matching leads that have NO whatsapp account assigned yet, 
+            # or already belong to this account, to avoid duplicates.
             if 'wa_account_id' in self.env['crm.lead']._fields:
+                search_domain.append('|')
                 search_domain.append(('wa_account_id', '=', self.id))
+                search_domain.append(('wa_account_id', '=', False))
                 
             lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
             
-            if not lead:
+            if lead:
+                if 'wa_account_id' in self.env['crm.lead']._fields and not lead.wa_account_id:
+                    lead.sudo().write({'wa_account_id': self.id})
+            else:
                 cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection)
                 readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
                 import re
