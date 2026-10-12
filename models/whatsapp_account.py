@@ -79,23 +79,20 @@ class WhatsAppAccount(models.Model):
     def _find_existing_crm_lead(self, clean_wa, partner=False):
         """
         Robustly finds an existing CRM lead for a given phone number / number ID.
-        Checks partner ID, exact phone variants, and significant digits (last 8-9 digits)
-        to prevent duplicate lead creation and avoid breaking when numbers have different formats.
+        Checks exact phone variants and significant digits (last 8-9 digits).
+        Returns an empty recordset if no verified phone match exists, allowing new leads to be created.
         """
         if not clean_wa and not partner:
             return self.env['crm.lead']
 
-        sig_8 = clean_wa[-8:] if len(clean_wa) >= 8 else clean_wa
-        sig_9 = clean_wa[-9:] if len(clean_wa) >= 9 else clean_wa
+        clean_wa = ''.join(c for c in str(clean_wa or '') if c.isdigit())
+        sig_8 = clean_wa[-8:] if len(clean_wa) >= 8 else False
+        sig_9 = clean_wa[-9:] if len(clean_wa) >= 9 else False
 
         domain_parts = []
-        if partner:
-            p_id = partner.id if hasattr(partner, 'id') else partner
-            domain_parts.append([('partner_id', '=', p_id)])
-
         if clean_wa:
             variants = [clean_wa, '+' + clean_wa]
-            if len(clean_wa) >= 9:
+            if sig_9:
                 variants.extend(['0' + sig_9, sig_9])
             
             p_domain = [('phone', 'in', variants)]
@@ -109,6 +106,12 @@ class WhatsAppAccount(models.Model):
                     s_domain = ['|', ('phone', 'ilike', sig_8), ('mobile', 'ilike', sig_8)]
                 domain_parts.append(s_domain)
 
+        if partner and hasattr(partner, 'id') and partner.id:
+            domain_parts.append([('partner_id', '=', partner.id)])
+
+        if not domain_parts:
+            return self.env['crm.lead']
+
         combined_domain = []
         for d in domain_parts:
             if not combined_domain:
@@ -116,28 +119,37 @@ class WhatsAppAccount(models.Model):
             else:
                 combined_domain = ['|'] + combined_domain + d
 
-        if not combined_domain:
-            return self.env['crm.lead']
-
-        candidates = self.env['crm.lead'].sudo().search(combined_domain, order='id desc', limit=10)
+        candidates = self.env['crm.lead'].sudo().search(combined_domain, order='id desc', limit=20)
         if not candidates:
             return self.env['crm.lead']
 
-        if partner:
-            p_id = partner.id if hasattr(partner, 'id') else partner
-            p_match = candidates.filtered(lambda l: l.partner_id.id == p_id)
-            if p_match:
-                return p_match[0]
+        # 1. Exact match on clean_wa or +clean_wa
+        if clean_wa:
+            for cand in candidates:
+                cand_phone = ''.join(c for c in (cand.phone or '') if c.isdigit())
+                cand_mobile = ''.join(c for c in (getattr(cand, 'mobile', '') or '') if c.isdigit())
+                if cand_phone == clean_wa or cand_mobile == clean_wa:
+                    return cand
 
-        for cand in candidates:
-            cand_phone = ''.join(c for c in (cand.phone or '') if c.isdigit())
-            cand_mobile = ''.join(c for c in (getattr(cand, 'mobile', '') or '') if c.isdigit())
-            for d in [cand_phone, cand_mobile]:
-                if d:
-                    if d == clean_wa or (len(d) >= 8 and len(clean_wa) >= 8 and (d.endswith(sig_8) or clean_wa.endswith(d[-8:]))):
+        # 2. Significant digits match (last 8-9 digits)
+        if sig_8:
+            for cand in candidates:
+                cand_phone = ''.join(c for c in (cand.phone or '') if c.isdigit())
+                cand_mobile = ''.join(c for c in (getattr(cand, 'mobile', '') or '') if c.isdigit())
+                for d in [cand_phone, cand_mobile]:
+                    if d and len(d) >= 8 and (d.endswith(sig_8) or clean_wa.endswith(d[-8:])):
                         return cand
 
-        return candidates[0]
+        # 3. If partner explicitly matches AND partner's phone digits match clean_wa
+        if partner and hasattr(partner, 'id') and partner.id:
+            p_matches = candidates.filtered(lambda l: l.partner_id.id == partner.id)
+            if p_matches:
+                p_clean = ''.join(c for c in (partner.phone or getattr(partner, 'mobile', '') or '') if c.isdigit())
+                if not clean_wa or not p_clean or p_clean == clean_wa or (sig_8 and p_clean.endswith(sig_8)):
+                    return p_matches[0]
+
+        # No verified phone match found -> return empty recordset so a new lead is created!
+        return self.env['crm.lead']
 
     def action_sync_historical_leads(self):
         self.ensure_one()
@@ -198,7 +210,9 @@ class WhatsAppAccount(models.Model):
             # Check if a lead already exists for this number ID or partner ID
             has_existing = False
             if channel.whatsapp_partner_id and channel.whatsapp_partner_id.id in existing_partner_ids:
-                has_existing = True
+                p_clean = ''.join(c for c in (channel.whatsapp_partner_id.phone or getattr(channel.whatsapp_partner_id, 'mobile', '') or '') if c.isdigit())
+                if not p_clean or p_clean == clean_wa or (len(p_clean) >= 8 and len(clean_wa) >= 8 and p_clean[-8:] == clean_wa[-8:]):
+                    has_existing = True
             elif clean_wa in existing_phone_keys:
                 has_existing = True
             elif len(clean_wa) >= 8 and clean_wa[-8:] in existing_phone_keys:
@@ -247,7 +261,7 @@ class WhatsAppAccount(models.Model):
             lead_user_id = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
             if not lead_user_id:
                 account_users = self.env['res.users'].sudo().search([
-                    ('whatsapp_account_ids', 'in', self.id),
+                    ('whatsapp_account_ids', 'in', self.ids),
                     ('share', '=', False),
                     ('active', '=', True)
                 ])
@@ -260,7 +274,11 @@ class WhatsAppAccount(models.Model):
             if 'wa_account_id' in self.env['crm.lead']._fields:
                 lead_vals['wa_account_id'] = self.id
 
-            self.env['crm.lead'].sudo().create(lead_vals)
+            self.env['crm.lead'].sudo().with_context(
+                skip_ensure_activity=True,
+                mail_create_nolog=True,
+                force_create_partner_from_whatsapp=True
+            ).create(lead_vals)
             created_count += 1
 
             # Register in existing keys so duplicate channels in the same loop don't create multiple leads
@@ -1531,7 +1549,7 @@ class WhatsAppAccount(models.Model):
                     lead_user_id = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
                     if not lead_user_id:
                         account_users = self.env['res.users'].sudo().search([
-                            ('whatsapp_account_ids', 'in', self.id),
+                            ('whatsapp_account_ids', 'in', self.ids),
                             ('share', '=', False),
                             ('active', '=', True)
                         ])
@@ -1544,7 +1562,11 @@ class WhatsAppAccount(models.Model):
                     if 'wa_account_id' in self.env['crm.lead']._fields:
                         lead_vals['wa_account_id'] = self.id
 
-                    self.env['crm.lead'].sudo().create(lead_vals)
+                    self.env['crm.lead'].sudo().with_context(
+                        skip_ensure_activity=True,
+                        mail_create_nolog=True,
+                        force_create_partner_from_whatsapp=True
+                    ).create(lead_vals)
                     
         # Apply custom routing bot logic — use filtered value so echo-backs never trigger bot replies
         self._process_routing_bot(value)

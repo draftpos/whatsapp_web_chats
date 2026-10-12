@@ -2998,26 +2998,13 @@ export class WhatsAppChatsAction extends Component {
         let file = ev.target.files[0];
         if (!file || !this.state.selectedChannel) return;
 
-        // Upload to Odoo as attachment
-        const formData = new window.FormData();
-        formData.append('csrf_token', window.odoo?.csrf_token || '');
-        formData.append('name', file.name);
-        formData.append('ufile', file, file.name);
-        formData.append('model', 'discuss.channel');
-        formData.append('id', this.state.selectedChannel.id);
-
         try {
-            const response = await window.fetch('/web/binary/upload_attachment', {
-                method: 'POST',
-                body: formData,
-            });
-            const responseText = await response.text();
-            const match = responseText.match(/\[.*?\]|\{.*?\}/);
-            if (match) {
-                const result = JSON.parse(match[0]);
-                let attId = null;
-                if (Array.isArray(result)) attId = result[0].id;
-                else if (result.id) attId = result.id;
+            const attId = await this.uploadAttachment(
+                file,
+                file.name,
+                this.state.selectedChannel.id,
+                file.type || 'image/webp'
+            );
                 
                 if (attId) {
                     await this.orm.call(
@@ -3321,32 +3308,12 @@ export class WhatsAppChatsAction extends Component {
         this.scrollToBottom();
 
         try {
-            const formData = new window.FormData();
-            formData.append('csrf_token', window.odoo?.csrf_token || '');
-            formData.append('name', filename);
-            formData.append('ufile', blob, filename);
-            formData.append('model', 'discuss.channel');
-            formData.append('id', this.state.selectedChannel.id);
-
-            const response = await window.fetch('/web/binary/upload_attachment', {
-                method: 'POST',
-                body: formData,
-            });
-            const responseText = await response.text();
-            let attachmentId = null;
-            const match = responseText.match(/\[.*?\]|\{.*?\}/);
-            if (match) {
-                const result = JSON.parse(match[0]);
-                if (Array.isArray(result) && result.length > 0) {
-                    attachmentId = result[0].id;
-                } else if (result.id) {
-                    attachmentId = result.id;
-                }
-            }
-
-            if (!attachmentId) {
-                throw new Error("Failed to parse attachment ID");
-            }
+            const attachmentId = await this.uploadAttachment(
+                blob,
+                filename,
+                this.state.selectedChannel.id,
+                'audio/ogg'
+            );
 
             const msgId = await this.orm.call(
                 'whatsapp.account',
@@ -3580,42 +3547,17 @@ export class WhatsAppChatsAction extends Component {
                         
                         // Upload and send attachment sequentially
                         try {
-                        let fileToUpload = pendingFile.file;
-                        if (!fileToUpload && pendingFile.dataUrl) {
-                            fileToUpload = this.dataURLtoBlob(pendingFile.dataUrl);
-                        }
-                        if (!fileToUpload) {
+                        const fileContent = pendingFile.file || pendingFile.dataUrl;
+                        if (!fileContent) {
                             throw new Error("No file content to upload");
                         }
 
-                        const formData = new window.FormData();
-                        formData.append('csrf_token', window.odoo?.csrf_token || '');
-                        formData.append('name', pendingFile.name);
-                        formData.append('ufile', fileToUpload, pendingFile.name);
-                        formData.append('model', 'discuss.channel');
-                        formData.append('id', channelId);
-
-                        const response = await window.fetch('/web/binary/upload_attachment', {
-                            method: 'POST',
-                            body: formData,
-                        });
-                        if (!response.ok) {
-                            throw new Error(`Upload failed with status ${response.status}`);
-                        }
-                        const responseText = await response.text();
-                        let attachmentId = null;
-                        const match = responseText.match(/\[.*?\]|\{.*?\}/);
-                        if (match) {
-                            const result = JSON.parse(match[0]);
-                            if (Array.isArray(result) && result.length > 0) {
-                                attachmentId = result[0].id;
-                            } else if (result.id) {
-                                attachmentId = result.id;
-                            }
-                        }
-                        if (!attachmentId) {
-                            throw new Error("Could not parse attachment ID from upload response");
-                        }
+                        const attachmentId = await this.uploadAttachment(
+                            fileContent,
+                            pendingFile.name,
+                            channelId,
+                            pendingFile.type
+                        );
 
                         const kwargs = {
                             body: body,
@@ -3689,6 +3631,89 @@ export class WhatsAppChatsAction extends Component {
         return new window.Blob([u8arr], {type:mime});
     }
 
+    blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const res = reader.result;
+                if (typeof res === 'string') {
+                    const base64 = res.includes(',') ? res.split(',')[1] : res;
+                    resolve(base64);
+                } else {
+                    resolve(null);
+                }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    async uploadAttachment(fileOrBlob, filename, channelId, mimetype = 'application/octet-stream') {
+        // Method 1 (Primary & most reliable): ORM create 'ir.attachment' via authenticated JSON-RPC.
+        // This is 100% resilient against CSRF token mismatch / expiration (which causes HTTP 400).
+        try {
+            let base64Data = null;
+            if (typeof fileOrBlob === 'string' && fileOrBlob.includes(',')) {
+                base64Data = fileOrBlob.split(',')[1];
+            } else if (fileOrBlob instanceof Blob || (typeof File !== 'undefined' && fileOrBlob instanceof File)) {
+                base64Data = await this.blobToBase64(fileOrBlob);
+            }
+            if (base64Data) {
+                const attIds = await this.orm.create('ir.attachment', [{
+                    name: filename || 'attachment',
+                    datas: base64Data,
+                    res_model: 'discuss.channel',
+                    res_id: parseInt(channelId) || false,
+                    mimetype: mimetype || (fileOrBlob.type || 'application/octet-stream'),
+                    type: 'binary'
+                }]);
+                if (attIds && attIds.length > 0) {
+                    return attIds[0];
+                }
+            }
+        } catch (ormErr) {
+            console.warn("ORM create ir.attachment failed, falling back to HTTP upload:", ormErr);
+        }
+
+        // Method 2 (Fallback): /web/binary/upload_attachment with complete CSRF token resolution
+        const csrfToken = (typeof odoo !== 'undefined' && odoo?.csrf_token) || 
+                          (typeof session !== 'undefined' && session?.csrf_token) || 
+                          window.odoo?.csrf_token || 
+                          '';
+        const formData = new window.FormData();
+        formData.append('csrf_token', csrfToken);
+        formData.append('name', filename || 'attachment');
+        let uploadBlob = fileOrBlob;
+        if (typeof fileOrBlob === 'string' && fileOrBlob.startsWith('data:')) {
+            uploadBlob = this.dataURLtoBlob(fileOrBlob);
+        }
+        formData.append('ufile', uploadBlob, filename || 'attachment');
+        formData.append('model', 'discuss.channel');
+        formData.append('id', channelId);
+
+        const response = await window.fetch('/web/binary/upload_attachment', {
+            method: 'POST',
+            body: formData,
+        });
+        if (!response.ok) {
+            throw new Error(`Upload failed with status ${response.status}`);
+        }
+        const responseText = await response.text();
+        const match = responseText.match(/\[.*?\]|\{.*?\}/);
+        if (match) {
+            const result = JSON.parse(match[0]);
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            if (Array.isArray(result) && result.length > 0) {
+                return result[0].id;
+            } else if (result.id) {
+                return result.id;
+            }
+        }
+        throw new Error("Could not parse attachment ID from upload response");
+    }
+
     comingSoon(ev, msg) {
         if (ev) ev.stopPropagation();
         const text = msg || 'Feature coming soon';
@@ -3741,37 +3766,14 @@ export class WhatsAppChatsAction extends Component {
                     try {
                         for (const fileData of task.files) {
                             if (!fileData.dataUrl) continue;
-                            const blob = this.dataURLtoBlob(fileData.dataUrl);
-                            const formData = new window.FormData();
-                            formData.append('csrf_token', window.odoo?.csrf_token || '');
-                            formData.append('name', fileData.name);
-                            formData.append('ufile', blob, fileData.name);
-                            formData.append('model', 'discuss.channel');
-                            formData.append('id', task.channelId);
-
-                            const response = await window.fetch('/web/binary/upload_attachment', {
-                                method: 'POST',
-                                body: formData,
-                            });
-                            if (!response.ok) {
-                                throw new Error(`Upload failed with status ${response.status}`);
-                            }
-                            const responseText = await response.text();
-                            const match = responseText.match(/\[.*?\]|\{.*?\}/);
-                            if (match) {
-                                const result = JSON.parse(match[0]);
-                                if (result.error) {
-                                    throw new Error(result.error);
-                                }
-                                if (Array.isArray(result)) {
-                                    attachment_ids.push(...result.map(a => a.id));
-                                } else if (result.id) {
-                                    attachment_ids.push(result.id);
-                                } else {
-                                    throw new Error("Invalid attachment response format");
-                                }
-                            } else {
-                                throw new Error("Could not parse attachment ID from response");
+                            const attId = await this.uploadAttachment(
+                                fileData.dataUrl,
+                                fileData.name,
+                                task.channelId,
+                                fileData.type
+                            );
+                            if (attId) {
+                                attachment_ids.push(attId);
                             }
                         }
                     } catch (e) {
