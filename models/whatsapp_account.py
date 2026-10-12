@@ -154,8 +154,14 @@ class WhatsAppAccount(models.Model):
                 if 'wa_last_message_date' in self.env['crm.lead']._fields:
                     lead_vals['wa_last_message_date'] = channel.write_date or fields.Datetime.now()
                     
-                # Leave unassigned so the first normal user to open it in CRM gets it
-                lead_vals['user_id'] = channel.wa_agent_id.id if channel.wa_agent_id else False
+                lead_user_id = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
+                if not lead_user_id:
+                    tino = self.env['res.users'].sudo().search([('whatsapp_account_ids', 'in', self.id), ('login', 'ilike', 'tino')], limit=1)
+                    if tino:
+                        lead_user_id = tino.id
+                        if channel and not channel.wa_agent_id:
+                            channel.sudo().write({'wa_agent_id': tino.id})
+                lead_vals['user_id'] = lead_user_id
                 
                 if 'wa_account_id' in self.env['crm.lead']._fields:
                     lead_vals['wa_account_id'] = self.id
@@ -1420,8 +1426,14 @@ class WhatsAppAccount(models.Model):
                     if 'project_category' in self.env['crm.lead']._fields and self.auto_create_lead_category:
                         lead_vals['project_category'] = self.auto_create_lead_category
                         
-                    # Leave unassigned unless channel already has an active agent
-                    lead_vals['user_id'] = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
+                    lead_user_id = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
+                    if not lead_user_id:
+                        tino = self.env['res.users'].sudo().search([('whatsapp_account_ids', 'in', self.id), ('login', 'ilike', 'tino')], limit=1)
+                        if tino:
+                            lead_user_id = tino.id
+                            if channel and not channel.wa_agent_id:
+                                channel.sudo().write({'wa_agent_id': tino.id})
+                    lead_vals['user_id'] = lead_user_id
                     
                     if 'wa_account_id' in self.env['crm.lead']._fields:
                         lead_vals['wa_account_id'] = self.id
