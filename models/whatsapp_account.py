@@ -76,6 +76,69 @@ class WhatsAppAccount(models.Model):
     
     is_school_installed = fields.Boolean(compute="_compute_is_school_installed")
 
+    def _find_existing_crm_lead(self, clean_wa, partner=False):
+        """
+        Robustly finds an existing CRM lead for a given phone number / number ID.
+        Checks partner ID, exact phone variants, and significant digits (last 8-9 digits)
+        to prevent duplicate lead creation and avoid breaking when numbers have different formats.
+        """
+        if not clean_wa and not partner:
+            return self.env['crm.lead']
+
+        sig_8 = clean_wa[-8:] if len(clean_wa) >= 8 else clean_wa
+        sig_9 = clean_wa[-9:] if len(clean_wa) >= 9 else clean_wa
+
+        domain_parts = []
+        if partner:
+            p_id = partner.id if hasattr(partner, 'id') else partner
+            domain_parts.append([('partner_id', '=', p_id)])
+
+        if clean_wa:
+            variants = [clean_wa, '+' + clean_wa]
+            if len(clean_wa) >= 9:
+                variants.extend(['0' + sig_9, sig_9])
+            
+            p_domain = [('phone', 'in', variants)]
+            if 'mobile' in self.env['crm.lead']._fields:
+                p_domain = ['|', ('phone', 'in', variants), ('mobile', 'in', variants)]
+            domain_parts.append(p_domain)
+
+            if sig_8:
+                s_domain = [('phone', 'ilike', sig_8)]
+                if 'mobile' in self.env['crm.lead']._fields:
+                    s_domain = ['|', ('phone', 'ilike', sig_8), ('mobile', 'ilike', sig_8)]
+                domain_parts.append(s_domain)
+
+        combined_domain = []
+        for d in domain_parts:
+            if not combined_domain:
+                combined_domain = d
+            else:
+                combined_domain = ['|'] + combined_domain + d
+
+        if not combined_domain:
+            return self.env['crm.lead']
+
+        candidates = self.env['crm.lead'].sudo().search(combined_domain, order='id desc', limit=10)
+        if not candidates:
+            return self.env['crm.lead']
+
+        if partner:
+            p_id = partner.id if hasattr(partner, 'id') else partner
+            p_match = candidates.filtered(lambda l: l.partner_id.id == p_id)
+            if p_match:
+                return p_match[0]
+
+        for cand in candidates:
+            cand_phone = ''.join(c for c in (cand.phone or '') if c.isdigit())
+            cand_mobile = ''.join(c for c in (getattr(cand, 'mobile', '') or '') if c.isdigit())
+            for d in [cand_phone, cand_mobile]:
+                if d:
+                    if d == clean_wa or (len(d) >= 8 and len(clean_wa) >= 8 and (d.endswith(sig_8) or clean_wa.endswith(d[-8:]))):
+                        return cand
+
+        return candidates[0]
+
     def action_sync_historical_leads(self):
         self.ensure_one()
         if not self.auto_create_leads:
@@ -95,90 +158,122 @@ class WhatsAppAccount(models.Model):
             ('wa_account_id', '=', self.id)
         ])
         
+        # Pre-index existing leads across the database by phone number IDs / digits & partner IDs
+        existing_leads = self.env['crm.lead'].sudo().search_read([], ['id', 'phone', 'mobile', 'partner_id'])
+        existing_phone_keys = set()
+        existing_partner_ids = set()
+
+        for el in existing_leads:
+            if el.get('partner_id'):
+                existing_partner_ids.add(el['partner_id'][0])
+            for f in ['phone', 'mobile']:
+                val = el.get(f)
+                if val:
+                    digits = ''.join(c for c in str(val) if c.isdigit())
+                    if len(digits) >= 7:
+                        existing_phone_keys.add(digits)
+                        if len(digits) >= 8:
+                            existing_phone_keys.add(digits[-8:])
+                        if len(digits) >= 9:
+                            existing_phone_keys.add(digits[-9:])
+
         created_count = 0
+        skipped_count = 0
         for channel in channels:
-            if not channel.whatsapp_number:
+            # Extract phone number / number ID from whatsapp_number, partner phone/mobile, or channel name
+            phone_raw = channel.whatsapp_number
+            if not phone_raw and channel.whatsapp_partner_id:
+                phone_raw = channel.whatsapp_partner_id.phone or channel.whatsapp_partner_id.mobile
+            if not phone_raw and channel.name:
+                phone_raw = channel.name
+
+            clean_wa = ''.join(c for c in str(phone_raw or '') if c.isdigit())
+            if len(clean_wa) < 7:
                 continue
-                
-            clean_wa = ''.join(c for c in channel.whatsapp_number if c.isdigit())
-            if not clean_wa:
+
+            # Check if a lead already exists for this number ID or partner ID
+            has_existing = False
+            if channel.whatsapp_partner_id and channel.whatsapp_partner_id.id in existing_partner_ids:
+                has_existing = True
+            elif clean_wa in existing_phone_keys:
+                has_existing = True
+            elif len(clean_wa) >= 8 and clean_wa[-8:] in existing_phone_keys:
+                has_existing = True
+            elif len(clean_wa) >= 9 and clean_wa[-9:] in existing_phone_keys:
+                has_existing = True
+
+            if has_existing:
+                # Lead already exists for this phone number ID.
+                # DO NOT modify, overwrite, or touch the lead so any user edits/stages/assignees are strictly preserved!
+                skipped_count += 1
                 continue
+
+            cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection) if 'auto_create_lead_category' in self._fields else {}
+            readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
+            import re
+            clean_contact_name = channel.name or channel.whatsapp_number
+            if clean_contact_name:
+                clean_contact_name = re.sub(r'\s*\([^)]+\)\s*$', '', clean_contact_name).strip()
                 
-            
-            search_domain = [('phone', 'ilike', clean_wa)]
-            if 'mobile' in self.env['crm.lead']._fields:
-                search_domain = ['|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)]
-                
-            # Allow matching leads that have NO whatsapp account assigned yet, 
-            # or already belong to this account, to avoid duplicates.
-            if 'wa_account_id' in self.env['crm.lead']._fields:
-                search_domain.append('|')
-                search_domain.append(('wa_account_id', '=', self.id))
-                search_domain.append(('wa_account_id', '=', False))
-                
-            lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
-            
-            if lead:
-                if 'wa_account_id' in self.env['crm.lead']._fields and not lead.wa_account_id:
-                    lead.sudo().write({'wa_account_id': self.id})
+            # If channel has partner with a real name, prefer it
+            if channel.whatsapp_partner_id and channel.whatsapp_partner_id.name:
+                p_name = channel.whatsapp_partner_id.name.strip()
+                if not p_name.isdigit() and p_name != clean_wa:
+                    clean_contact_name = p_name
+
+            if clean_contact_name and not clean_contact_name.isdigit() and clean_contact_name != clean_wa:
+                lead_title = f"{clean_contact_name} - {readable_cat}"
             else:
-                cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection)
-                readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
-                import re
-                clean_contact_name = channel.name or channel.whatsapp_number
-                if clean_contact_name:
-                    clean_contact_name = re.sub(r'\s*\([^)]+\)\s*$', '', clean_contact_name).strip()
-                    
-                # If channel has partner with a real name, prefer it
-                if channel.whatsapp_partner_id and channel.whatsapp_partner_id.name:
-                    p_name = channel.whatsapp_partner_id.name.strip()
-                    if not p_name.isdigit() and p_name != clean_wa:
-                        clean_contact_name = p_name
+                lead_title = f"+{clean_wa} - {readable_cat}"
 
-                if clean_contact_name and not clean_contact_name.isdigit() and clean_contact_name != clean_wa:
-                    lead_title = f"{clean_contact_name} - {readable_cat}"
-                else:
-                    lead_title = f"+{clean_wa} - {readable_cat}"
-
-                lead_vals = {
-                    'name': lead_title,
-                    'contact_name': clean_contact_name,
-                    'partner_name': clean_contact_name,
-                    'phone': '+' + clean_wa,
-                    'type': 'lead',
-                    'project_category': self.auto_create_lead_category or 'fitted_kitchens'
-                }
-                if channel.whatsapp_partner_id:
-                    lead_vals['partner_id'] = channel.whatsapp_partner_id.id
-                    lead_vals['email_from'] = channel.whatsapp_partner_id.email
-                if 'wa_last_message_date' in self.env['crm.lead']._fields:
-                    lead_vals['wa_last_message_date'] = channel.write_date or fields.Datetime.now()
-                    
-                lead_user_id = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
-                if not lead_user_id:
-                    account_users = self.env['res.users'].sudo().search([
-                        ('whatsapp_account_ids', 'in', self.id),
-                        ('share', '=', False),
-                        ('active', '=', True)
-                    ])
-                    if len(account_users) == 1:
-                        lead_user_id = account_users.id
-                        if channel and not channel.wa_agent_id:
-                            channel.sudo().write({'wa_agent_id': account_users.id})
-                lead_vals['user_id'] = lead_user_id
+            lead_vals = {
+                'name': lead_title,
+                'contact_name': clean_contact_name,
+                'partner_name': clean_contact_name,
+                'phone': '+' + clean_wa,
+                'type': 'lead',
+                'project_category': self.auto_create_lead_category or 'fitted_kitchens'
+            }
+            if channel.whatsapp_partner_id:
+                lead_vals['partner_id'] = channel.whatsapp_partner_id.id
+                lead_vals['email_from'] = channel.whatsapp_partner_id.email
+            if 'wa_last_message_date' in self.env['crm.lead']._fields:
+                lead_vals['wa_last_message_date'] = channel.write_date or fields.Datetime.now()
                 
-                if 'wa_account_id' in self.env['crm.lead']._fields:
-                    lead_vals['wa_account_id'] = self.id
+            lead_user_id = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
+            if not lead_user_id:
+                account_users = self.env['res.users'].sudo().search([
+                    ('whatsapp_account_ids', 'in', self.id),
+                    ('share', '=', False),
+                    ('active', '=', True)
+                ])
+                if len(account_users) == 1:
+                    lead_user_id = account_users.id
+                    if channel and not channel.wa_agent_id:
+                        channel.sudo().write({'wa_agent_id': account_users.id})
+            lead_vals['user_id'] = lead_user_id
+            
+            if 'wa_account_id' in self.env['crm.lead']._fields:
+                lead_vals['wa_account_id'] = self.id
 
-                self.env['crm.lead'].sudo().create(lead_vals)
-                created_count += 1
+            self.env['crm.lead'].sudo().create(lead_vals)
+            created_count += 1
+
+            # Register in existing keys so duplicate channels in the same loop don't create multiple leads
+            existing_phone_keys.add(clean_wa)
+            if len(clean_wa) >= 8:
+                existing_phone_keys.add(clean_wa[-8:])
+            if len(clean_wa) >= 9:
+                existing_phone_keys.add(clean_wa[-9:])
+            if channel.whatsapp_partner_id:
+                existing_partner_ids.add(channel.whatsapp_partner_id.id)
                 
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
                 'title': 'Sync Complete',
-                'message': f'Successfully generated {created_count} historical leads from existing chats!',
+                'message': f'Sync complete: {created_count} new leads created ({skipped_count} existing leads preserved).',
                 'sticky': False,
                 'type': 'success',
             }
@@ -1375,21 +1470,20 @@ class WhatsAppAccount(models.Model):
                 if not clean_wa:
                     continue
 
-                search_domain = [('phone', 'ilike', clean_wa)]
-                if 'mobile' in self.env['crm.lead']._fields:
-                    search_domain = ['|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)]
-                    
-                if 'wa_account_id' in self.env['crm.lead']._fields:
-                    search_domain.append(('wa_account_id', '=', self.id))
-                    
-                lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
-                
-                if not lead:
-                    channel = self.env['discuss.channel'].sudo().search([
-                        ('channel_type', '=', 'whatsapp'),
-                        ('whatsapp_number', 'in', [wa_id, clean_wa, '+' + clean_wa]),
-                        ('wa_account_id', '=', self.id)
-                    ], limit=1)
+                channel = self.env['discuss.channel'].sudo().search([
+                    ('channel_type', '=', 'whatsapp'),
+                    ('whatsapp_number', 'in', [wa_id, clean_wa, '+' + clean_wa]),
+                    ('wa_account_id', '=', self.id)
+                ], limit=1)
+
+                partner = channel.whatsapp_partner_id if channel else False
+                lead = self._find_existing_crm_lead(clean_wa, partner=partner)
+
+                if lead:
+                    # Existing lead found — do NOT overwrite user edits on the lead!
+                    if 'wa_last_message_date' in lead._fields:
+                        lead.sudo().write({'wa_last_message_date': fields.Datetime.now()})
+                else:
 
                     clean_contact_name = profile_name
                     if not clean_contact_name and channel and channel.whatsapp_partner_id and channel.whatsapp_partner_id.name:
