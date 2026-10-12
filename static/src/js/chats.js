@@ -3015,7 +3015,6 @@ export class WhatsAppChatsAction extends Component {
                         { silent: true }
                     );
                 }
-            }
         } catch (e) {
             console.error("Sticker upload failed", e);
             this.comingSoon(null, "Failed to upload and send sticker.");
