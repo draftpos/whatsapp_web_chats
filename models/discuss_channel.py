@@ -280,19 +280,41 @@ class DiscussChannel(models.Model):
             
         action['views'] = [(self.env.ref('crm.crm_lead_view_form').id, 'form')]
         action['target'] = 'new'
+
+        contact_name = ''
+        clean_num = ''.join(c for c in str(phone or '') if c.isdigit())
+        if self.whatsapp_partner_id and self.whatsapp_partner_id.name:
+            contact_name = self.whatsapp_partner_id.name.strip()
+        elif self.name:
+            contact_name = self.name.strip()
+
+        if contact_name:
+            import re
+            contact_name = re.sub(r'\s*\([^)]+\)\s*$', '', contact_name).strip()
+
+        category = self.wa_account_id.auto_create_lead_category if self.wa_account_id else 'fitted_kitchens'
+        cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection) if 'auto_create_lead_category' in self.env['whatsapp.account']._fields else {}
+        readable_cat = cat_dict.get(category) or 'WhatsApp Lead'
+
+        if contact_name and not contact_name.isdigit() and contact_name != clean_num:
+            lead_title = f"{contact_name} - {readable_cat}"
+        else:
+            lead_title = f"+{clean_num} - {readable_cat}" if clean_num else f"Lead from {phone or 'WhatsApp'}"
+
         context = {
-            'default_name': f'Lead from {self.name or phone}',
+            'default_name': lead_title,
             'default_phone': phone,
+            'default_contact_name': contact_name,
+            'default_partner_name': contact_name,
             'default_wa_chat_channel_id': self.id,
+            'default_wa_account_id': self.wa_account_id.id if self.wa_account_id else False,
+            'default_project_category': category,
             'default_type': 'lead',
             'force_create_partner_from_whatsapp': True,
         }
         if self.whatsapp_partner_id:
             context['default_partner_id'] = self.whatsapp_partner_id.id
-            context['default_contact_name'] = self.whatsapp_partner_id.name
             context['default_email_from'] = self.whatsapp_partner_id.email
-        else:
-            context['default_contact_name'] = self.name
             
         action['context'] = context
         return action

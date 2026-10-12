@@ -129,9 +129,21 @@ class WhatsAppAccount(models.Model):
                 if clean_contact_name:
                     clean_contact_name = re.sub(r'\s*\([^)]+\)\s*$', '', clean_contact_name).strip()
                     
+                # If channel has partner with a real name, prefer it
+                if channel.whatsapp_partner_id and channel.whatsapp_partner_id.name:
+                    p_name = channel.whatsapp_partner_id.name.strip()
+                    if not p_name.isdigit() and p_name != clean_wa:
+                        clean_contact_name = p_name
+
+                if clean_contact_name and not clean_contact_name.isdigit() and clean_contact_name != clean_wa:
+                    lead_title = f"{clean_contact_name} - {readable_cat}"
+                else:
+                    lead_title = f"+{clean_wa} - {readable_cat}"
+
                 lead_vals = {
-                    'name': readable_cat,
+                    'name': lead_title,
                     'contact_name': clean_contact_name,
+                    'partner_name': clean_contact_name,
                     'phone': '+' + clean_wa,
                     'type': 'lead',
                     'project_category': self.auto_create_lead_category or 'fitted_kitchens'
@@ -144,10 +156,6 @@ class WhatsAppAccount(models.Model):
                     
                 # Leave unassigned so the first normal user to open it in CRM gets it
                 lead_vals['user_id'] = channel.wa_agent_id.id if channel.wa_agent_id else False
-                if not lead_vals['user_id']:
-                    account_users = self.env['res.users'].sudo().search([('whatsapp_account_ids', 'in', self.id)], limit=1)
-                    if account_users:
-                        lead_vals['user_id'] = account_users.id
                 
                 if 'wa_account_id' in self.env['crm.lead']._fields:
                     lead_vals['wa_account_id'] = self.id
@@ -1172,7 +1180,7 @@ class WhatsAppAccount(models.Model):
         import logging
         _logger = logging.getLogger(__name__)
         try:
-            self._process_messages_inner(value)
+            return self._process_messages_inner(value)
         except Exception as e:
             _logger.error(f"CRITICAL WEBHOOK ERROR: {e}")
             _logger.error(traceback.format_exc())
@@ -1333,8 +1341,20 @@ class WhatsAppAccount(models.Model):
 
         # Auto-create CRM leads for new incoming chats if the account is configured for it
         if self.auto_create_leads and 'crm.lead' in self.env:
+            incoming_senders = {}
             for wa_id, profile_name in wa_names.items():
+                incoming_senders[str(wa_id)] = profile_name
+
+            for msg in filtered_messages:
+                sender = str(msg.get('from', '')).strip()
+                if sender and sender not in incoming_senders:
+                    incoming_senders[sender] = ''
+
+            for wa_id, profile_name in incoming_senders.items():
                 clean_wa = ''.join(c for c in wa_id if c.isdigit())
+                if not clean_wa:
+                    continue
+
                 search_domain = [('phone', 'ilike', clean_wa)]
                 if 'mobile' in self.env['crm.lead']._fields:
                     search_domain = ['|', ('phone', 'ilike', clean_wa), ('mobile', 'ilike', clean_wa)]
@@ -1345,26 +1365,40 @@ class WhatsAppAccount(models.Model):
                 lead = self.env['crm.lead'].sudo().search(search_domain, limit=1)
                 
                 if not lead:
-                    cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection)
-                    readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
-                    import re
-                    clean_contact_name = profile_name or wa_id
-                    if clean_contact_name:
-                        clean_contact_name = re.sub(r'\s*\([^)]+\)\s*$', '', clean_contact_name).strip()
-                    
-                    lead_vals = {
-                        'name': readable_cat,
-                        'contact_name': clean_contact_name,
-                        'phone': wa_id,
-                        'type': 'lead',
-                    }
-                    
-                    # Try to find the channel to extract the partner's email
                     channel = self.env['discuss.channel'].sudo().search([
                         ('channel_type', '=', 'whatsapp'),
-                        ('whatsapp_number', 'in', [wa_id, '+' + clean_wa]),
+                        ('whatsapp_number', 'in', [wa_id, clean_wa, '+' + clean_wa]),
                         ('wa_account_id', '=', self.id)
                     ], limit=1)
+
+                    clean_contact_name = profile_name
+                    if not clean_contact_name and channel and channel.whatsapp_partner_id and channel.whatsapp_partner_id.name:
+                        p_name = channel.whatsapp_partner_id.name.strip()
+                        if not p_name.isdigit() and p_name != clean_wa:
+                            clean_contact_name = p_name
+                    if not clean_contact_name and channel and channel.name:
+                        clean_contact_name = channel.name
+                    if not clean_contact_name:
+                        clean_contact_name = wa_id
+
+                    import re
+                    clean_contact_name = re.sub(r'\s*\([^)]+\)\s*$', '', clean_contact_name).strip()
+
+                    cat_dict = dict(self.env['whatsapp.account']._fields['auto_create_lead_category'].selection) if 'auto_create_lead_category' in self._fields else {}
+                    readable_cat = cat_dict.get(self.auto_create_lead_category) or 'WhatsApp Lead'
+
+                    if clean_contact_name and not clean_contact_name.isdigit() and clean_contact_name != clean_wa:
+                        lead_title = f"{clean_contact_name} - {readable_cat}"
+                    else:
+                        lead_title = f"+{clean_wa} - {readable_cat}"
+
+                    lead_vals = {
+                        'name': lead_title,
+                        'contact_name': clean_contact_name,
+                        'partner_name': clean_contact_name,
+                        'phone': '+' + clean_wa,
+                        'type': 'lead',
+                    }
                     
                     if channel and channel.whatsapp_partner_id:
                         lead_vals['partner_id'] = channel.whatsapp_partner_id.id
@@ -1376,12 +1410,8 @@ class WhatsAppAccount(models.Model):
                     if 'project_category' in self.env['crm.lead']._fields and self.auto_create_lead_category:
                         lead_vals['project_category'] = self.auto_create_lead_category
                         
-                    # Leave unassigned so the first normal user to open it in CRM gets it
+                    # Leave unassigned unless channel already has an active agent
                     lead_vals['user_id'] = channel.wa_agent_id.id if channel and channel.wa_agent_id else False
-                    if not lead_vals['user_id']:
-                        account_users = self.env['res.users'].sudo().search([('whatsapp_account_ids', 'in', self.id)], limit=1)
-                        if account_users:
-                            lead_vals['user_id'] = account_users.id
                     
                     if 'wa_account_id' in self.env['crm.lead']._fields:
                         lead_vals['wa_account_id'] = self.id

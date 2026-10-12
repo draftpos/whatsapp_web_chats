@@ -40,7 +40,8 @@
                         <!-- Paste the custom CRM layout inside the Lead tab -->
                         <group col="3">
                             <group string="Contact &amp; Basic Info">
-                                <field name="contact_name" string="First Name"/>
+                                <field name="partner_id" string="Customer" widget="res_partner_many2one"/>
+                                <field name="contact_name" string="Contact / First Name"/>
                                 <field name="partner_name" string="Organization/Store Name"/>
                                 <field name="email_from" string="Email"/>
                                 <field name="phone" string="Phone"/>

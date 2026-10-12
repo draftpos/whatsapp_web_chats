@@ -45,7 +45,12 @@ class CrmLead(models.Model):
     def _onchange_project_category(self):
         if self.project_category:
             category_names = dict(self._fields['project_category'].selection)
-            self.name = category_names.get(self.project_category, self.project_category)
+            cat_label = category_names.get(self.project_category, self.project_category)
+            c_name = self.contact_name or self.partner_name or (self.partner_id.name if self.partner_id else '')
+            if c_name:
+                self.name = f"{c_name} - {cat_label}"
+            else:
+                self.name = cat_label
 
     def _compute_wa_unread_messages_count(self):
         for lead in self:
