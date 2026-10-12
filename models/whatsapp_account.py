@@ -159,7 +159,10 @@ class WhatsAppAccount(models.Model):
         ])
         
         # Pre-index existing leads across the database by phone number IDs / digits & partner IDs
-        existing_leads = self.env['crm.lead'].sudo().search_read([], ['id', 'phone', 'mobile', 'partner_id'])
+        fields_to_read = ['id', 'phone', 'partner_id']
+        if 'mobile' in self.env['crm.lead']._fields:
+            fields_to_read.append('mobile')
+        existing_leads = self.env['crm.lead'].sudo().search_read([], fields_to_read)
         existing_phone_keys = set()
         existing_partner_ids = set()
 
@@ -167,15 +170,16 @@ class WhatsAppAccount(models.Model):
             if el.get('partner_id'):
                 existing_partner_ids.add(el['partner_id'][0])
             for f in ['phone', 'mobile']:
-                val = el.get(f)
-                if val:
-                    digits = ''.join(c for c in str(val) if c.isdigit())
-                    if len(digits) >= 7:
-                        existing_phone_keys.add(digits)
-                        if len(digits) >= 8:
-                            existing_phone_keys.add(digits[-8:])
-                        if len(digits) >= 9:
-                            existing_phone_keys.add(digits[-9:])
+                if f in el:
+                    val = el.get(f)
+                    if val:
+                        digits = ''.join(c for c in str(val) if c.isdigit())
+                        if len(digits) >= 7:
+                            existing_phone_keys.add(digits)
+                            if len(digits) >= 8:
+                                existing_phone_keys.add(digits[-8:])
+                            if len(digits) >= 9:
+                                existing_phone_keys.add(digits[-9:])
 
         created_count = 0
         skipped_count = 0
