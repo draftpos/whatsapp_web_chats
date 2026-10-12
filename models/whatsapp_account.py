@@ -723,7 +723,17 @@ class WhatsAppAccount(models.Model):
                 last_msg_wa_state = wa_states.get(last_message.id, False)
                 
                 # Determine is_me
-                if last_message.author_id and last_message.author_id.id == self.env.user.partner_id.id:
+                is_group_auto_msg = False
+                if last_message:
+                    if '<!--wa_group_auto_invite-->' in (last_message.body or ''):
+                        is_group_auto_msg = True
+                    elif c.wa_group_invite_sent and ('join our group' in (last_message.body or '').lower() or 'group link' in (last_message.body or '').lower()):
+                        is_group_auto_msg = True
+
+                if is_group_auto_msg:
+                    # Automated group messages sent by the system should NEVER be treated as human replies
+                    last_msg_is_me = False
+                elif last_message.author_id and last_message.author_id.id == self.env.user.partner_id.id:
                     last_msg_is_me = True
                 elif self.env.user.has_group('base.group_user'):
                     if last_msg_wa_state == 'received':
@@ -747,13 +757,13 @@ class WhatsAppAccount(models.Model):
                         last_msg_is_me = False
             
             # Use the precomputed bulk unread count — only show badge if wa_is_unread_global is set
-            # (meaning a real customer message arrived) and the last message is not from us.
-            if not c.wa_is_unread_global or last_msg_is_me:
+            # (meaning a real customer message arrived or auto group message was sent) and the last message is not from us.
+            if not c.wa_is_unread_global or (last_msg_is_me and not is_group_auto_msg):
                 unread_count = 0
-                if c.wa_is_unread_global:
+                if c.wa_is_unread_global and not is_group_auto_msg:
                     c.sudo().write({'wa_is_unread_global': False})
             else:
-                unread_count = unread_counts.get(c.id, 0)
+                unread_count = max(unread_counts.get(c.id, 0), 1)
 
             def clean_name(n):
                 if not n: return n
@@ -2463,7 +2473,7 @@ class WhatsAppAccount(models.Model):
         # updated. If 0, another process already claimed it — bail out immediately.
         self.env.cr.execute(
             "UPDATE discuss_channel "
-            "SET wa_group_invite_sent = TRUE "
+            "SET wa_group_invite_sent = TRUE, wa_is_unread_global = TRUE, wa_is_done = FALSE "
             "WHERE id = %s AND wa_group_invite_sent = FALSE",
             (channel.id,)
         )
@@ -2471,7 +2481,7 @@ class WhatsAppAccount(models.Model):
             # Already sent (or being sent right now by another process)
             return False
         # Invalidate ORM cache so subsequent reads see the committed value
-        channel.invalidate_recordset(['wa_group_invite_sent'])
+        channel.invalidate_recordset(['wa_group_invite_sent', 'wa_is_unread_global', 'wa_is_done'])
 
         import requests
         url = f"https://graph.facebook.com/v19.0/{self.phone_uid}/messages"
@@ -2497,7 +2507,7 @@ class WhatsAppAccount(models.Model):
                 msg_uid = resp_data['messages'][0]['id']
                 from odoo.tools import plaintext2html
                 mail_msg = channel.sudo().with_context(skip_auto_invite=True).message_post(
-                    body=plaintext2html(full_text),
+                    body=plaintext2html(full_text) + '<!--wa_group_auto_invite-->',
                     message_type='comment',
                     subtype_xmlid='mail.mt_comment',
                     author_id=self.env.ref('base.partner_admin').id
@@ -2509,7 +2519,12 @@ class WhatsAppAccount(models.Model):
                     'wa_account_id': self.id,
                     'msg_uid': msg_uid,
                     'state': 'sent',
-                    'body': full_text
+                    'body': full_text,
+                    'is_bot_message': True,
+                })
+                channel.sudo().write({
+                    'wa_is_unread_global': True,
+                    'wa_is_done': False,
                 })
                 _logger.info("Group auto message sent to channel %s (phone: %s)", channel.id, clean_phone)
                 return True
