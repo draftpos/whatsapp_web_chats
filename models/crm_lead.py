@@ -171,10 +171,12 @@ class CrmLead(models.Model):
                 if existing:
                     channel_id = existing.id
                 else:
-                    account_domain = []
-                    if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and hasattr(self.env.user, 'whatsapp_account_ids'):
-                        account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
-                    wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
+                    wa_account = self.wa_account_id if self.wa_account_id else False
+                    if not wa_account:
+                        account_domain = []
+                        if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and hasattr(self.env.user, 'whatsapp_account_ids'):
+                            account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
+                        wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
                     
                     is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
                     create_vals = {
@@ -188,6 +190,8 @@ class CrmLead(models.Model):
                         create_vals['wa_agent_id'] = self.env.user.id
                     new_channel = self.env['discuss.channel'].sudo().create(create_vals)
                     channel_id = new_channel.id
+                    if wa_account and 'wa_account_id' in self._fields and not self.wa_account_id:
+                        self.sudo().write({'wa_account_id': wa_account.id})
 
         if not channel_id:
             from odoo.exceptions import UserError
@@ -241,10 +245,12 @@ class CrmLead(models.Model):
             if existing:
                 channel_id = existing.id
             elif create_if_missing:
-                account_domain = []
-                if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and hasattr(self.env.user, 'whatsapp_account_ids'):
-                    account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
-                wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
+                wa_account = self.wa_account_id if self.wa_account_id else False
+                if not wa_account:
+                    account_domain = []
+                    if not (self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)) and hasattr(self.env.user, 'whatsapp_account_ids'):
+                        account_domain = [('id', 'in', self.env.user.whatsapp_account_ids.ids)]
+                    wa_account = self.env['whatsapp.account'].sudo().search(account_domain, limit=1)
                 is_super = self.env.su or getattr(self.env.user, 'is_whatsapp_super_admin', False)
                 create_vals = {
                     'name': clean_phone,
@@ -257,6 +263,8 @@ class CrmLead(models.Model):
                     create_vals['wa_agent_id'] = self.env.user.id
                 new_ch = self.env['discuss.channel'].sudo().create(create_vals)
                 channel_id = new_ch.id
+                if wa_account and 'wa_account_id' in self._fields and not self.wa_account_id:
+                    self.sudo().write({'wa_account_id': wa_account.id})
 
         if channel_id:
             channel = self.env['discuss.channel'].sudo().browse(channel_id)
