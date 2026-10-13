@@ -317,7 +317,18 @@ class CrmLead(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # Ensure 'Other' product interest is assigned if crm_product_id is present on model and not provided
+        other_prod_id = False
+        if 'crm_product_id' in self.env['crm.lead']._fields:
+            rel_model = self._fields['crm_product_id'].comodel_name
+            other_rec = self.env[rel_model].sudo().search([('name', 'ilike', 'Other')], limit=1)
+            if other_rec:
+                other_prod_id = other_rec.id
+
         for vals in vals_list:
+            if other_prod_id and not vals.get('crm_product_id'):
+                vals['crm_product_id'] = other_prod_id
+
             if self.env.context.get('force_create_partner_from_whatsapp') and not vals.get('partner_id'):
                 partner_name = vals.get('contact_name') or vals.get('partner_name') or vals.get('name') or 'WhatsApp Contact'
                 partner_vals = {
