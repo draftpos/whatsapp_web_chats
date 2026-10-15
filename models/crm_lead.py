@@ -291,8 +291,10 @@ class CrmLead(models.Model):
             lead = lead.sudo()
             if not lead.exists():
                 continue
-            # Leads created by the webhook (sudo) may carry OdooBot as salesperson: treat as unassigned
-            if not lead.user_id or lead.user_id.id == SUPERUSER_ID:
+            pub = self.env.ref('base.public_user', raise_if_not_found=False)
+            pub_id = pub.id if pub else 3
+            # Leads created by the webhook (sudo) may carry OdooBot or Public user as salesperson: treat as unassigned
+            if not lead.user_id or lead.user_id.id in (SUPERUSER_ID, pub_id):
                 lead.with_context(wa_skip_autoassign=True).write({'user_id': user.id})
                 channel = lead.wa_chat_channel_id.sudo()
                 if channel:

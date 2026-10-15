@@ -12,10 +12,12 @@ class ResUsers(models.Model):
     @api.model
     def _wa_apply_crm_visibility_rules(self):
         """ Force CRM lead record rules so that only WhatsApp Super Admins see all leads.
-        Normal users AND normal Odoo/Sales admins only see their own + unassigned leads.
+        Normal users AND normal Odoo/Sales admins only see their own + unassigned + public user leads.
         Called from security/ir_rule.xml on every install/upgrade. """
-        domain = ("[(1, '=', 1)] if user.is_whatsapp_super_admin "
-                  "else ['|', ('user_id', '=', user.id), ('user_id', '=', False)]")
+        pub = self.env.ref('base.public_user', raise_if_not_found=False)
+        pub_id = pub.id if pub else 3
+        domain = (f"[(1, '=', 1)] if user.is_whatsapp_super_admin "
+                  f"else ['|', ('user_id', '=', user.id), '|', ('user_id', '=', False), ('user_id', '=', {pub_id})]")
         for xmlid in ('crm.crm_rule_all_lead',
                       'crm.crm_rule_personal_lead',
                       'whatsapp_web_chats.crm_rule_personal_leads_whatsapp',
