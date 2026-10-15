@@ -310,9 +310,6 @@ class CrmLead(models.Model):
         return super(CrmLead, self.with_context(wa_skip_autoassign=True)).web_search_read(*args, **kwargs)
 
     def web_read(self, specification):
-        """ Auto-assign unassigned leads when a normal user opens them in the form view """
-        if len(self) == 1:
-            self._wa_auto_assign_to_current_user()
         return super().web_read(specification)
 
     @api.model_create_multi

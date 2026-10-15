@@ -1626,7 +1626,8 @@ class WhatsAppAccount(models.Model):
                 time_diff = last_msgs[0].date - last_msgs[1].date
                 if time_diff.total_seconds() > 24 * 60 * 60:
                     channel.wa_bot_state = False
-                    channel.wa_agent_id = False
+                    # Keep assigned agent intact; do not auto-unassign to public/unassigned
+                    # channel.wa_agent_id = False
                     channel.wa_department = False
 
             # text_body is already extracted above
