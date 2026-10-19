@@ -328,6 +328,18 @@ class CrmLead(models.Model):
             if other_prod_id and not vals.get('crm_product_id'):
                 vals['crm_product_id'] = other_prod_id
 
+            # Auto-assign salesperson from WhatsApp account or linked channel if not already specified
+            wa_acc_id = vals.get('wa_account_id')
+            if wa_acc_id and not vals.get('user_id'):
+                acc = self.env['whatsapp.account'].sudo().browse(wa_acc_id)
+                acc_users = self.env['res.users'].sudo().search([
+                    ('whatsapp_account_ids', 'in', [wa_acc_id]),
+                    ('share', '=', False),
+                    ('active', '=', True)
+                ])
+                if len(acc_users) == 1:
+                    vals['user_id'] = acc_users.id
+
             if self.env.context.get('force_create_partner_from_whatsapp') and not vals.get('partner_id'):
                 partner_name = vals.get('contact_name') or vals.get('partner_name') or vals.get('name') or 'WhatsApp Contact'
                 partner_vals = {
