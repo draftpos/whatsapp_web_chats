@@ -842,8 +842,12 @@ class WhatsAppAccount(models.Model):
             last_msg_is_me = False
             last_msg_wa_state = False
             if last_message:
-                raw = re.sub(r'<[^>]+>', '', last_message.body or '').strip()
-                last_msg_body = raw[:60] + ('...' if len(raw) > 60 else '')
+                raw_body = last_message.body or ''
+                if 'maps.google.com' in raw_body or 'google.com/maps' in raw_body or 'fa-map-marker' in raw_body:
+                    last_msg_body = '📍 Location'
+                else:
+                    raw = re.sub(r'<[^>]+>', '', raw_body).strip()
+                    last_msg_body = raw[:60] + ('...' if len(raw) > 60 else '')
                 last_msg_time = last_message.date.strftime('%Y-%m-%dT%H:%M:%SZ') if last_message.date else ''
                 
                 # Fetch whatsapp.message state
@@ -1224,7 +1228,11 @@ class WhatsAppAccount(models.Model):
                 else:
                     quoted_author = "You" if getattr(m.parent_id, 'is_me', getattr(m, 'is_me', False)) else "Customer"
 
-                quoted_body = re.sub(r'<[^>]+>', '', m.parent_id.body or '').strip()[:100]
+                p_body = m.parent_id.body or ''
+                if 'maps.google.com' in p_body or 'google.com/maps' in p_body or 'fa-map-marker' in p_body:
+                    quoted_body = '📍 Location'
+                else:
+                    quoted_body = re.sub(r'<[^>]+>', '', p_body).strip()[:100]
                 if m.parent_id.attachment_ids:
                     att = m.parent_id.attachment_ids[0]
                     quoted_attachment = {

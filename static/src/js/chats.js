@@ -2097,6 +2097,51 @@ export class WhatsAppChatsAction extends Component {
                     contactCardPhone = contactCardMatch[2].trim();
                     contactCardCleanPhone = contactCardPhone.replace(/\D/g, '');
                 }
+
+                // --- Location Message Detection ---
+                let isLocation = false;
+                let locationUrl = "";
+                let locationName = "";
+                let locationAddress = "";
+                let locationCoords = "";
+                const rawBody = msg.body || "";
+                if (rawBody.includes("maps.google.com") || rawBody.includes("google.com/maps") || rawBody.includes("maps.apple.com") || rawBody.includes("fa-map-marker")) {
+                    isLocation = true;
+                    const aMatch = rawBody.match(/href=["'](https?:\/\/[^"']+)["']/i);
+                    if (aMatch) {
+                        locationUrl = aMatch[1].replace(/&amp;/g, '&');
+                    } else {
+                        const urlMatch = rawBody.match(/(https?:\/\/(?:www\.)?(?:maps\.google\.com|google\.com\/maps|maps\.apple\.com)[^\s<>"']+)/i);
+                        if (urlMatch) {
+                            locationUrl = urlMatch[1].replace(/&amp;/g, '&');
+                        }
+                    }
+                    if (locationUrl) {
+                        const decodedUrl = decodeURIComponent(locationUrl);
+                        const coordMatch = decodedUrl.match(/[?&]q=([-+]?\d*\.?\d+)[,\s]+([-+]?\d*\.?\d+)/);
+                        if (coordMatch) {
+                            locationCoords = `${coordMatch[1]}, ${coordMatch[2]}`;
+                        }
+                    }
+                    if (tmp) {
+                        let remainingText = tmp.innerHTML || "";
+                        remainingText = remainingText.replace(/<a[\s\S]*?<\/a>/gi, '').replace(/<[^>]+>/g, '\n').trim();
+                        const extraLines = remainingText.split('\n').map(l => l.trim()).filter(l => l.length > 0 && l.toLowerCase() !== 'location');
+                        if (extraLines.length > 0) {
+                            locationName = extraLines[0];
+                            if (extraLines.length > 1) {
+                                locationAddress = extraLines.slice(1).join(', ');
+                            }
+                        }
+                    }
+                    if (!locationName) {
+                        locationName = locationCoords ? `Location (${locationCoords})` : "Shared Location";
+                    }
+                    if (!locationUrl && locationCoords) {
+                        locationUrl = `https://maps.google.com/maps?q=${locationCoords.replace(/\s+/g, '')}`;
+                    }
+                    bodyText = `📍 ${locationName}`;
+                }
                 
                 let timeText = '';
                 let dateText = '';
@@ -2145,7 +2190,7 @@ export class WhatsAppChatsAction extends Component {
                     }
                 }
                 
-                return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
+                return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone, isLocation, locationUrl, locationName, locationAddress, locationCoords };
             }).filter(msg => !msg.isSystem || (msg.isSystem && msg.bodyText && msg.bodyText.trim() !== ''));
                 const currentMessages = [...this.state.messages];
                 
@@ -2334,6 +2379,51 @@ export class WhatsAppChatsAction extends Component {
                     contactCardPhone = contactCardMatch[2].trim();
                     contactCardCleanPhone = contactCardPhone.replace(/\D/g, '');
                 }
+
+                // --- Location Message Detection ---
+                let isLocation = false;
+                let locationUrl = "";
+                let locationName = "";
+                let locationAddress = "";
+                let locationCoords = "";
+                const rawBody = msg.body || "";
+                if (rawBody.includes("maps.google.com") || rawBody.includes("google.com/maps") || rawBody.includes("maps.apple.com") || rawBody.includes("fa-map-marker")) {
+                    isLocation = true;
+                    const aMatch = rawBody.match(/href=["'](https?:\/\/[^"']+)["']/i);
+                    if (aMatch) {
+                        locationUrl = aMatch[1].replace(/&amp;/g, '&');
+                    } else {
+                        const urlMatch = rawBody.match(/(https?:\/\/(?:www\.)?(?:maps\.google\.com|google\.com\/maps|maps\.apple\.com)[^\s<>"']+)/i);
+                        if (urlMatch) {
+                            locationUrl = urlMatch[1].replace(/&amp;/g, '&');
+                        }
+                    }
+                    if (locationUrl) {
+                        const decodedUrl = decodeURIComponent(locationUrl);
+                        const coordMatch = decodedUrl.match(/[?&]q=([-+]?\d*\.?\d+)[,\s]+([-+]?\d*\.?\d+)/);
+                        if (coordMatch) {
+                            locationCoords = `${coordMatch[1]}, ${coordMatch[2]}`;
+                        }
+                    }
+                    if (tmp) {
+                        let remainingText = tmp.innerHTML || "";
+                        remainingText = remainingText.replace(/<a[\s\S]*?<\/a>/gi, '').replace(/<[^>]+>/g, '\n').trim();
+                        const extraLines = remainingText.split('\n').map(l => l.trim()).filter(l => l.length > 0 && l.toLowerCase() !== 'location');
+                        if (extraLines.length > 0) {
+                            locationName = extraLines[0];
+                            if (extraLines.length > 1) {
+                                locationAddress = extraLines.slice(1).join(', ');
+                            }
+                        }
+                    }
+                    if (!locationName) {
+                        locationName = locationCoords ? `Location (${locationCoords})` : "Shared Location";
+                    }
+                    if (!locationUrl && locationCoords) {
+                        locationUrl = `https://maps.google.com/maps?q=${locationCoords.replace(/\s+/g, '')}`;
+                    }
+                    bodyText = `📍 ${locationName}`;
+                }
                 
                 let timeText = '';
                 let dateText = '';
@@ -2382,7 +2472,7 @@ export class WhatsAppChatsAction extends Component {
                     }
                 }
                 
-                return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone };
+                return { ...msg, isMe, bodyText, bodyHtml, timeText, dateText, authorName, isMenu, menuTitle, menuOptions, isSystem, isForwarded, isContactCard, contactCardName, contactCardPhone, contactCardCleanPhone, isLocation, locationUrl, locationName, locationAddress, locationCoords };
             }).filter(msg => !msg.isSystem || (msg.isSystem && msg.bodyText && msg.bodyText.trim() !== ''));
             // Merge in-place: update existing message objects and append new ones.
             // Avoids replacing the array reference so OWL only re-renders changed items.
