@@ -6,86 +6,19 @@
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="priority" eval="99"/>
         <field name="arch" type="xml">
-            <!-- Replace the main sheet layout to encapsulate everything into a Notebook -->
-            <xpath expr="//div[hasclass('oe_title')]" position="replace">
-                <notebook>
-                    <!-- Main Lead Info Tab -->
-                    <page name="lead_page" string="Lead">
-                        <!-- Restore original oe_title -->
-                        <div class="oe_title mw-100">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h1 class="flex-grow-1">
-                                    <field class="text-break" options="{'line_breaks': False}" widget="text" name="name" placeholder="e.g. Product Pricing"/>
-                                    <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
-                                </h1>
-                            </div>
-                            <h2 class="row g-0 pb-3 pb-sm-4">
-                                <div class="col-auto pb-2 pb-md-0 w-100 w-sm-auto" invisible="type == 'lead'">
-                                    <label for="expected_revenue" class="oe_edit_only"/>
-                                    <div class="d-flex flex-wrap align-items-baseline">
-                                        <field name="company_currency" invisible="1"/>
-                                        <field name="expected_revenue" class="o_input_13ch" widget="monetary" options="{'currency_field': 'company_currency'}"/>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <div id="probability" class="d-flex align-items-baseline">
-                                        <field name="is_automated_probability" invisible="1"/>
-                                        <field name="probability" widget="float" class="oe_inline o_input_6ch" readonly="won_status != 'pending'"/>
-                                        <span class="opacity-50 p-2"> %</span>
-                                    </div>
-                                </div>
-                            </h2>
-                        </div>
-                        
-                        <!-- Paste the custom CRM layout inside the Lead tab -->
-                        <group col="3">
-                            <group string="Contact &amp; Basic Info">
-                                <field name="partner_id" string="Customer" widget="res_partner_many2one"/>
-                                <field name="contact_name" string="Contact / First Name"/>
-                                <field name="partner_name" string="Organization/Store Name"/>
-                                <field name="email_from" string="Email"/>
-                                <field name="phone" string="Phone"/>
-                                <field name="website" string="Website"/>
-                                <field name="source_id" string="Source"/>
-                                <field name="crm_product_id" string="Product Interest" options="{'no_create': True}"/>
-                            </group>
-                            <group string="Deal &amp; Sales Info">
-                                <field name="user_id" string="Salesperson" domain="[('share', '=', False), ('active', '=', True)]"/>
-                                <field name="team_id" string="Sales Team"/>
-                                <field name="priority" widget="priority"/>
-                                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
-                                <field name="last_chatter" string="Last Chatter" readonly="1"/>
-                                <field name="custom_next_contact_date" string="Next Contact Date" required="1"/>
-                                <field name="custom_response_status" string="Response Status"/>
-                                <field name="custom_deal_size" string="Deal Size $"/>
-                                <field name="custom_quote" string="Quote"/>
-                                <field name="custom_quote_date" string="Quote Date"/>
-                                <field name="custom_proposal_status" string="Proposal"/>
-                                <field name="custom_proposal_date" string="Proposal Date"/>
-                            </group>
-                            <group string="Address &amp; Additional Info">
-                                <field name="city" string="City/Town"/>
-                                <field name="street" string="Full Address"/>
-                                <field name="custom_technician" string="Technician"/>
-                                <field name="custom_type_of_business" string="Type of Business"/>
-                                <field name="custom_demo_done" string="Demo Done"/>
-                                <field name="custom_demo_type" string="Demo Done Online/Onsite" invisible="custom_demo_done != 'yes'"/>
-                            </group>
-                        </group>
-                    </page>
-                    
-                    <!-- WA Chats Tab -->
-                    <page name="wa_chats" string="WA Chats" style="padding: 0 !important;">
-                        <div class="w-100 h-100"><field name="id" widget="crm_whatsapp_chat_widget" nolabel="1" style="width: 100% !important;"/></div>
-                    </page>
-                </notebook>
+            <!-- Add project_category next to lead name -->
+            <xpath expr="//h1//field[@name='name']" position="after">
+                <field name="project_category" placeholder="Select Project Category..." class="text-break"/>
             </xpath>
 
-            <!-- Remove the original custom module elements so they aren't duplicated -->
-            <xpath expr="//group[@invisible='1']" position="replace"/>
-            <xpath expr="//group[@col='3']" position="replace"/>
-            <xpath expr="//div[hasclass('d-flex')][field[@name='lead_properties']]" position="replace"/>
-            
+            <!-- Place WA Chats tab directly into the existing main notebook to eliminate duplicate Lead tab -->
+            <xpath expr="//notebook[1]" position="inside">
+                <page name="wa_chats" string="WA Chats" style="padding: 0 !important;">
+                    <div class="w-100 h-100">
+                        <field name="id" widget="crm_whatsapp_chat_widget" nolabel="1" style="width: 100% !important;"/>
+                    </div>
+                </page>
+            </xpath>
         </field>
     </record>
 
