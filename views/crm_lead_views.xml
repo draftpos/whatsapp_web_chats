@@ -55,7 +55,7 @@
                                 <field name="priority" widget="priority"/>
                                 <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
                                 <field name="last_chatter" string="Last Chatter" readonly="1"/>
-                                <field name="custom_next_contact_date" string="Next Contact Date"/>
+                                <field name="custom_next_contact_date" string="Next Contact Date" required="1"/>
                                 <field name="custom_response_status" string="Response Status"/>
                                 <field name="custom_deal_size" string="Deal Size $"/>
                                 <field name="custom_quote" string="Quote"/>
